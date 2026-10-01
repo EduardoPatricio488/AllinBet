@@ -27,6 +27,7 @@
                             <summary aria-label="Menu do utilizador">{{ auth()->user()->initials() }}</summary>
                             <div class="casino-user-menu__panel">
                                 <p class="casino-user-menu__name">{{ auth()->user()->name }}</p>
+                                <a href="{{ route('casino.wallet') }}" wire:navigate>Carteira de créditos</a>
                                 <a href="{{ route('profile.edit') }}" wire:navigate>Perfil e configurações</a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -100,6 +101,7 @@
                 <a href="{{ route('home') }}" wire:navigate>🎰<span>Lobby</span></a>
                 <a href="{{ route('casino.history') }}" wire:navigate>📜<span>Histórico</span></a>
                 <a href="{{ route('casino.help') }}" wire:navigate>🛟<span>Ajuda</span></a>
+                <a href="{{ route('casino.wallet') }}" wire:navigate>💳<span>Carteira</span></a>
                 <a href="{{ route('profile.edit') }}" wire:navigate>👤<span>Perfil</span></a>
             </nav>
         @endauth
@@ -152,6 +154,7 @@
                     { n: 'Blackjack', u: '{{ route('casino.blackjack') }}' },
                     { n: 'Slots', u: '{{ route('casino.slots') }}' },
                     { n: 'Histórico', u: '{{ route('casino.history') }}' },
+                    { n: 'Carteira', u: '{{ route('casino.wallet') }}' },
                 ],
                 get results() { return this.items.filter(i => i.n.toLowerCase().includes(this.q.toLowerCase())); }
             }"
