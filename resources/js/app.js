@@ -20,15 +20,11 @@ const updateCasinoSoundControls = () => {
 let casinoAudioContext = null;
 
 const getCasinoAudioContext = () => {
-	if (! casinoSoundEnabled()) {
-		return null;
-	}
+	if (! casinoSoundEnabled()) return null;
 
 	try {
 		casinoAudioContext ??= new (window.AudioContext || window.webkitAudioContext)();
-		if (casinoAudioContext.state === 'suspended') {
-			casinoAudioContext.resume();
-		}
+		if (casinoAudioContext.state === 'suspended') casinoAudioContext.resume();
 		return casinoAudioContext;
 	} catch {
 		return null;
@@ -48,7 +44,6 @@ const casinoTone = (frequency, duration = 0.08, type = 'sine', volume = 0.045, d
 	gain.gain.setValueAtTime(0.0001, start);
 	gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-
 	oscillator.connect(gain);
 	gain.connect(context.destination);
 	oscillator.start(start);
@@ -56,17 +51,13 @@ const casinoTone = (frequency, duration = 0.08, type = 'sine', volume = 0.045, d
 };
 
 const casinoSound = {
-	click() {
-		casinoTone(520, 0.045, 'square', 0.025);
-	},
+	click() { casinoTone(520, 0.045, 'square', 0.025); },
 	spin() {
 		casinoTone(150, 0.09, 'sawtooth', 0.025);
 		casinoTone(185, 0.09, 'sawtooth', 0.022, 0.09);
 		casinoTone(220, 0.09, 'sawtooth', 0.02, 0.18);
 	},
-	stop(index = 0) {
-		casinoTone(170 + (index * 45), 0.08, 'triangle', 0.035);
-	},
+	stop(index = 0) { casinoTone(170 + (index * 45), 0.08, 'triangle', 0.035); },
 	coinflip() {
 		casinoTone(740, 0.07, 'triangle', 0.035);
 		casinoTone(980, 0.07, 'triangle', 0.03, 0.09);
@@ -78,9 +69,7 @@ const casinoSound = {
 		casinoTone(560, 0.1, 'triangle', 0.035, 0.14);
 	},
 	roulette() {
-		for (let i = 0; i < 7; i += 1) {
-			casinoTone(180 + (i * 35), 0.055, 'triangle', 0.018, i * 0.075);
-		}
+		for (let i = 0; i < 7; i += 1) casinoTone(180 + (i * 35), 0.055, 'triangle', 0.018, i * 0.075);
 	},
 	blackjack() {
 		casinoTone(440, 0.07, 'triangle', 0.03);
@@ -104,17 +93,10 @@ const casinoSound = {
 
 document.addEventListener('click', (event) => {
 	const button = event.target.closest('[data-casino-sound-toggle]');
-
-	if (! button) {
-		return;
-	}
+	if (! button) return;
 
 	const enabled = ! casinoSoundEnabled();
-
-	try {
-		localStorage.setItem(casinoSoundPreferenceKey, enabled ? 'on' : 'off');
-	} catch {
-	}
+	try { localStorage.setItem(casinoSoundPreferenceKey, enabled ? 'on' : 'off'); } catch {}
 
 	if (enabled) {
 		casinoAudioContext = null;
@@ -135,35 +117,12 @@ document.addEventListener('click', (event) => {
 
 	const text = (target.textContent || '').trim().toLowerCase();
 
-	if (target.matches('.slot-spin') || text.includes('girar')) {
-		casinoSound.spin();
-		return;
-	}
-
-	if (text.includes('cara') || text.includes('coroa') || text.includes('lançar moeda')) {
-		casinoSound.coinflip();
-		return;
-	}
-
-	if (text.includes('roleta') || text.includes('rodar')) {
-		casinoSound.roulette();
-		return;
-	}
-
-	if (text.includes('pedir') || text.includes('parar') || text.includes('dobrar')) {
-		casinoSound.blackjack();
-		return;
-	}
-
-	if (text.includes('dado') || text.includes('lançar')) {
-		casinoSound.dice();
-		return;
-	}
-
-	if (text.includes('adicionar') || text.includes('resgatar')) {
-		casinoSound.credit();
-		return;
-	}
+	if (target.matches('.slot-spin') || text.includes('girar')) return casinoSound.spin();
+	if (text.includes('cara') || text.includes('coroa') || text.includes('lançar moeda')) return casinoSound.coinflip();
+	if (text.includes('roleta') || text.includes('rodar')) return casinoSound.roulette();
+	if (text.includes('pedir') || text.includes('parar') || text.includes('dobrar')) return casinoSound.blackjack();
+	if (text.includes('dado') || text.includes('lançar')) return casinoSound.dice();
+	if (text.includes('adicionar') || text.includes('resgatar')) return casinoSound.credit();
 
 	casinoSound.click();
 });
@@ -171,37 +130,52 @@ document.addEventListener('click', (event) => {
 window.addEventListener('casino-toast', (event) => {
 	if (! casinoSoundEnabled()) return;
 	const title = String(event.detail?.title || '').toLowerCase();
-	if (title.includes('vitória') || title.includes('vitoria') || Number(event.detail?.amount || 0) > 0) {
-		casinoSound.win();
-	}
+	if (title.includes('vitória') || title.includes('vitoria') || Number(event.detail?.amount || 0) > 0) casinoSound.win();
 });
 
-document.addEventListener('casino-toast', (event) => {
-	if (! casinoSoundEnabled()) return;
-	const title = String(event.detail?.title || '').toLowerCase();
-	if (title.includes('vitória') || title.includes('vitoria') || Number(event.detail?.amount || 0) > 0) {
-		casinoSound.win();
-	}
-});
+const setupCasinoSlotSounds = () => {
+	if (! window.MutationObserver) return;
+
+	document.querySelectorAll('.slot-machine').forEach((machine) => {
+		if (machine.dataset.soundObserved === 'true') return;
+		machine.dataset.soundObserved = 'true';
+
+		const observer = new MutationObserver((mutations) => {
+			if (! casinoSoundEnabled()) return;
+
+			mutations.forEach((mutation) => {
+				if (mutation.type !== 'attributes' || mutation.attributeName !== 'style') return;
+				const strip = mutation.target;
+				if (! strip.matches('.slot-strip')) return;
+				if (strip.style.display === 'none') {
+					const reel = strip.closest('.slot-reel');
+					const index = reel ? [...machine.querySelectorAll('.slot-reel')].indexOf(reel) : 0;
+					casinoSound.stop(index);
+				}
+			});
+		});
+
+		observer.observe(machine, { subtree: true, attributes: true, attributeFilter: ['style'] });
+	});
+};
 
 document.addEventListener('DOMContentLoaded', updateCasinoSoundControls);
+document.addEventListener('DOMContentLoaded', setupCasinoSlotSounds);
 document.addEventListener('livewire:navigated', updateCasinoSoundControls);
+document.addEventListener('livewire:navigated', setupCasinoSlotSounds);
 
 const animateCasinoCounter = (element) => {
-	if (element.dataset.counted === 'true') {
-		return;
-	}
-
+	if (element.dataset.counted === 'true') return;
 	element.dataset.counted = 'true';
-
 	const target = Number.parseInt(element.dataset.casinoCountTo, 10);
 	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 	element.textContent = String(Number.isFinite(target) ? target : 0);
+	if (! reduceMotion) element.classList.add('casino-count-pop');
+};
 
-	if (! reduceMotion) {
-		element.classList.add('casino-count-pop');
-	}
+const revealCasinoElement = (element) => {
+	element.classList.add('casino-reveal', 'is-visible');
+	element.classList.remove('casino-reveal-pending');
 };
 
 const setupCasinoLobbyEffects = () => {
@@ -211,58 +185,37 @@ const setupCasinoLobbyEffects = () => {
 	if (! ('IntersectionObserver' in window) || reduceMotion) {
 		revealElements.forEach((element) => element.classList.add('casino-reveal', 'is-visible'));
 		document.querySelectorAll('[data-casino-count-to]').forEach(animateCasinoCounter);
-
 		return;
 	}
 
 	const revealObserver = new IntersectionObserver((entries, observer) => {
 		entries.forEach((entry) => {
-			if (! entry.isIntersecting) {
-				return;
-			}
-
+			if (! entry.isIntersecting) return;
 			revealCasinoElement(entry.target);
 			observer.unobserve(entry.target);
 		});
 	}, { threshold: 0.12 });
 
 	revealElements.forEach((element) => {
-		if (element.dataset.revealObserved === 'true') {
-			return;
-		}
-
+		if (element.dataset.revealObserved === 'true') return;
 		element.dataset.revealObserved = 'true';
 		element.classList.add('casino-reveal', 'casino-reveal-pending');
 		revealObserver.observe(element);
-
 		const bounds = element.getBoundingClientRect();
-
-		if (bounds.top < window.innerHeight && bounds.bottom > 0) {
-			requestAnimationFrame(() => revealCasinoElement(element));
-		}
+		if (bounds.top < window.innerHeight && bounds.bottom > 0) requestAnimationFrame(() => revealCasinoElement(element));
 	});
 
 	const counterObserver = new IntersectionObserver((entries, observer) => {
 		entries.forEach((entry) => {
-			if (! entry.isIntersecting) {
-				return;
-			}
-
+			if (! entry.isIntersecting) return;
 			animateCasinoCounter(entry.target);
 			observer.unobserve(entry.target);
 		});
 	}, { threshold: 0.5 });
 
 	document.querySelectorAll('[data-casino-count-to]').forEach((element) => {
-		if (element.dataset.counted !== 'true') {
-			counterObserver.observe(element);
-		}
+		if (element.dataset.counted !== 'true') counterObserver.observe(element);
 	});
-};
-
-const revealCasinoElement = (element) => {
-	element.classList.add('casino-reveal', 'is-visible');
-	element.classList.remove('casino-reveal-pending');
 };
 
 document.addEventListener('DOMContentLoaded', setupCasinoLobbyEffects);
