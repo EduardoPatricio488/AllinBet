@@ -210,3 +210,68 @@
         margin-top: 0.35rem;
     }
 }
+
+
+.casino-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgb(0 0 0 / 70%);
+    backdrop-filter: blur(4px);
+}
+
+.casino-modal__panel { width: min(30rem, 100%); }
+.casino-cmd-item { display: block; padding: .6rem .8rem; border-radius: .6rem; }
+.casino-cmd-item:hover,
+.casino-cmd-item:focus-visible { background: rgb(245 215 120 / 12%); }
+
+.casino-bottomnav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 40;
+    display: flex;
+    justify-content: space-around;
+    padding: .5rem 0 calc(.5rem + env(safe-area-inset-bottom, 0px));
+    background: rgb(10 10 18 / 90%);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgb(245 215 120 / 20%);
+}
+
+.casino-bottomnav a { display: grid; place-items: center; gap: .1rem; font-size: 1.2rem; }
+.casino-bottomnav span { font-size: .65rem; opacity: .8; }
+
+.casino-tabs { display: flex; gap: .5rem; margin-bottom: 1rem; overflow-x: auto; }
+.casino-tabs button {
+    padding: .45rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(245 215 120 / 25%);
+    background: transparent;
+    color: inherit;
+    font-size: .8rem;
+    white-space: nowrap;
+}
+.casino-tabs button.is-active {
+    background: linear-gradient(135deg, #f5d778, #b8892b);
+    color: #1a1205;
+}
+
+.casino-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
+.casino-stat { padding: 1rem; border-radius: 1rem; border: 1px solid rgb(245 215 120 / 15%); background: rgb(255 255 255 / 3%); }
+.casino-stat strong { display: block; font-size: 1.6rem; color: var(--cx-gold-bright, #f5d778); font-variant-numeric: tabular-nums; }
+.casino-stat span { font-size: .75rem; opacity: .7; }
+
+.casino-podium { display: grid; gap: .5rem; margin-top: .75rem; }
+.casino-podium li { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: .75rem; }
+.casino-podium__pos { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 9999px; background: #b8892b; color: #1a1205; font-weight: 700; }
+.casino-podium li:first-child .casino-podium__pos { background: #f5d778; box-shadow: 0 0 12px rgb(245 215 120 / 60%); }
+.casino-podium small { display: block; color: #aeb9c2; font-size: .65rem; }
+
+.casino-fair { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.25rem; }
+.casino-fair__icon { font-size: 2.2rem; }
+
+@media (max-width: 640px) {
+    .casino-fair { grid-template-columns: 1fr; }
+}
