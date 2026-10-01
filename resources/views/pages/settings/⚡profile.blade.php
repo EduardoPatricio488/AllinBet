@@ -12,7 +12,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.app'), Title('Profile settings')] class extends Component {
+new #[Layout('layouts.app'), Title('Definições de perfil')] class extends Component {
     use ProfileValidationRules;
 
     public string $name = '';
@@ -44,7 +44,7 @@ new #[Layout('layouts.app'), Title('Profile settings')] class extends Component 
 
         $user->save();
 
-        Flux::toast(variant: 'success', text: __('Profile updated.'));
+        Flux::toast(variant: 'success', text: __('Perfil atualizado.'));
     }
 
     /* @chisel-email-verification */
@@ -84,29 +84,29 @@ new #[Layout('layouts.app'), Title('Profile settings')] class extends Component 
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <flux:heading level="2" class="sr-only">{{ __('Profile settings') }}</flux:heading>
+    <flux:heading level="2" class="sr-only">{{ __('Definições de perfil') }}</flux:heading>
 
-    <x-pages::settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
+    <x-pages::settings.layout :heading="__('Perfil')" :subheading="__('Mantém os teus dados pessoais atualizados.')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
+            <flux:input wire:model="name" :label="__('Nome')" type="text" required autofocus autocomplete="name" />
 
             <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+                <flux:input wire:model="email" :label="__('E-mail')" type="email" required autocomplete="email" />
 
                 {{-- @chisel-email-verification --}}
                 @if ($this->hasUnverifiedEmail)
                     <div>
                         <flux:text class="mt-4">
-                            {{ __('Your email address is unverified.') }}
+                            O teu e-mail ainda não está verificado.
 
                             <flux:link class="text-sm cursor-pointer" wire:click.prevent="resendVerificationNotification">
-                                {{ __('Click here to re-send the verification email.') }}
+                                Reenviar e-mail de verificação
                             </flux:link>
                         </flux:text>
 
                         @if (session('status') === 'verification-link-sent')
                             <flux:text class="mt-2 font-medium !dark:text-green-400 !text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
+                                Foi enviado um novo link de verificação para o teu e-mail.
                             </flux:text>
                         @endif
                     </div>
@@ -117,7 +117,7 @@ new #[Layout('layouts.app'), Title('Profile settings')] class extends Component 
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">
                     <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
-                        {{ __('Save') }}
+                        Guardar alterações
                     </flux:button>
                 </div>
 
