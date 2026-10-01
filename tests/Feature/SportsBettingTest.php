@@ -65,6 +65,40 @@ final class SportsBettingTest extends TestCase
         self::assertSame(900, $wallet->fresh()->balance);
     }
 
+    public function test_user_can_access_their_sports_bet_history(): void
+    {
+        $user = User::factory()->create();
+        app(WalletService::class)->initialize($user, 1000);
+
+        SportsBet::query()->create([
+            'user_id' => $user->getKey(),
+            'stake' => 100,
+            'combined_odd' => 3.68,
+            'potential_payout' => 368,
+            'status' => 'pending',
+            'selections' => [
+                [
+                    'home' => 'Benfica',
+                    'away' => 'FC Porto',
+                    'selection' => 'Benfica',
+                    'odd' => 1.92,
+                    'date' => 'Hoje',
+                    'time' => '19:30',
+                ],
+            ],
+            'idempotency_key' => 'sports-history-test',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('casino.sports.bets'))
+            ->assertOk()
+            ->assertSee('As minhas apostas')
+            ->assertSee('Benfica')
+            ->assertSee('FC Porto')
+            ->assertSee('368')
+            ->assertSee('3,68');
+    }
+
     public function test_empty_bet_slip_cannot_be_registered(): void
     {
         $user = User::factory()->create();
