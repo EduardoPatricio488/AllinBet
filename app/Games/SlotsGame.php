@@ -49,7 +49,7 @@ class SlotsGame implements Game
         $columns = (int) config('casino.games.slots.columns', 3);
         $paylines = config('casino.games.slots.paylines', [0, 1, 2]);
         $paytable = config('casino.games.slots.paytable', []);
-        $pairPaytable = config('casino.games.slots.pair_paytable', []);
+        $pairPaytable = config('casino.games.slots.pair_paytable', [1, 2, 3, 6, 20]);
         $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
         $lineCount = count($paylines);
 
@@ -110,7 +110,7 @@ class SlotsGame implements Game
             $pairSymbol = null;
 
             foreach ($counts as $symbol => $count) {
-                if ($count >= 2) {
+                if ($count === 2) {
                     $pairSymbol = (int) $symbol;
                     break;
                 }
