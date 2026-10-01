@@ -666,7 +666,8 @@ html:not(.dark) .casino-virtual-note {
 }
 
 
-/* Tema claro do casino */
+/* Tema claro do casino: altera principalmente o fundo da página */
+
 html:not(.dark) .casino-body {
     --casino-night: #f4f6f2;
     --casino-ink: #ffffff;
@@ -698,10 +699,6 @@ html:not(.dark) .casino-body .casino-topbar nav a {
     color: #4d5e52;
 }
 
-html:not(.dark) .casino-body .casino-topbar nav a:hover {
-    color: #8a6d22;
-}
-
 html:not(.dark) .casino-body .casino-theme-toggle {
     border-color: rgb(44 75 52 / 18%);
     background: rgb(44 75 52 / 5%);
@@ -728,83 +725,12 @@ html:not(.dark) .casino-body .casino-lobby-hero__copy > p:not(.casino-eyebrow) {
     color: #526257;
 }
 
-html:not(.dark) .casino-body .casino-card,
-html:not(.dark) .casino-body .casino-game-card {
-    border-color: rgb(44 75 52 / 15%);
-    background: linear-gradient(155deg, #ffffff, #edf3ed 76%);
-    color: #17251c;
-    box-shadow: 0 10px 24px rgb(31 56 40 / 10%);
-}
-
-html:not(.dark) .casino-body .casino-game-card__copy h3,
-html:not(.dark) .casino-body .casino-section-heading h2 {
-    color: #183324;
-}
-
-html:not(.dark) .casino-body .casino-game-card__copy p,
-html:not(.dark) .casino-body .casino-live-status,
-html:not(.dark) .casino-body .casino-section-count {
-    color: #5d6b61;
-}
-
-html:not(.dark) .casino-body .casino-win-ticker {
-    background: linear-gradient(100deg, #ffffff, #edf5ed 48%, #ffffff);
-    border-color: rgb(44 75 52 / 15%);
-}
-
-html:not(.dark) .casino-body .casino-win-item {
-    background: rgb(44 75 52 / 4%);
-    border-color: rgb(44 75 52 / 10%);
-}
-
-html:not(.dark) .casino-body .casino-win-item__copy strong {
-    color: #20362a;
-}
-
-html:not(.dark) .casino-body .casino-win-item__copy small {
-    color: #68766c;
-}
-
-html:not(.dark) .casino-body .casino-bonus-card {
-    background: radial-gradient(ellipse at 15% 50%, rgb(230 200 121 / 13%), transparent 45%), linear-gradient(135deg, #ffffff, #e9f1e8);
-}
-
-html:not(.dark) .casino-body .casino-bonus-card__copy h2,
-html:not(.dark) .casino-body .casino-daily-bonus__body h3 {
-    color: #183324;
-}
-
-html:not(.dark) .casino-body .casino-bonus-card__copy > p:not(.casino-eyebrow),
-html:not(.dark) .casino-body .casino-daily-bonus__body > p:not(.casino-eyebrow) {
-    color: #5d6b61;
-}
-
-html:not(.dark) .casino-body .casino-virtual-note {
-    color: #68766c;
-}
-
-html:not(.dark) .casino-body footer {
-    border-color: rgb(44 75 52 / 15%);
-    color: #68766c;
-}
-
 .casino-theme-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 2rem;
-    border: 1px solid rgb(230 200 121 / 28%);
-    border-radius: 999px;
-    background: rgb(255 255 255 / 4%);
-    padding: 0.35rem 0.7rem;
-    color: #d8ddd8;
-    cursor: pointer;
-    font-size: 0.68rem;
-    font-weight: 700;
-    transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+    border-color: rgb(44 75 52 / 18%);
+    background: rgb(44 75 52 / 5%);
+    color: #30483a;
 }
 
 .casino-theme-toggle:hover {
-    background: rgb(255 255 255 / 8%);
-    border-color: rgb(230 200 121 / 45%);
+    background: rgb(44 75 52 / 10%);
 }
