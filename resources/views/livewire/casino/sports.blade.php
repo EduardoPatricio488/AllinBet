@@ -16,6 +16,10 @@
             <h1 class="sports-title">Apostas desportivas</h1>
             <p class="sports-sub">Escolhe um prognóstico, adiciona-o ao boletim e calcula o potencial prémio com créditos virtuais.</p>
         </div>
+        <a href="{{ route('casino.sports.bets') }}" class="sports-balance" style="display:block;text-align:center;" wire:navigate>
+            <span>O teu histórico</span>
+            <strong>🎟️ As minhas apostas</strong>
+        </a>
         <div class="sports-balance">
             <span>Saldo disponível</span>
             <strong>{{ number_format($balance, 0, ',', '.') }} CR</strong>
