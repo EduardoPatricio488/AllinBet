@@ -47,25 +47,24 @@ class SlotsGame implements Game
     {
         $rows = (int) config('casino.games.slots.rows', 3);
         $columns = (int) config('casino.games.slots.columns', 3);
+        $paylines = config('casino.games.slots.paylines', []);
         $paytable = config('casino.games.slots.paytable', []);
         $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
 
-        // A 3x3 board has exactly six fixed paylines:
-        // three horizontal rows and three vertical columns.
-        // A win is ONLY awarded when all three positions on a line match.
-        $paylines = [
-            ['direction' => 'horizontal', 'index' => 0],
-            ['direction' => 'horizontal', 'index' => 1],
-            ['direction' => 'horizontal', 'index' => 2],
-            ['direction' => 'vertical', 'index' => 0],
-            ['direction' => 'vertical', 'index' => 1],
-            ['direction' => 'vertical', 'index' => 2],
-        ];
+        $paylines = array_values(array_filter(
+            $paylines,
+            static fn ($line): bool => is_array($line)
+                && isset($line['direction'], $line['index'])
+                && $line['direction'] === 'horizontal'
+                && is_int($line['index'])
+                && $line['index'] >= 0
+                && $line['index'] < $rows,
+        ));
 
         $lineCount = count($paylines);
 
         if ($bet <= 0 || $lineCount === 0 || $bet % $lineCount !== 0) {
-            throw new InvalidArgumentException('The slots wager must be positive and divisible by the number of paylines.');
+            throw new InvalidArgumentException('The slots wager must be positive and divisible by the number of horizontal paylines.');
         }
 
         if (count($grid) !== $rows) {
@@ -89,30 +88,17 @@ class SlotsGame implements Game
         $payout = 0;
 
         foreach ($paylines as $line) {
-            $positions = [];
-
-            if ($line['direction'] === 'horizontal') {
-                for ($column = 0; $column < $columns; $column++) {
-                    $positions[] = [$line['index'], $column];
-                }
-            } else {
-                for ($row = 0; $row < $rows; $row++) {
-                    $positions[] = [$row, $line['index']];
-                }
-            }
-
-            $firstSymbol = $grid[$positions[0][0]][$positions[0][1]];
+            $row = $line['index'];
+            $firstSymbol = $grid[$row][0];
             $allMatch = true;
 
-            foreach ($positions as [$row, $column]) {
+            for ($column = 1; $column < $columns; $column++) {
                 if ($grid[$row][$column] !== $firstSymbol) {
                     $allMatch = false;
                     break;
                 }
             }
 
-            // No pair prizes, adjacent-symbol prizes or partial-line prizes.
-            // Exactly three equal symbols on one horizontal or vertical line are required.
             if (! $allMatch) {
                 continue;
             }
@@ -125,10 +111,10 @@ class SlotsGame implements Game
 
             $payout += $lineBet * $multiplier;
             $winningLines[] = [
-                'direction' => $line['direction'],
-                'line' => $line['index'],
+                'direction' => 'horizontal',
+                'line' => $row,
                 'symbol' => $firstSymbol,
-                'count' => 3,
+                'count' => $columns,
                 'multiplier' => $multiplier,
             ];
         }
