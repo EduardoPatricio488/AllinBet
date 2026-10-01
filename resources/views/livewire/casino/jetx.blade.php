@@ -224,11 +224,12 @@
         .jetx-result{position:absolute;left:50%;bottom:9%;z-index:12;transform:translateX(-50%);min-width:min(90%,25rem);padding:1rem 1.25rem;text-align:center;border:1px solid rgba(255,255,255,.1);border-radius:1.15rem;background:rgba(7,11,18,.86);box-shadow:0 20px 50px rgba(0,0,0,.35)}.jetx-result strong{display:block;color:#fff;font-size:.72rem;font-weight:950;letter-spacing:.18em}.jetx-result span{display:block;margin-top:.2rem;color:var(--jet-gold);font-size:1.35rem;font-weight:1000}.jetx-result small{display:block;margin-top:.2rem;color:#8593a3;font-size:.65rem}
         .jetx-controls{display:grid;grid-template-columns:1fr auto;gap:1rem;margin-top:1rem;padding:1rem;border:1px solid rgba(255,255,255,.08);border-radius:1.1rem;background:rgba(11,17,26,.86);box-shadow:0 18px 45px rgba(0,0,0,.18)}
         .jetx-bet{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}.jetx-field span{display:block;margin-bottom:.3rem;color:#7c8a99;font-size:.62rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.jetx-input{width:100%;min-height:2.7rem;border:1px solid rgba(255,255,255,.09);border-radius:.7rem;background:#060b12;color:#fff;padding:.65rem .75rem;outline:0}.jetx-input:focus{border-color:rgba(77,217,255,.45);box-shadow:0 0 0 3px rgba(77,217,255,.08)}
+        .jetx-action-wrap{display:flex;align-items:center;justify-content:flex-end;min-width:12rem}.jetx-action-wrap .jetx-action{width:100%}
         .jetx-action{min-width:12rem;min-height:2.8rem;border:1px solid rgba(245,196,81,.55);border-radius:.8rem;background:linear-gradient(180deg,#ffeaa9,#e3ad37 55%,#98630e);color:#251a06;font-size:.82rem;font-weight:1000;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 4px 0 #694609,0 12px 28px rgba(177,116,20,.22);cursor:pointer;transition:transform .08s,filter .15s}.jetx-action:hover:not(:disabled){filter:brightness(1.06)}.jetx-action:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #694609,0 7px 18px rgba(177,116,20,.22)}.jetx-action.collect{border-color:rgba(77,217,255,.55);background:linear-gradient(180deg,#bff7ff,#3dcde9 55%,#087e9e);color:#04222a;box-shadow:0 4px 0 #04576c,0 12px 30px rgba(61,205,233,.18)}.jetx-action:disabled{opacity:.55;cursor:not-allowed}
         .jetx-mini{margin-top:.65rem;color:#697888;font-size:.62rem;line-height:1.45}
         .jetx-side{display:grid;gap:.8rem;align-content:start}.jetx-card{border:1px solid rgba(255,255,255,.08);border-radius:1rem;background:rgba(11,17,26,.78);padding:1rem;box-shadow:0 16px 38px rgba(0,0,0,.15)}.jetx-card__eyebrow{margin:0;color:#6e7d8c;font-size:.58rem;font-weight:950;letter-spacing:.16em;text-transform:uppercase}.jetx-card h3{margin:.35rem 0 0;color:#f4f7fa;font-size:.92rem;font-weight:900}.jetx-card p{margin:.4rem 0 0;color:#8996a4;font-size:.68rem;line-height:1.55}.jetx-stat{display:flex;justify-content:space-between;gap:1rem;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.68rem}.jetx-stat:last-child{border-bottom:0}.jetx-stat span{color:#738292}.jetx-stat strong{color:#dfe8ef}.jetx-seed{margin-top:.55rem;padding:.6rem;border:1px solid rgba(255,255,255,.06);border-radius:.65rem;background:#060a10;color:#93a1af;font: .56rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
         @keyframes jetx-stars{from{transform:translate3d(0,0,0)}to{transform:translate3d(-120px,80px,0)}}@keyframes jetx-flame{from{transform:scaleX(.85);opacity:.55}to{transform:scaleX(1.15);opacity:1}}@keyframes jetx-trail-pulse{from{opacity:.35;transform:translateX(-8px)}to{opacity:.9;transform:translateX(10px)}}@keyframes jetx-boom{from{opacity:0;transform:translate(-50%,-50%) scale(.45)}65%{transform:translate(-50%,-50%) scale(1.12)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}        
-        @media(max-width:900px){.jetx-layout{grid-template-columns:1fr}.jetx-side{grid-template-columns:repeat(2,minmax(0,1fr))}.jetx-controls{grid-template-columns:1fr}.jetx-action{width:100%}}@media(max-width:600px){.jetx-hero{align-items:flex-start;flex-direction:column}.jetx-stage{min-height:30rem}.jetx-bet{grid-template-columns:1fr}.jetx-side{grid-template-columns:1fr}.jetx-multiplier{top:19%}.jetx-result{bottom:6%}}
+        @media(max-width:900px){.jetx-layout{grid-template-columns:1fr}.jetx-side{grid-template-columns:repeat(2,minmax(0,1fr))}.jetx-controls{grid-template-columns:1fr}.jetx-action-wrap{width:100%}.jetx-action{width:100%}}@media(max-width:600px){.jetx-hero{align-items:flex-start;flex-direction:column}.jetx-stage{min-height:30rem}.jetx-bet{grid-template-columns:1fr}.jetx-side{grid-template-columns:1fr}.jetx-multiplier{top:19%}.jetx-result{bottom:6%}}
         @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket::after{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
     </style>
 
@@ -306,31 +307,35 @@
                     @endif
                 </div>
 
-                <div>
-                    @if (in_array($roundPhase, ['ready', 'completed'], true))
-                        <button type="button"
-                                class="jetx-action"
-                                wire:click="start"
-                                wire:loading.attr="disabled"
-                                wire:target="start">
-                            <span>🚀 INICIAR JETX</span>
-                        </button>
-                    @elseif ($roundPhase === 'prepared')
-                        <button type="button"
-                                class="jetx-action"
-                                wire:click="launch"
-                                wire:loading.attr="disabled"
-                                wire:target="launch">
-                            <span>🚀 LANÇAR</span>
-                        </button>
-                    @elseif ($roundPhase === 'in_progress')
-                        <button type="button"
-                                class="jetx-action collect"
-                                :disabled="busy || !flying"
-                                x-on:click="cashout()">
-                            ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
-                        </button>
-                    @endif
+                <div class="jetx-action-wrap">
+                    <button type="button"
+                            class="jetx-action"
+                            wire:click="start"
+                            wire:loading.attr="disabled"
+                            wire:target="start"
+                            x-show="phase !== 'in_progress' && phase !== 'prepared'"
+                            x-cloak>
+                        🚀 INICIAR JETX
+                    </button>
+
+                    <button type="button"
+                            class="jetx-action"
+                            wire:click="launch"
+                            wire:loading.attr="disabled"
+                            wire:target="launch"
+                            x-show="phase === 'prepared'"
+                            x-cloak>
+                        🚀 LANÇAR
+                    </button>
+
+                    <button type="button"
+                            class="jetx-action collect"
+                            :disabled="busy || !flying"
+                            x-on:click="cashout()"
+                            x-show="phase === 'in_progress'"
+                            x-cloak>
+                        ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
+                    </button>
                 </div>
             </section>
 
