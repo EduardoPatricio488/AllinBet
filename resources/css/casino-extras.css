@@ -1,0 +1,149 @@
+/* Efeitos visuais do lobby — sem mecânicas de urgência, jackpots ou quase-vitórias. */
+:root {
+    --cx-gold: var(--color-casino-gold, #d4af37);
+    --cx-gold-bright: var(--color-casino-gold-bright, #f5d778);
+    --cx-red: #ff3b4e;
+}
+
+@property --casino-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+.casino-lobby-hero { position: relative; }
+
+.casino-bulbs {
+    position: absolute;
+    inset: 10px;
+    border-radius: inherit;
+    pointer-events: none;
+    border: 4px dotted var(--cx-gold-bright);
+    filter: drop-shadow(0 0 6px rgb(245 215 120 / 70%));
+    animation: casino-bulbs 1.4s steps(1) infinite;
+}
+
+@keyframes casino-bulbs {
+    0% { opacity: 1; }
+    50% { opacity: .35; }
+}
+
+.casino-shimmer-text {
+    background: linear-gradient(100deg, #b8892b 20%, #fff2b0 40%, var(--cx-gold-bright) 50%, #b8892b 80%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: casino-shimmer 4s linear infinite;
+}
+
+@keyframes casino-shimmer {
+    to { background-position: -150% 0; }
+}
+
+.casino-cta-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    border: 2px solid var(--cx-gold-bright);
+    animation: casino-ring 2.4s ease-out infinite;
+}
+
+@keyframes casino-ring {
+    from { transform: scale(1); opacity: .8; }
+    to { transform: scale(1.25, 1.6); opacity: 0; }
+}
+
+.casino-float-chip {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    font: 700 .8rem/1 system-ui, sans-serif;
+    color: #1a1205;
+    background: radial-gradient(circle at 30% 30%, #fff2b0, var(--cx-gold) 60%, #8a6a1c);
+    border: 3px dashed rgb(26 18 5 / 55%);
+    box-shadow: 0 6px 18px rgb(0 0 0 / 50%), 0 0 14px rgb(245 215 120 / 45%);
+    animation: casino-float 5s ease-in-out var(--d) infinite;
+}
+
+@keyframes casino-float {
+    0%, 100% { transform: translateY(0) rotate(-6deg); }
+    50% { transform: translateY(-14px) rotate(8deg); }
+}
+
+.casino-game-card {
+    position: relative;
+    isolation: isolate;
+}
+
+.casino-game-card__aura {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    pointer-events: none;
+    z-index: 2;
+    background: conic-gradient(from var(--casino-angle), transparent 0 55%, var(--cx-gold-bright) 75%, var(--cx-red) 90%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity .3s ease;
+}
+
+.casino-game-card:hover .casino-game-card__aura,
+.casino-game-card:focus-visible .casino-game-card__aura {
+    opacity: 1;
+    animation: casino-angle 2.4s linear infinite;
+}
+
+@keyframes casino-angle {
+    to { --casino-angle: 360deg; }
+}
+
+.casino-game-card__shine {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.casino-game-card__shine::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 40%;
+    height: 200%;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 20%), transparent);
+    transform: translateX(0) rotate(18deg);
+}
+
+.casino-game-card:hover .casino-game-card__shine::before {
+    animation: casino-sweep .9s ease;
+}
+
+@keyframes casino-sweep {
+    to { transform: translateX(520%) rotate(18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .casino-bulbs,
+    .casino-shimmer-text,
+    .casino-cta-ring,
+    .casino-float-chip,
+    .casino-game-card:hover .casino-game-card__aura,
+    .casino-game-card:hover .casino-game-card__shine::before {
+        animation: none !important;
+    }
+
+    .casino-cta-ring { display: none; }
+}
