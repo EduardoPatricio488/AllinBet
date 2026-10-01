@@ -17,6 +17,7 @@ use Livewire\Component;
 class Wallet extends Component
 {
     public int $amount = 100;
+
     public string $feedback = '';
 
     public function addCredits(WalletService $walletService): void
@@ -24,11 +25,14 @@ class Wallet extends Component
         $this->feedback = '';
         $this->validate(['amount' => ['required', 'integer', Rule::in([100, 500, 1000, 5000])]]);
         $user = Auth::user();
-        if (! $user instanceof User) abort(401);
+        if (! $user instanceof User) {
+            abort(401);
+        }
 
         $key = 'wallet-top-up:'.$user->getKey();
         if (RateLimiter::tooManyAttempts($key, 10)) {
             $this->addError('amount', 'Aguarda um momento antes de adicionar mais créditos.');
+
             return;
         }
         RateLimiter::hit($key, 60);
@@ -53,7 +57,9 @@ class Wallet extends Component
     public function render(): View
     {
         $user = Auth::user();
-        if (! $user instanceof User) abort(401);
+        if (! $user instanceof User) {
+            abort(401);
+        }
         $wallet = $user->wallet()->first();
 
         return view('livewire.casino.wallet', [
