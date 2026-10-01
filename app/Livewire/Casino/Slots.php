@@ -12,7 +12,7 @@ class Slots extends CasinoGameComponent
     public function prepare(): void
     {
         if (! is_numeric($this->bet) || (int) $this->bet < 6 || (int) $this->bet % 6 !== 0) {
-            $this->addError('bet', 'A aposta das slots deve ser um múltiplo positivo de 3.');
+            $this->addError('bet', 'A aposta das slots deve ser um múltiplo positivo de 6.');
 
             return;
         }
