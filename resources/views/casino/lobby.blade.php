@@ -5,11 +5,11 @@
 @section('content')
     @php
         $games = [
-            ['route' => 'casino.coinflip', 'name' => 'Coinflip', 'code' => '01', 'kind' => 'coinflip', 'tag' => 'CLÁSSICO', 'label' => 'Cara ou coroa'],
-            ['route' => 'casino.dice', 'name' => 'Dados', 'code' => '02', 'kind' => 'dice', 'tag' => 'NOVO', 'label' => 'Abaixo ou acima'],
-            ['route' => 'casino.roulette', 'name' => 'Roleta europeia', 'code' => '03', 'kind' => 'roulette', 'tag' => 'NOVO', 'label' => 'Roda de zero único'],
-            ['route' => 'casino.blackjack', 'name' => 'Blackjack', 'code' => '04', 'kind' => 'blackjack', 'tag' => 'NOVO', 'label' => 'Pedir, parar ou dobrar'],
-            ['route' => 'casino.slots', 'name' => 'Slots', 'code' => '05', 'kind' => 'slots', 'tag' => 'NOVO', 'label' => 'Rolos e linhas de prémio'],
+            ['route' => 'casino.coinflip', 'name' => 'Coinflip', 'code' => '01', 'kind' => 'coinflip', 'cat' => 'sorte', 'tag' => 'CLÁSSICO', 'label' => 'Cara ou coroa'],
+            ['route' => 'casino.dice', 'name' => 'Dados', 'code' => '02', 'kind' => 'dice', 'cat' => 'dados', 'tag' => 'NOVO', 'label' => 'Abaixo ou acima'],
+            ['route' => 'casino.roulette', 'name' => 'Roleta europeia', 'code' => '03', 'kind' => 'roulette', 'cat' => 'sorte', 'tag' => 'NOVO', 'label' => 'Roda de zero único'],
+            ['route' => 'casino.blackjack', 'name' => 'Blackjack', 'code' => '04', 'kind' => 'blackjack', 'cat' => 'cartas', 'tag' => 'NOVO', 'label' => 'Pedir, parar ou dobrar'],
+            ['route' => 'casino.slots', 'name' => 'Slots', 'code' => '05', 'kind' => 'slots', 'cat' => 'sorte', 'tag' => 'NOVO', 'label' => 'Rolos e linhas de prémio'],
         ];
     @endphp
 
@@ -38,19 +38,32 @@
             </div>
         </section>
 
+        <section class="casino-lobby-section" aria-label="Estatísticas reais" data-casino-reveal>
+            <livewire:casino.lobby-stats />
+        </section>
+
         <section class="casino-lobby-section" aria-label="Jogos disponíveis">
             <div class="casino-section-heading" data-casino-reveal>
                 <div><p class="casino-eyebrow">A CASA ESTÁ ABERTA</p><h2>Jogos em destaque</h2></div>
                 <span class="casino-section-count">05 EXPERIÊNCIAS</span>
             </div>
 
-            <div class="casino-game-grid">
+            <div x-data="{ filter: 'all' }">
+                <div class="casino-tabs" role="tablist" aria-label="Filtrar jogos">
+                    @foreach (['all' => 'Todos', 'sorte' => 'Sorte', 'cartas' => 'Cartas', 'dados' => 'Dados'] as $key => $label)
+                        <button type="button" role="tab" x-on:click="filter = '{{ $key }}'" x-bind:class="{ 'is-active': filter === '{{ $key }}' }" x-bind:aria-selected="filter === '{{ $key }}'">{{ $label }}</button>
+                    @endforeach
+                </div>
+
+                <div class="casino-game-grid">
             @foreach ($games as $game)
                 <a
                     href="{{ auth()->check() ? route($game['route']) : route('login') }}"
                     class="casino-game-card casino-game-card--{{ $game['kind'] }}"
                     wire:navigate
                     data-casino-reveal
+                    x-show="filter === 'all' || filter === '{{ $game['cat'] }}'"
+                    x-transition
                     x-data="{
                         tiltX: 0, tiltY: 0, glowX: 50, glowY: 50,
                         move(event) {
@@ -96,6 +109,7 @@
                     <span class="casino-game-card__arrow" aria-hidden="true">↗</span>
                 </a>
             @endforeach
+                </div>
             </div>
         </section>
 
@@ -104,10 +118,38 @@
             <livewire:casino.recent-wins />
         </section>
 
+        <section class="casino-lobby-bottom grid gap-6 md:grid-cols-2" data-casino-reveal>
+            <livewire:casino.top-wins />
+            <section class="casino-card casino-fair">
+                <div class="casino-fair__icon" aria-hidden="true">🔐</div>
+                <div>
+                    <p class="casino-eyebrow">JOGO TRANSPARENTE</p>
+                    <h2 class="text-lg font-semibold">Cada resultado pode ser verificado</h2>
+                    <p class="mt-2 text-sm text-zinc-400">As rondas concluídas guardam o compromisso da semente e podem ser verificadas individualmente no histórico.</p>
+                </div>
+                <a class="casino-button casino-button--secondary" href="{{ route('casino.history') }}" wire:navigate>Ver histórico ↗</a>
+            </section>
+        </section>
+
         @auth
             <section class="casino-lobby-bottom" data-casino-reveal>
                 <div class="casino-section-heading"><div><p class="casino-eyebrow">SUA ATIVIDADE</p><h2>Movimento recente</h2></div></div>
                 <div class="casino-card casino-lobby-history"><livewire:casino.history /></div>
+                @php
+                    $recent = \App\Models\GameRound::where('user_id', auth()->id())->latest()->limit(20)->pluck('game')->map(fn ($game) => $game instanceof \BackedEnum ? $game->value : (string) $game)->unique()->take(3);
+                @endphp
+                @if ($recent->isNotEmpty())
+                    <div class="casino-card">
+                        <p class="casino-eyebrow">CONTINUAR A JOGAR</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach ($recent as $g)
+                                @if (Route::has('casino.'.$g))
+                                    <a class="casino-button casino-button--secondary" href="{{ route('casino.'.$g) }}" wire:navigate>{{ ucfirst($g) }} ↗</a>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
                 <div class="casino-card casino-bonus-card" x-data="{
                     remaining: 0,
                     timer: null,
