@@ -5,11 +5,30 @@ declare(strict_types=1);
 namespace App\Livewire\Casino;
 
 use App\Enums\GameType;
+use App\Enums\RoundStatus;
+use App\Models\GameRound;
 use Illuminate\View\View;
 
 class Coinflip extends CasinoGameComponent
 {
-    public string $side = 'heads';
+    /** @var array<int, array{outcome:string,won:bool,payout:int,bet:int,time:string}> */
+    public array $recentFlips = [];
+
+    public int $headsCount = 0;
+
+    public int $tailsCount = 0;
+
+    public int $winsCount = 0;
+
+    public int $currentStreak = 0;
+
+    public string $streakSide = '';
+
+    public function mount(): void
+    {
+        parent::mount();
+        $this->loadRecentStats();
+    }
 
     public function prepare(): void
     {
@@ -20,6 +39,70 @@ class Coinflip extends CasinoGameComponent
     {
         $this->validate(['side' => ['required', 'in:heads,tails']]);
         $this->playGame(GameType::Coinflip, ['side' => $this->side]);
+        $this->loadRecentStats();
+    }
+
+    private function loadRecentStats(): void
+    {
+        $rounds = GameRound::query()
+            ->where('user_id', auth()->id())
+            ->where('game', GameType::Coinflip)
+            ->where('status', RoundStatus::Completed)
+            ->latest('id')
+            ->limit(50)
+            ->get(['id', 'result', 'bet', 'payout', 'created_at']);
+
+        $this->headsCount = 0;
+        $this->tailsCount = 0;
+        $this->winsCount = 0;
+        $this->currentStreak = 0;
+        $this->streakSide = '';
+
+        foreach ($rounds as $round) {
+            $result = $round->publicResult();
+            $outcome = $result['outcome'] ?? null;
+
+            if (! in_array($outcome, ['heads', 'tails'], true)) {
+                continue;
+            }
+
+            if ($outcome === 'heads') {
+                $this->headsCount++;
+            } else {
+                $this->tailsCount++;
+            }
+
+            if ((bool) ($result['won'] ?? false)) {
+                $this->winsCount++;
+            }
+
+            if ($this->streakSide === '') {
+                $this->streakSide = $outcome;
+                $this->currentStreak = 1;
+                continue;
+            }
+
+            if ($this->streakSide === $outcome) {
+                $this->currentStreak++;
+            } else {
+                break;
+            }
+        }
+
+        $this->recentFlips = $rounds
+            ->map(function (GameRound $round): array {
+                $result = $round->publicResult();
+
+                return [
+                    'outcome' => ($result['outcome'] ?? '') === 'heads' ? 'heads' : 'tails',
+                    'won' => (bool) ($result['won'] ?? false),
+                    'payout' => (int) $round->payout,
+                    'bet' => (int) $round->bet,
+                    'time' => $round->created_at?->format('H:i') ?? '',
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function render(): View
