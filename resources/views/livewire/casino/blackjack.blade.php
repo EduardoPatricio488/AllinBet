@@ -1,4 +1,4 @@
-<div class="blackjack-page relative" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, playSound(type) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return; const ctx = new A(); const now = ctx.currentTime; const gain = ctx.createGain(); const osc = ctx.createOscillator(); osc.connect(gain); gain.connect(ctx.destination); gain.gain.setValueAtTime(0.0001, now); gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === 'win' ? 1.05 : 0.7)); if (type === 'win') { osc.type = 'sine'; osc.frequency.setValueAtTime(660, now); osc.frequency.exponentialRampToValueAtTime(990, now + 0.25); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.55); } else { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(85, now + 0.55); } osc.start(now); osc.stop(now + (type === 'win' ? 1.05 : 0.7)); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
+<div class="blackjack-page relative" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, showRules: false, init() { this.showRules = localStorage.getItem('allinbet:blackjack-rules-seen') !== '1'; }, closeRules() { this.showRules = false; localStorage.setItem('allinbet:blackjack-rules-seen', '1'); }, playSound(type) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return; const ctx = new A(); const now = ctx.currentTime; const gain = ctx.createGain(); const osc = ctx.createOscillator(); osc.connect(gain); gain.connect(ctx.destination); gain.gain.setValueAtTime(0.0001, now); gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === 'win' ? 1.05 : 0.7)); if (type === 'win') { osc.type = 'sine'; osc.frequency.setValueAtTime(660, now); osc.frequency.exponentialRampToValueAtTime(990, now + 0.25); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.55); } else { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(85, now + 0.55); } osc.start(now); osc.stop(now + (type === 'win' ? 1.05 : 0.7)); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
     <style>
         .blackjack-page{--gold:#f2c14e;--green:#0b5a45;--green2:#06372c}
         .bj-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1rem}
@@ -18,7 +18,7 @@
         .bj-field{display:block;margin-bottom:.75rem}.bj-field span{display:block;margin-bottom:.35rem;color:#8e959d;font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.bj-input{width:100%;min-height:2.6rem;border:1px solid rgba(255,255,255,.1);border-radius:.65rem;background:rgba(0,0,0,.22);padding:.6rem .7rem;color:white;outline:none}.bj-input:focus{border-color:rgba(242,193,78,.55);box-shadow:0 0 0 3px rgba(242,193,78,.08)}
         .bj-button{width:100%;min-height:2.65rem;border-radius:.65rem;padding:.6rem .75rem;font-size:.76rem;font-weight:800;transition:transform .15s,filter .15s}.bj-button:hover{transform:translateY(-1px);filter:brightness(1.05)}.bj-button:disabled{opacity:.45;transform:none}.bj-gold{background:linear-gradient(135deg,#f4ca61,#dca938);color:#15130e}.bj-green{background:#2dba78;color:#06150f}.bj-dark{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);color:white}
         .bj-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.bj-actions .bj-button:first-child{grid-column:1/-1}.bj-info{color:#858d96;font-size:.7rem;line-height:1.55}.bj-info strong{color:#cdd2d7}.bj-seed{margin-top:.6rem;overflow:hidden;border:1px solid rgba(255,255,255,.07);border-radius:.6rem;background:rgba(0,0,0,.18);padding:.6rem;color:#8e959d;font: .6rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}.bj-notes{display:flex;flex-wrap:wrap;gap:.5rem 1rem;margin-top:.8rem;color:#717983;font-size:.65rem}
-        @media(max-width:900px){.bj-layout{grid-template-columns:1fr}.bj-panel{order:-1}.bj-rules-grid{grid-template-columns:1fr 1fr}}@media(max-width:640px){.bj-intro-head{flex-direction:column}.bj-intro-badge{white-space:normal}.bj-rules-grid{grid-template-columns:1fr}.bj-hero{align-items:flex-start;flex-direction:column}.bj-table{min-height:28rem}.bj-card{width:3.65rem;height:5.2rem}.bj-hand{padding-right:1rem;padding-left:1rem}}
+        @media(max-width:900px){.bj-layout{grid-template-columns:1fr}.bj-panel{order:-1}.bj-rules-grid{grid-template-columns:1fr 1fr}.bj-rules-dialog{padding:1.25rem}}@media(max-width:640px){.bj-intro-head{flex-direction:column}.bj-intro-badge{white-space:normal}.bj-rules-grid{grid-template-columns:1fr}.bj-hero{align-items:flex-start;flex-direction:column}.bj-table{min-height:28rem}.bj-card{width:3.65rem;height:5.2rem}.bj-hand{padding-right:1rem;padding-left:1rem}.bj-rules-modal{padding:.75rem}.bj-rules-dialog{max-height:92vh;padding:1.1rem}.bj-rules-dialog-head{flex-direction:column}.bj-rules-dialog h3{font-size:1.2rem}}
     </style>
 
     <x-casino.loading-overlay target="prepare,deal,hit,stand,double" />
@@ -35,23 +35,33 @@
         <a href="{{ route('casino.help') }}" class="text-xs text-zinc-400 hover:text-casino-gold-bright" wire:navigate>Regras e jogo responsável →</a>
     </div>
 
-    <section class="bj-intro" aria-labelledby="blackjack-rules-title">
-        <div class="bj-intro-head">
-            <div>
-                <p class="bj-eyebrow">Antes de começar</p>
-                <h3 id="blackjack-rules-title">Como funciona o Blackjack?</h3>
+    <div x-show="showRules" x-cloak x-transition.opacity class="bj-rules-modal" role="dialog" aria-modal="true" aria-labelledby="blackjack-rules-title">
+        <div class="bj-rules-backdrop" x-on:click="closeRules()"></div>
+        <div class="bj-rules-dialog" x-on:keydown.escape.window="closeRules()">
+            <button type="button" class="bj-rules-close" x-on:click="closeRules()" aria-label="Fechar regras">×</button>
+
+            <div class="bj-rules-dialog-head">
+                <div>
+                    <p class="bj-eyebrow">Antes de começar</p>
+                    <h3 id="blackjack-rules-title">Como funciona o Blackjack?</h3>
+                </div>
+                <span class="bj-intro-badge">Objetivo: chegar a 21</span>
             </div>
-            <span class="bj-intro-badge">Objetivo: chegar a 21</span>
+
+            <p class="bj-intro-lead">No Blackjack, joga contra o dealer. O objetivo é ficar o mais perto possível de 21 sem ultrapassar esse valor. Uma mão com mais de 21 perde automaticamente.</p>
+
+            <div class="bj-rules-grid">
+                <div><span>01</span><strong>Receba as cartas</strong><p>Começa com duas cartas. O dealer também recebe cartas, sendo uma delas inicialmente escondida.</p></div>
+                <div><span>02</span><strong>Escolha a jogada</strong><p><b>Pedir carta</b> adiciona uma carta; <b>Parar</b> mantém a pontuação; <b>Dobrar</b> duplica a aposta e recebe mais uma carta.</p></div>
+                <div><span>03</span><strong>Compare as mãos</strong><p>Depois da sua jogada, o dealer completa a mão. A mão mais próxima de 21 vence.</p></div>
+                <div><span>04</span><strong>Valores das cartas</strong><p>Ás vale 1 ou 11, figuras valem 10 e as restantes cartas valem o seu número.</p></div>
+            </div>
+
+            <div class="bj-intro-note"><strong>Empate:</strong> se você e o dealer terminarem com a mesma pontuação, a ronda é considerada empate e a aposta é devolvida de acordo com as regras da mesa.</div>
+
+            <button type="button" class="bj-rules-start" x-on:click="closeRules()">Entendi, começar a jogar</button>
         </div>
-        <p class="bj-intro-lead">No Blackjack, joga contra o dealer. O objetivo é ficar o mais perto possível de 21 sem ultrapassar esse valor. Uma mão com mais de 21 perde automaticamente.</p>
-        <div class="bj-rules-grid">
-            <div><span>01</span><strong>Receba as cartas</strong><p>Começa com duas cartas. O dealer também recebe cartas, sendo uma delas inicialmente escondida.</p></div>
-            <div><span>02</span><strong>Escolha a jogada</strong><p><b>Pedir carta</b> adiciona uma carta; <b>Parar</b> mantém a pontuação; <b>Dobrar</b> duplica a aposta e recebe mais uma carta.</p></div>
-            <div><span>03</span><strong>Compare as mãos</strong><p>Depois da sua jogada, o dealer completa a mão. A mão mais próxima de 21 vence.</p></div>
-            <div><span>04</span><strong>Valores das cartas</strong><p>Ás vale 1 ou 11, figuras valem 10 e as restantes cartas valem o seu número.</p></div>
-        </div>
-        <div class="bj-intro-note"><strong>Empate:</strong> se você e o dealer terminarem com a mesma pontuação, a ronda é considerada empate e a aposta é devolvida de acordo com as regras da mesa.</div>
-    </section>
+    </div>
 
     <div class="bj-layout">
         <section class="bj-table" aria-label="Mesa de Blackjack">
