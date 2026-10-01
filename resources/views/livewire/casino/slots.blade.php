@@ -45,7 +45,7 @@
         maxBet: {{ $maxBet }},
         step(d) {
             const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
-            this.$wire.bet = Math.min(this.maxBet, Math.max(3, v));
+            this.$wire.bet = Math.min(this.maxBet, Math.max(6, v));
         },
         async go() {
             if (this.busy) return;
@@ -164,7 +164,7 @@
             <div class="slot-window" :class="{ 'slot-window--spinning': busy }">
                 <div class="slot-markers" aria-hidden="true">
                     @foreach ([0, 1, 2] as $r)
-                        <span class="slot-marker {{ in_array($r, $horizontalWins, true) ? 'slot-marker--win' : '' }}">{{ $r + 1 }}</span>
+                        <span class="slot-marker" :class="{ 'slot-marker--win': finalReveal && @js(in_array($r, $horizontalWins, true)) }">{{ $r + 1 }}</span>
                     @endforeach
                 </div>
 
@@ -214,7 +214,7 @@
                     <span class="slot-label">APOSTA TOTAL</span>
                     <div class="slot-stepper">
                         <button type="button" x-on:click="step(-3)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
-                        <input type="number" min="3" step="3" max="{{ $maxBet }}" wire:model="bet"
+                        <input type="number" min="6" step="6" max="{{ $maxBet }}" wire:model="bet"
                                :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
                         <button type="button" x-on:click="step(3)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
