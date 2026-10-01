@@ -17,7 +17,7 @@ class Slots extends CasinoGameComponent
             return;
         }
 
-        $this->prepareGame(GameType::Slots);
+        $this->prepareGame(GameType::Slots, ['slot_variant' => $this->selectedSlot]);
     }
 
     public function spin(): void
