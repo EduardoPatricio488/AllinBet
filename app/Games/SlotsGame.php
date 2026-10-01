@@ -49,6 +49,7 @@ class SlotsGame implements Game
         $columns = (int) config('casino.games.slots.columns', 3);
         $paylines = config('casino.games.slots.paylines', [0, 1, 2]);
         $paytable = config('casino.games.slots.paytable', []);
+        $pairPaytable = config('casino.games.slots.pair_paytable', []);
         $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
         $lineCount = count($paylines);
 
@@ -81,20 +82,52 @@ class SlotsGame implements Game
                 throw new InvalidArgumentException('The slots configuration contains an invalid payline.');
             }
 
-            $firstSymbol = $grid[$rowNumber][0];
-            $isMatch = true;
+            $symbols = $grid[$rowNumber];
+            $firstSymbol = $symbols[0];
+            $allMatch = true;
 
             for ($column = 1; $column < $columns; $column++) {
-                if ($grid[$rowNumber][$column] !== $firstSymbol) {
-                    $isMatch = false;
+                if ($symbols[$column] !== $firstSymbol) {
+                    $allMatch = false;
                     break;
                 }
             }
 
-            if ($isMatch) {
+            if ($allMatch) {
                 $multiplier = (int) ($paytable[$firstSymbol] ?? 0);
                 $payout += $lineBet * $multiplier;
-                $winningLines[] = ['line' => $lineNumber, 'symbol' => $firstSymbol, 'multiplier' => $multiplier];
+                $winningLines[] = [
+                    'line' => $lineNumber,
+                    'symbol' => $firstSymbol,
+                    'count' => $columns,
+                    'multiplier' => $multiplier,
+                ];
+
+                continue;
+            }
+
+            $counts = array_count_values($symbols);
+            $pairSymbol = null;
+
+            foreach ($counts as $symbol => $count) {
+                if ($count >= 2) {
+                    $pairSymbol = (int) $symbol;
+                    break;
+                }
+            }
+
+            if ($pairSymbol !== null) {
+                $multiplier = (int) ($pairPaytable[$pairSymbol] ?? 0);
+
+                if ($multiplier > 0) {
+                    $payout += $lineBet * $multiplier;
+                    $winningLines[] = [
+                        'line' => $lineNumber,
+                        'symbol' => $pairSymbol,
+                        'count' => 2,
+                        'multiplier' => $multiplier,
+                    ];
+                }
             }
         }
 
