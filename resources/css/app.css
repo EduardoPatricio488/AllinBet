@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
 @import './casino-theme.css';
+@import './casino-shell.css';
 @import './casino-extras.css';
 @import './casino-slots.css';
 @import './casino-shell.css';
