@@ -47,10 +47,21 @@ class SlotsGame implements Game
     {
         $rows = (int) config('casino.games.slots.rows', 3);
         $columns = (int) config('casino.games.slots.columns', 3);
-        $paylines = config('casino.games.slots.paylines', [0, 1, 2]);
         $paytable = config('casino.games.slots.paytable', []);
-        $pairPaytable = config('casino.games.slots.pair_paytable', [1, 2, 3, 6, 20]);
         $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
+
+        // A 3x3 board has six valid ways to win:
+        // three horizontal lines + three vertical lines.
+        // A win is ONLY awarded when all three positions on a line match.
+        $paylines = [
+            ['direction' => 'horizontal', 'index' => 0],
+            ['direction' => 'horizontal', 'index' => 1],
+            ['direction' => 'horizontal', 'index' => 2],
+            ['direction' => 'vertical', 'index' => 0],
+            ['direction' => 'vertical', 'index' => 1],
+            ['direction' => 'vertical', 'index' => 2],
+        ];
+
         $lineCount = count($paylines);
 
         if ($bet <= 0 || $lineCount === 0 || $bet % $lineCount !== 0) {
@@ -77,64 +88,56 @@ class SlotsGame implements Game
         $winningLines = [];
         $payout = 0;
 
-        foreach ($paylines as $lineNumber => $rowNumber) {
-            if (! is_int($rowNumber) || $rowNumber < 0 || $rowNumber >= $rows) {
-                throw new InvalidArgumentException('The slots configuration contains an invalid payline.');
+        foreach ($paylines as $line) {
+            $positions = [];
+
+            if ($line['direction'] === 'horizontal') {
+                for ($column = 0; $column < $columns; $column++) {
+                    $positions[] = [$line['index'], $column];
+                }
+            } else {
+                for ($row = 0; $row < $rows; $row++) {
+                    $positions[] = [$row, $line['index']];
+                }
             }
 
-            $symbols = $grid[$rowNumber];
-            $firstSymbol = $symbols[0];
+            $firstSymbol = $grid[$positions[0][0]][$positions[0][1]];
             $allMatch = true;
 
-            for ($column = 1; $column < $columns; $column++) {
-                if ($symbols[$column] !== $firstSymbol) {
+            foreach ($positions as [$row, $column]) {
+                if ($grid[$row][$column] !== $firstSymbol) {
                     $allMatch = false;
                     break;
                 }
             }
 
-            if ($allMatch) {
-                $multiplier = (int) ($paytable[$firstSymbol] ?? 0);
-                $payout += $lineBet * $multiplier;
-                $winningLines[] = [
-                    'line' => $lineNumber,
-                    'symbol' => $firstSymbol,
-                    'count' => $columns,
-                    'multiplier' => $multiplier,
-                ];
-
+            // No pair prizes, adjacent-symbol prizes or partial-line prizes.
+            // Exactly three equal symbols on one horizontal or vertical line is required.
+            if (! $allMatch) {
                 continue;
             }
 
-            $counts = array_count_values($symbols);
-            $pairSymbol = null;
+            $multiplier = (int) ($paytable[$firstSymbol] ?? 0);
 
-            foreach ($counts as $symbol => $count) {
-                if ($count === 2) {
-                    $pairSymbol = (int) $symbol;
-                    break;
-                }
+            if ($multiplier <= 0) {
+                continue;
             }
 
-            if ($pairSymbol !== null) {
-                $multiplier = (int) ($pairPaytable[$pairSymbol] ?? 0);
-
-                if ($multiplier > 0) {
-                    $payout += $lineBet * $multiplier;
-                    $winningLines[] = [
-                        'line' => $lineNumber,
-                        'symbol' => $pairSymbol,
-                        'count' => 2,
-                        'multiplier' => $multiplier,
-                    ];
-                }
-            }
+            $payout += $lineBet * $multiplier;
+            $winningLines[] = [
+                'direction' => $line['direction'],
+                'line' => $line['index'],
+                'symbol' => $firstSymbol,
+                'count' => 3,
+                'multiplier' => $multiplier,
+            ];
         }
 
         return new GameResult($payout, [
             'grid' => $grid,
             'winning_lines' => $winningLines,
             'wager' => $bet,
+            'payline_count' => $lineCount,
         ]);
     }
 }
