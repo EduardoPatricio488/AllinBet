@@ -66,15 +66,36 @@ final class Sports extends Component
 
     public function setStake(int $amount): void
     {
-        $this->stake = $amount;
+        $this->stake = max(0, $amount);
+        $this->resetErrorBag('stake');
+    }
+
+    public function setMaxStake(): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            abort(401);
+        }
+
+        $this->stake = max(0, (int) ($user->wallet()->value('balance') ?? 0));
+        $this->resetErrorBag('stake');
     }
 
     public function placeBet(WalletService $walletService): void
     {
         $this->resetErrorBag();
 
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            abort(401);
+        }
+
+        $availableBalance = max(0, (int) ($user->wallet()->value('balance') ?? 0));
+
         $validated = $this->validate([
-            'stake' => ['required', 'integer', 'min:1', 'max:'.(int) config('casino.bet_limits.max', 10000)],
+            'stake' => ['required', 'integer', 'min:1', 'max:'.$availableBalance],
         ]);
 
         if ($this->slip === []) {
@@ -107,11 +128,6 @@ final class Sports extends Component
         $combinedOdd = round($combinedOdd, 2);
         $stake = (int) $validated['stake'];
         $potentialPayout = max($stake, (int) floor($stake * $combinedOdd));
-        $user = Auth::user();
-
-        if (! $user instanceof User) {
-            abort(401);
-        }
 
         try {
             DB::transaction(function () use ($user, $walletService, $stake, $combinedOdd, $potentialPayout, $freshSlip): void {
