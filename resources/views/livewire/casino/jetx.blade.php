@@ -486,10 +486,6 @@
                 <div class="jetx-multiplier-spike" aria-hidden="true"></div>
                 <div class="jetx-rocket-highlight" aria-hidden="true"></div>
 
-                <div class="jetx-multiplier" :class="{ 'is-growing': flying, 'is-final': resultOpen }">
-                    <span x-text="Number(resultOpen ? finalMultiplier : displayMultiplier).toFixed(2) + '×'"></span>
-                </div>
-
                 <div class="jetx-rocket" :style="rocketStyle()" x-show="flying" x-cloak aria-hidden="true">
                     <span class="jetx-rocket__flame"></span>
                     <span class="jetx-rocket__particle jetx-rocket__particle--one"></span>
