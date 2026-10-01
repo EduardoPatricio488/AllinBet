@@ -232,7 +232,7 @@
                         <p class="coinflip-choice-box__value" x-text="sideLabel()"></p>
                     </div>
                     <div class="coinflip-choice-box__odds">
-                        <strong>1.{{ str_pad((string) (int) round($multiplier * 100), 2, '0', STR_PAD_LEFT) }}×</strong>
+                        <strong>{{ number_format($multiplier, 2, '.', '') }}×</strong>
                         <span>pagamento bruto</span>
                     </div>
                 </div>
@@ -309,7 +309,7 @@
                         <span class="coinflip-streak__orb">{{ $streakSide === 'tails' ? 'T' : 'C' }}</span>
                         <span>
                             <span class="block text-xs font-black text-zinc-200">{{ $currentStreak > 0 ? $currentStreak.' seguida(s)' : 'Sem sequência' }}</span>
-                            <span class="mt-0.5 block text-[0.62rem] text-zinc-500">{{ $streakSide === 'tails' ? 'Coroa' : 'Cara' }} na sequência atual</span>
+                            <span class="mt-0.5 block text-[0.62rem] text-zinc-500">{{ $currentStreak > 0 ? (($streakSide === 'tails' ? 'Coroa' : 'Cara').' na sequência atual') : 'Nenhuma sequência ainda' }}</span>
                         </span>
                     </div>
                     <span class="text-[0.62rem] font-bold text-zinc-500">50/50 teórico</span>
