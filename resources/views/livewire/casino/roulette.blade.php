@@ -54,7 +54,7 @@
             <p class="mt-2 text-4xl font-semibold tabular-nums {{ match ($roundResult['color']) { 'red' => 'text-rose-300', 'black' => 'text-white', default => 'text-emerald-300' } }}">{{ $roundResult['outcome'] }}</p>
             <p class="mt-1 text-sm text-zinc-400">{{ $roundResult['color'] }} · {{ ($roundResult['won'] ?? false) ? 'Ganhou' : 'Não ganhou' }} · {{ $roundPayout }} créditos</p>
             @if ($roundPhase === 'completed' && $roundId)
-                <a href="{{ route('fairness.verify', $roundId) }}" class="mt-4 inline-block text-sm text-emerald-300 underline underline-offset-4" wire:navigate>Verificar ronda</a>
+                <button type="button" class="mt-4 text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
             @endif
         @elseif ($roundPhase === 'ready')
             <p class="text-sm text-zinc-500">Escolha uma aposta interna ou externa.</p>
