@@ -311,6 +311,8 @@
      x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
      x-on:pagehide.window="resetFlight()">    <style>
         .jetx-page{--jet-gold:#f5c451;--jet-gold-hi:#ffe7a1;--jet-cyan:#4dd9ff;--jet-red:#ff5e67;--jet-bg:#070b12;--jet-panel:#0b111a;--jet-text:#eff5fb;color:#e9eef4}
+
+        .jetx-stars{position:absolute;inset:-20%;pointer-events:none;background-repeat:repeat;opacity:.28;mix-blend-mode:screen;will-change:transform}.jetx-stars--far{background-image:radial-gradient(circle,rgba(255,255,255,.65) 0 1px,transparent 1.5px),radial-gradient(circle,rgba(77,217,255,.4) 0 1px,transparent 1.5px);background-size:145px 145px,210px 210px;background-position:20px 35px,90px 110px}.jetx-stars--near{background-image:radial-gradient(circle,rgba(255,255,255,.8) 0 1.5px,transparent 2px),radial-gradient(circle,rgba(245,196,81,.55) 0 1px,transparent 1.5px);background-size:95px 95px,175px 175px;background-position:12px 18px,65px 92px;opacity:.18}.jetx-stage.flying .jetx-stars--far{animation:jetx-stars-far 11s linear infinite}.jetx-stage.flying .jetx-stars--near{animation:jetx-stars-near 4.5s linear infinite}.jetx-speedlines{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:0}.jetx-stage.flying .jetx-speedlines{opacity:1}.jetx-speedlines span{position:absolute;left:-18%;width:34%;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),rgba(77,217,255,.72),transparent);filter:blur(.2px);transform:rotate(-19deg);animation:jetx-speed 1.15s linear infinite}.jetx-speedlines span:nth-child(1){top:18%;animation-delay:-.2s}.jetx-speedlines span:nth-child(2){top:28%;animation-delay:-.7s;width:25%}.jetx-speedlines span:nth-child(3){top:38%;animation-delay:-1s;width:40%}.jetx-speedlines span:nth-child(4){top:52%;animation-delay:-.35s;width:28%}.jetx-speedlines span:nth-child(5){top:64%;animation-delay:-.9s;width:44%}.jetx-speedlines span:nth-child(6){top:74%;animation-delay:-.1s;width:22%}.jetx-speedlines span:nth-child(7){top:13%;animation-delay:-.55s;width:19%}.jetx-speedlines span:nth-child(8){top:46%;animation-delay:-.75s;width:20%}.jetx-speedlines span:nth-child(9){top:83%;animation-delay:-.4s;width:31%}.jetx-speedlines span:nth-child(10){top:34%;animation-delay:-1.2s;width:18%}.jetx-orbit{position:absolute;left:50%;top:50%;border:1px solid rgba(77,217,255,.12);border-radius:50%;transform:translate(-50%,-50%) rotate(-17deg);pointer-events:none;opacity:0}.jetx-orbit--one{width:78%;height:38%}.jetx-orbit--two{width:62%;height:26%;border-color:rgba(245,196,81,.08)}.jetx-stage.flying .jetx-orbit--one{opacity:1;animation:jetx-orbit 7s ease-in-out infinite}.jetx-stage.flying .jetx-orbit--two{opacity:1;animation:jetx-orbit-rev 9s ease-in-out infinite}.jetx-boost-glow{position:absolute;left:6%;bottom:14%;width:34%;height:20%;background:radial-gradient(ellipse,rgba(77,217,255,.16),transparent 68%);filter:blur(18px);opacity:0;pointer-events:none}.jetx-stage.flying .jetx-boost-glow{opacity:1;animation:jetx-boost 1.1s ease-in-out infinite alternate}.jetx-stage.is-launching{animation:jetx-launch-stage .65s cubic-bezier(.2,.8,.2,1)}.jetx-stage.is-flying-fast .jetx-multiplier{animation:jetx-multiplier-pulse 1.5s ease-in-out infinite}.jetx-stage.is-crashed{animation:jetx-crash-shake .42s ease-out}.jetx-multiplier.is-growing{text-shadow:0 0 38px rgba(77,217,255,.28),0 0 70px rgba(77,217,255,.08)}.jetx-multiplier.is-final{animation:jetx-result-pulse .5s cubic-bezier(.16,1,.3,1)}.jetx-rocket{transition:filter .15s ease}.jetx-stage.flying .jetx-rocket{filter:drop-shadow(0 0 12px rgba(77,217,255,.15)) drop-shadow(0 16px 16px rgba(0,0,0,.42))}.jetx-rocket__particle{position:absolute;left:0;top:50%;width:7px;height:7px;border-radius:50%;background:#f5c451;filter:blur(1px);opacity:0;box-shadow:0 0 10px rgba(245,196,81,.55)}.jetx-rocket__particle--one{animation:jetx-particle-one .55s linear infinite}.jetx-rocket__particle--two{background:#4dd9ff;animation:jetx-particle-two .72s linear infinite -.18s}.jetx-rocket__particle--three{width:5px;height:5px;background:#ff6470;animation:jetx-particle-three .9s linear infinite -.4s}.jetx-shockwave{position:absolute;left:50%;top:48%;width:14rem;height:14rem;border:3px solid rgba(255,94,103,.55);border-radius:50%;transform:translate(-50%,-50%) scale(.2);box-shadow:0 0 70px rgba(255,94,103,.18),inset 0 0 40px rgba(255,94,103,.08);animation:jetx-shockwave .7s cubic-bezier(.15,.9,.3,1)}.jetx-result{animation:jetx-result-card .45s cubic-bezier(.16,1,.3,1)}
         .jetx-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1rem}.jetx-hero__title{display:flex;gap:.8rem;align-items:center}.jetx-mark{display:grid;place-items:center;width:3rem;height:3rem;border:1px solid rgba(77,217,255,.25);border-radius:1rem;background:linear-gradient(145deg,rgba(77,217,255,.14),rgba(245,196,81,.07));font-size:1.45rem;box-shadow:0 0 30px rgba(77,217,255,.08)}
         .jetx-eyebrow{margin:0;color:#748394;font-size:.62rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.jetx-title{margin:.12rem 0 0;font-size:1.6rem;font-weight:950;letter-spacing:-.02em}.jetx-hint{margin:.2rem 0 0;color:#8996a5;font-size:.78rem}
         .jetx-layout{display:grid;grid-template-columns:minmax(0,1fr) 18rem;gap:1rem}.jetx-main{min-width:0}
@@ -334,7 +336,9 @@
         @keyframes jetx-stars{from{transform:translate3d(0,0,0)}to{transform:translate3d(-120px,80px,0)}}@keyframes jetx-flame{from{transform:scaleX(.85);opacity:.55}to{transform:scaleX(1.15);opacity:1}}@keyframes jetx-trail-pulse{from{opacity:.35;transform:translateX(-8px)}to{opacity:.9;transform:translateX(10px)}}@keyframes jetx-boom{from{opacity:0;transform:translate(-50%,-50%) scale(.45)}65%{transform:translate(-50%,-50%) scale(1.12)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}        
         @media(max-width:900px){.jetx-layout{grid-template-columns:1fr}.jetx-side{grid-template-columns:repeat(2,minmax(0,1fr))}.jetx-controls{grid-template-columns:1fr}.jetx-action-wrap{width:100%}.jetx-action{width:100%}}@media(max-width:600px){.jetx-hero{align-items:flex-start;flex-direction:column}.jetx-stage{min-height:30rem}.jetx-bet{grid-template-columns:1fr}.jetx-side{grid-template-columns:1fr}.jetx-multiplier{top:19%}.jetx-result{bottom:6%}}
         @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket__flame,.jetx-result{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
-    </style>
+    
+        @keyframes jetx-stars-far{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-130px,85px,0) scale(1.03)}}@keyframes jetx-stars-near{from{transform:translate3d(0,0,0)}to{transform:translate3d(-260px,165px,0)}}@keyframes jetx-speed{from{transform:translate3d(-30vw,0,0) rotate(-19deg);opacity:0}18%{opacity:.9}100%{transform:translate3d(150vw,0,0) rotate(-19deg);opacity:0}}@keyframes jetx-orbit{0%,100%{transform:translate(-50%,-50%) rotate(-17deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(-9deg) scale(1.05)}}@keyframes jetx-orbit-rev{0%,100%{transform:translate(-50%,-50%) rotate(17deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(9deg) scale(.96)}}@keyframes jetx-boost{from{transform:translateX(-6px) scale(.96);opacity:.4}to{transform:translateX(28px) scale(1.05);opacity:.8}}@keyframes jetx-launch-stage{0%{transform:scale(.985);filter:brightness(.9)}45%{transform:scale(1.012);filter:brightness(1.14)}100%{transform:scale(1);filter:brightness(1)}}@keyframes jetx-multiplier-pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.025)}}@keyframes jetx-crash-shake{0%,100%{transform:translate3d(0,0,0)}18%{transform:translate3d(-9px,4px,0) rotate(-.25deg)}36%{transform:translate3d(8px,-3px,0) rotate(.25deg)}54%{transform:translate3d(-6px,2px,0)}72%{transform:translate3d(4px,-1px,0)}90%{transform:translate3d(-2px,0,0)}}@keyframes jetx-result-pulse{0%{transform:translateX(-50%) scale(.92);opacity:.7}70%{transform:translateX(-50%) scale(1.04)}100%{transform:translateX(-50%) scale(1)}}@keyframes jetx-result-card{from{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}@keyframes jetx-shockwave{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2)}70%{opacity:.25;transform:translate(-50%,-50%) scale(1.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.55)}}@keyframes jetx-particle-one{0%{transform:translate(0,-1px) scale(.4);opacity:0}25%{opacity:.9}100%{transform:translate(-42px,-14px) scale(1.1);opacity:0}}@keyframes jetx-particle-two{0%{transform:translate(0,2px) scale(.4);opacity:0}25%{opacity:.8}100%{transform:translate(-50px,8px) scale(.8);opacity:0}}@keyframes jetx-particle-three{0%{transform:translate(0,0) scale(.3);opacity:0}30%{opacity:.8}100%{transform:translate(-62px,18px) scale(.7);opacity:0}}
+</style>
 
     <x-casino.loading-overlay target="prepare,launch,start,cashout" />
 
@@ -372,16 +376,29 @@
         <main class="jetx-main">
             <section class="jetx-stage"
                      :class="status"
+                     :class="{ 'is-launching': status === 'flying' && displayMultiplier <= 1.08, 'is-flying-fast': status === 'flying' && displayMultiplier >= 2, 'is-crashed': status === 'crashed' }"
                      aria-label="JetX">
+                <div class="jetx-stars jetx-stars--far" aria-hidden="true"></div>
+                <div class="jetx-stars jetx-stars--near" aria-hidden="true"></div>
+                <div class="jetx-speedlines" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+                <div class="jetx-orbit jetx-orbit--one" aria-hidden="true"></div>
+                <div class="jetx-orbit jetx-orbit--two" aria-hidden="true"></div>
                 <div class="jetx-grid" aria-hidden="true"></div>
                 <div class="jetx-trail" aria-hidden="true"></div>
+                <div class="jetx-boost-glow" aria-hidden="true"></div>
 
-                <div class="jetx-multiplier">
+                <div class="jetx-multiplier" :class="{ 'is-growing': flying, 'is-final': resultOpen }">
                     <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
                 </div>
 
                 <div class="jetx-rocket" :style="rocketStyle()" x-show="flying" x-cloak aria-hidden="true">
                     <span class="jetx-rocket__flame"></span>
+                    <span class="jetx-rocket__particle jetx-rocket__particle--one"></span>
+                    <span class="jetx-rocket__particle jetx-rocket__particle--two"></span>
+                    <span class="jetx-rocket__particle jetx-rocket__particle--three"></span>
                     <span class="jetx-rocket__fin jetx-rocket__fin--top"></span>
                     <span class="jetx-rocket__body">
                         <span class="jetx-rocket__nose"></span>
@@ -390,6 +407,7 @@
                     </span>
                     <span class="jetx-rocket__fin jetx-rocket__fin--bottom"></span>
                 </div>
+                <div class="jetx-shockwave" x-show="status === 'crashed' && resultOpen" x-cloak aria-hidden="true"></div>
                 <div class="jetx-explosion" x-show="status === 'crashed' && resultOpen" x-cloak aria-hidden="true">💥</div>
 
                 <div class="jetx-result" x-show="resultOpen" x-cloak>
