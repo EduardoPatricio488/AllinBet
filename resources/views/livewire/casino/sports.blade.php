@@ -604,7 +604,7 @@
         .sports-stake-label strong{color:#d5dde2}
         .sports-stakes{
             display:grid;
-            grid-template-columns:repeat(4,1fr);
+            grid-template-columns:repeat(5,minmax(0,1fr));
             gap:.4rem;
             margin-top:.42rem;
         }
@@ -618,6 +618,20 @@
             font-weight:950;
             cursor:pointer;
             transition:.15s;
+        }
+        .sports-stake--max{
+            border-color:rgba(81,216,255,.22);
+            background:rgba(81,216,255,.045);
+            color:#7bdfff;
+        }
+        .sports-stake--max:hover{
+            border-color:rgba(81,216,255,.45);
+            background:rgba(81,216,255,.08);
+        }
+        .sports-stake:disabled{
+            opacity:.38;
+            cursor:not-allowed;
+            transform:none !important;
         }
         .sports-stake:hover{
             border-color:rgba(245,196,81,.28);
@@ -995,6 +1009,15 @@
                                     {{ $amount }}
                                 </button>
                             @endforeach
+                            <button type="button"
+                                    class="sports-stake sports-stake--max {{ (int) $stake === (int) $balance && (int) $balance > 0 ? 'is-active' : '' }}"
+                                    wire:click="setMaxStake"
+                                    wire:loading.attr="disabled"
+                                    wire:target="setMaxStake"
+                                    @disabled((int) $balance < 1)>
+                                <span wire:loading.remove wire:target="setMaxStake">MAX</span>
+                                <span wire:loading wire:target="setMaxStake">…</span>
+                            </button>
                         </div>
 
                         <button type="button"
