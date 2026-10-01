@@ -10,8 +10,6 @@ use App\Models\User;
 use App\Services\BetService;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -72,7 +70,6 @@ abstract class CasinoGameComponent extends Component
         }
 
         $user = $this->authenticatedUser();
-        $this->enforceRateLimit($user, $game);
 
         try {
             $round = app(BetService::class)->prepare(
@@ -101,13 +98,12 @@ abstract class CasinoGameComponent extends Component
 
         if ($this->roundId === null || ! in_array($this->roundPhase, [RoundStatus::Prepared->value, RoundStatus::InProgress->value], true)) {
             $this->addError('game', 'Prepare a round before playing.');
-            $this->dispatch('casino-toast', type: 'error', title: 'Prepare a ronda', message: 'Prepare uma ronda antes de jogar.');
+            $this->dispatch('casino-toast', type: 'error', title: 'Prepare uma ronda', message: 'Prepare uma ronda antes de jogar.');
 
             return;
         }
 
         $user = $this->authenticatedUser();
-        $this->enforceRateLimit($user, $game);
 
         try {
             $round = app(BetService::class)->play($user, $this->roundId, [
@@ -153,20 +149,5 @@ abstract class CasinoGameComponent extends Component
         }
 
         return $user;
-    }
-
-    private function enforceRateLimit(User $user, GameType $game): void
-    {
-        $key = "casino:{$user->getKey()}:{$game->value}";
-
-        if (RateLimiter::tooManyAttempts($key, 20)) {
-            $this->dispatch('casino-toast', type: 'error', title: 'Aguarde um momento', message: 'Muitas ações seguidas. Tente novamente em um minuto.');
-
-            throw ValidationException::withMessages([
-                'game' => 'Too many game actions. Try again in a minute.',
-            ]);
-        }
-
-        RateLimiter::hit($key, 60);
     }
 }
