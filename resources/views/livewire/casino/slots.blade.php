@@ -22,12 +22,51 @@
         [5, 2, 7, 4, 1, 6, 3, 0],
         [2, 6, 1, 5, 0, 4, 7, 3],
     ];
+    $slotVariants = [
+        'classic' => [
+            'name' => 'Allin Classic',
+            'tag' => 'FRUIT · RETRO',
+            'icon' => '🍒',
+            'description' => 'Fruta clássica, ouro e estética de máquina arcade.',
+        ],
+        'neon' => [
+            'name' => 'Neon Pulse',
+            'tag' => 'NEON · CYBER',
+            'icon' => '✦',
+            'description' => 'Um visual futurista com brilho eléctrico e contraste intenso.',
+        ],
+        'gems' => [
+            'name' => 'Gem Royale',
+            'tag' => 'GEMS · ROYAL',
+            'icon' => '💎',
+            'description' => 'Cristais, metal escuro e acabamento premium.',
+        ],
+        'candy' => [
+            'name' => 'Candy Pop',
+            'tag' => 'SWEET · POP',
+            'icon' => '🍭',
+            'description' => 'Uma máquina doce, colorida e mais descontraída.',
+        ],
+        'space' => [
+            'name' => 'Space 777',
+            'tag' => 'SPACE · 777',
+            'icon' => '🚀',
+            'description' => 'Uma slot espacial com brilho cósmico e atmosfera sci-fi.',
+        ],
+        'wild' => [
+            'name' => 'Wild Gold',
+            'tag' => 'WILD · GOLD',
+            'icon' => '🐺',
+            'description' => 'Uma variante selvagem com madeira, ouro e tons de floresta.',
+        ],
+    ];
     $sym = fn (int $n, string $c = '') => '<svg class="slot-sym '.$c.'" viewBox="0 0 64 64" aria-hidden="true"><use href="#s'.($n % 8).'"/></svg>';
 @endphp
 
-<div class="casino-game-play grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
+<div class="casino-game-play slot-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]
      x-data="{
         st: ['idle', 'idle', 'idle'],
+        selectedSlot: new URLSearchParams(window.location.search).get('slot') || 'classic',
         busy: false,
         done: true,
         overlay: false,
@@ -37,6 +76,14 @@
         maxBet: {{ $maxBet }},
         wait: (ms) => new Promise((r) => setTimeout(r, ms)),
         sfx(name) { this.$dispatch('casino-sfx', { name }); },
+        selectSlot(key) {
+            const allowed = @js(array_keys($slotVariants));
+            if (!allowed.includes(key) || key === this.selectedSlot) return;
+            this.selectedSlot = key;
+            const url = new URL(window.location.href);
+            url.searchParams.set('slot', key);
+            window.history.replaceState({}, '', url);
+        },
         step(d) {
             const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
             this.$wire.bet = Math.min(this.maxBet, Math.max(6, v));
@@ -139,9 +186,86 @@
         </defs>
     </svg>
 
-        <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é dividida pelas 6 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'6 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
+        <section class="slot-collection" aria-label="Escolher máquina de Slots">
+        <div class="slot-collection__head">
+            <div>
+                <p class="casino-eyebrow">SLOTS ORIGINALS</p>
+                <h2 class="slot-collection__title">Escolhe a tua máquina</h2>
+                <p class="slot-collection__subtitle">Seis estilos diferentes, com a mesma grelha 3×3 e os mesmos créditos virtuais.</p>
+            </div>
+            <span class="slot-collection__count">6 JOGOS</span>
+        </div>
+
+        <div class="slot-collection__grid">
+            @foreach ($slotVariants as $key => $variant)
+                <button type="button"
+                        class="slot-variant-card slot-variant-card--{{ $key }}"
+                        :class="{ 'is-active': selectedSlot === '{{ $key }}' }"
+                        x-on:click="selectSlot('{{ $key }}')"
+                        :aria-pressed="selectedSlot === '{{ $key }}'"
+                        wire:key="slot-variant-{{ $key }}">
+                    <span class="slot-variant-card__glow" aria-hidden="true"></span>
+                    <span class="slot-variant-card__icon" aria-hidden="true">{{ $variant['icon'] }}</span>
+                    <span class="slot-variant-card__body">
+                        <strong>{{ $variant['name'] }}</strong>
+                        <small>{{ $variant['tag'] }}</small>
+                        <em>{{ $variant['description'] }}</em>
+                    </span>
+                    <span class="slot-variant-card__state" x-show="selectedSlot === '{{ $key }}'">A JOGAR</span>
+                </button>
+            @endforeach
+        </div>
+    </section>
+
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é dividida pelas 6 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'6 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
+        .slot-collection{position:relative;margin-bottom:.15rem}
+        .slot-collection__head{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:.8rem}
+        .slot-collection__title{margin-top:.15rem;font-size:clamp(1.25rem,3vw,1.8rem);font-weight:950;letter-spacing:-.02em;color:#f4f6f4}
+        .slot-collection__subtitle{margin-top:.3rem;max-width:48rem;font-size:.78rem;line-height:1.5;color:#77847e}
+        .slot-collection__count{padding:.42rem .7rem;border:1px solid rgba(242,193,78,.18);border-radius:9999px;background:rgba(242,193,78,.045);color:#bfae78;font-size:.58rem;font-weight:950;letter-spacing:.14em;white-space:nowrap}
+        .slot-collection__grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.55rem}
+        .slot-variant-card{position:relative;display:flex;align-items:center;gap:.65rem;min-width:0;overflow:hidden;padding:.72rem .7rem;text-align:left;border:1px solid rgba(255,255,255,.08);border-radius:1rem;background:linear-gradient(145deg,#111816,#0a0f0e);color:#fff;cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+        .slot-variant-card:hover{transform:translateY(-2px);border-color:rgba(242,193,78,.3)}
+        .slot-variant-card.is-active{border-color:rgba(242,193,78,.72);box-shadow:0 10px 28px rgba(0,0,0,.25),0 0 24px rgba(242,193,78,.1)}
+        .slot-variant-card__glow{position:absolute;inset:0;pointer-events:none;opacity:.5;background:radial-gradient(circle at 15% 20%,rgba(242,193,78,.12),transparent 55%)}
+        .slot-variant-card--neon .slot-variant-card__glow{background:radial-gradient(circle at 15% 20%,rgba(34,211,238,.22),transparent 58%),radial-gradient(circle at 90% 80%,rgba(217,70,239,.12),transparent 50%)}
+        .slot-variant-card--gems .slot-variant-card__glow{background:radial-gradient(circle at 15% 20%,rgba(56,189,248,.18),transparent 58%),radial-gradient(circle at 90% 80%,rgba(99,102,241,.15),transparent 50%)}
+        .slot-variant-card--candy .slot-variant-card__glow{background:radial-gradient(circle at 15% 20%,rgba(244,114,182,.2),transparent 58%),radial-gradient(circle at 90% 80%,rgba(251,191,36,.15),transparent 50%)}
+        .slot-variant-card--space .slot-variant-card__glow{background:radial-gradient(circle at 15% 20%,rgba(129,140,248,.22),transparent 58%),radial-gradient(circle at 90% 80%,rgba(34,211,238,.12),transparent 50%)}
+        .slot-variant-card--wild .slot-variant-card__glow{background:radial-gradient(circle at 15% 20%,rgba(34,197,94,.18),transparent 58%),radial-gradient(circle at 90% 80%,rgba(245,158,11,.13),transparent 50%)}
+        .slot-variant-card__icon{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 2.6rem;width:2.6rem;height:2.6rem;border-radius:.8rem;background:rgba(255,255,255,.045);font-size:1.35rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+        .slot-variant-card__body{position:relative;z-index:1;display:grid;min-width:0}
+        .slot-variant-card__body strong{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .slot-variant-card__body small{margin-top:.1rem;color:#a39469;font-size:.48rem;font-weight:900;letter-spacing:.1em}
+        .slot-variant-card__body em{display:none;margin-top:.18rem;color:#6d7873;font-size:.54rem;line-height:1.35;font-style:normal}
+        .slot-variant-card__state{position:absolute;right:.45rem;bottom:.38rem;z-index:2;color:#f2c14e;font-size:.43rem;font-weight:950;letter-spacing:.08em}
+        .slot-title__variant{display:block;margin-top:.18rem;color:#77847d;font-size:.5em;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+
+        .slot-theme-classic{--theme1:#f2c14e;--theme2:#23d99a}
+        .slot-theme-neon{--theme1:#22d3ee;--theme2:#d946ef}
+        .slot-theme-gems{--theme1:#38bdf8;--theme2:#818cf8}
+        .slot-theme-candy{--theme1:#f472b6;--theme2:#fbbf24}
+        .slot-theme-space{--theme1:#818cf8;--theme2:#22d3ee}
+        .slot-theme-wild{--theme1:#22c55e;--theme2:#f59e0b}
+        .slot-theme-neon .slot-cabinet{background:radial-gradient(120% 65% at 50% 0,rgba(34,211,238,.16),transparent 60%),linear-gradient(160deg,#07131a,#090b14 60%,#070a0d)}
+        .slot-theme-gems .slot-cabinet{background:radial-gradient(120% 65% at 50% 0,rgba(56,189,248,.13),transparent 60%),linear-gradient(160deg,#08111a,#0b0d17 60%,#070a0d)}
+        .slot-theme-candy .slot-cabinet{background:radial-gradient(120% 65% at 50% 0,rgba(244,114,182,.13),transparent 60%),linear-gradient(160deg,#180b15,#120c12 60%,#09090c)}
+        .slot-theme-space .slot-cabinet{background:radial-gradient(120% 65% at 50% 0,rgba(129,140,248,.17),transparent 60%),linear-gradient(160deg,#090d1c,#090b15 60%,#06080f)}
+        .slot-theme-wild .slot-cabinet{background:radial-gradient(120% 65% at 50% 0,rgba(34,197,94,.12),transparent 60%),linear-gradient(160deg,#09160f,#0b100d 60%,#070a0b)}
+        .slot-theme-neon .slot-title em,.slot-theme-space .slot-title em{color:var(--theme1)}
+        .slot-theme-neon .slot-window{box-shadow:inset 0 0 40px #000,0 0 0 2px rgba(34,211,238,.45),0 0 0 6px rgba(217,70,239,.1)}
+        .slot-theme-gems .slot-window{box-shadow:inset 0 0 40px #000,0 0 0 2px rgba(56,189,248,.45),0 0 0 6px rgba(129,140,248,.1)}
+        .slot-theme-candy .slot-window{box-shadow:inset 0 0 40px #000,0 0 0 2px rgba(244,114,182,.42),0 0 0 6px rgba(251,191,36,.1)}
+        .slot-theme-space .slot-window{box-shadow:inset 0 0 40px #000,0 0 0 2px rgba(129,140,248,.45),0 0 0 6px rgba(34,211,238,.1)}
+        .slot-theme-wild .slot-window{box-shadow:inset 0 0 40px #000,0 0 0 2px rgba(34,197,94,.4),0 0 0 6px rgba(245,158,11,.1)}
+        .slot-theme-neon .slot-prize__card,.slot-theme-space .slot-prize__card{background:linear-gradient(145deg,rgba(5,14,20,.98),rgba(22,14,38,.98));border-color:rgba(34,211,238,.72)}
+        .slot-theme-gems .slot-prize__card{background:linear-gradient(145deg,rgba(7,15,22,.98),rgba(16,15,38,.98));border-color:rgba(56,189,248,.72)}
+        .slot-theme-candy .slot-prize__card{background:linear-gradient(145deg,rgba(27,10,20,.98),rgba(38,21,8,.98));border-color:rgba(244,114,182,.72)}
+        .slot-theme-wild .slot-prize__card{background:linear-gradient(145deg,rgba(8,19,13,.98),rgba(37,28,8,.98));border-color:rgba(34,197,94,.72)}
+        @media (max-width:1100px){.slot-collection__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        @media (max-width:640px){.slot-collection__head{align-items:start;flex-direction:column}.slot-collection__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-variant-card{padding:.6rem}.slot-variant-card__icon{flex-basis:2.2rem;width:2.2rem;height:2.2rem}.slot-variant-card__body em{display:block}}
         .slot-machine { --cell: clamp(4.2rem, 16vw, 6.6rem); --gold: #f2c14e; --gold-hi: #ffe39a; }
         .allin-slots { --green: #23d99a; --line: rgba(255,255,255,.08); }
 
@@ -274,7 +398,7 @@
         }
     </style>
 
-        <section class="slot-machine">
+        <section class="slot-machine" :class="'slot-theme-' + selectedSlot">
         <div class="slot-cabinet">
             <span class="casino-bulbs" aria-hidden="true"></span>
 
@@ -287,8 +411,11 @@
             </div>
 
             <header class="slot-header">
-                <h1 class="slot-title">Allinbet <em class="casino-shimmer-text">Slots</em></h1>
-                <span class="slot-badge">9 posições · 3×3 · 6 linhas</span>
+                <h1 class="slot-title">
+                    Allinbet <em class="casino-shimmer-text">Slots</em>
+                    <span class="slot-title__variant" x-text="({classic:'Allin Classic',neon:'Neon Pulse',gems:'Gem Royale',candy:'Candy Pop',space:'Space 777',wild:'Wild Gold'})[selectedSlot]"></span>
+                </h1>
+                <span class="slot-badge" x-text="({classic:'FRUIT · RETRO',neon:'NEON · CYBER',gems:'GEMS · ROYAL',candy:'SWEET · POP',space:'SPACE · 777',wild:'WILD · GOLD'})[selectedSlot]">9 posições · 3×3 · 6 linhas</span>
             </header>
 
             <div class="slot-window"
