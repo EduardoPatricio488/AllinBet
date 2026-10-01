@@ -1,60 +1,113 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
-        @php($pageTitle = $__env->yieldContent('page-title', 'Casino'))
+        @php
+            $pageTitle = $__env->yieldContent('page-title', 'Casino');
+            $casinoGames = $casinoGames ?? \App\Support\CasinoCatalog::games();
+        @endphp
         @include('partials.head', ['title' => $pageTitle])
         @livewireStyles
     </head>
     <body class="casino-body min-h-screen antialiased">
-        <header class="casino-topbar">
-            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-                <a href="{{ route('home') }}" class="casino-wordmark" wire:navigate>
+        <div class="casino-atmosphere" aria-hidden="true">
+            <span class="casino-atmosphere__vignette"></span>
+            <span class="casino-atmosphere__felt"></span>
+        </div>
+
+        <div class="casino-shell">
+            <aside class="casino-rail" aria-label="Jogos e secções">
+                <a href="{{ route('home') }}" class="casino-wordmark casino-rail__brand" wire:navigate>
                     <span class="casino-mark">A</span>
                     <span>ALLINBET</span>
                 </a>
-                <nav aria-label="Navegação principal" class="flex items-center gap-3 sm:gap-5">
-                    <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle hidden sm:inline-flex">Som: desligado</button>
-                    <button type="button" x-data x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'" class="casino-theme-toggle" aria-label="Alternar tema">
-                        <span x-show="$flux.appearance === 'dark'">☀️ Tema claro</span>
-                        <span x-show="$flux.appearance !== 'dark'">🌙 Tema escuro</span>
-                    </button>
-                    <a href="{{ route('home') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright sm:inline" wire:navigate>Lobby</a>
-                    @auth
-                        <a href="{{ route('casino.history') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright sm:inline" wire:navigate>Histórico</a>
-                        <a href="{{ route('casino.help') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright lg:inline" wire:navigate>Jogo responsável</a>
-                        <a href="{{ route('casino.wallet') }}" class="casino-wallet-link" wire:navigate aria-label="Abrir carteira">@livewire('casino.wallet-balance')</a>
-                        <details class="casino-user-menu">
-                            <summary aria-label="Menu do utilizador">{{ auth()->user()->initials() }}</summary>
-                            <div class="casino-user-menu__panel">
-                                <p class="casino-user-menu__name">{{ auth()->user()->name }}</p>
-                                <a href="{{ route('casino.wallet') }}" wire:navigate>Carteira de créditos</a>
-                                <a href="{{ route('profile.edit') }}" wire:navigate>Perfil e configurações</a>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit">Terminar sessão</button>
-                                </form>
-                            </div>
-                        </details>
-                    @else
-                        <span class="hidden text-xs text-zinc-300 sm:inline">Créditos virtuais — sem valor monetário</span>
-                        <a href="{{ route('login') }}" class="text-sm text-zinc-200 transition hover:text-casino-gold-bright">Entrar</a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="casino-button casino-button--primary min-h-10 px-3 py-2 text-xs sm:text-sm">Criar conta</a>
-                        @endif
-                    @endauth
-                </nav>
+
+                <a href="{{ route('home') }}" class="casino-rail__item {{ request()->routeIs('home', 'dashboard') ? 'is-current' : '' }}" wire:navigate>
+                    <span class="casino-rail__glyph">▣</span>
+                    Lobby
+                </a>
+
+                <p class="casino-rail__label">ORIGINALS</p>
+                @foreach ($casinoGames as $game)
+                    <a href="{{ auth()->check() ? route($game['route']) : route('login') }}" class="casino-rail__item {{ request()->routeIs($game['route']) ? 'is-current' : '' }}" wire:navigate>
+                        <span class="casino-rail__glyph">{{ $game['icon'] }}</span>
+                        {{ $game['name'] }}
+                    </a>
+                @endforeach
+
+                <p class="casino-rail__label">CONTA</p>
+                @auth
+                    <a href="{{ route('casino.wallet') }}" class="casino-rail__item {{ request()->routeIs('casino.wallet') ? 'is-current' : '' }}" wire:navigate>
+                        <span class="casino-rail__glyph">◎</span>
+                        Carteira
+                    </a>
+                    <a href="{{ route('casino.history') }}" class="casino-rail__item {{ request()->routeIs('casino.history') ? 'is-current' : '' }}" wire:navigate>
+                        <span class="casino-rail__glyph">☰</span>
+                        Histórico
+                    </a>
+                @endauth
+                <a href="{{ route('casino.help') }}" class="casino-rail__item {{ request()->routeIs('casino.help') ? 'is-current' : '' }}" wire:navigate>
+                    <span class="casino-rail__glyph">♥</span>
+                    Jogo responsável
+                </a>
+
+                <p class="casino-rail__meta">Créditos virtuais — sem valor monetário. Sem depósitos, pagamentos ou levantamentos.</p>
+            </aside>
+
+            <div class="casino-shell__body">
+                <header class="casino-topbar">
+                    <div class="casino-topbar__inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                        <a href="{{ route('home') }}" class="casino-wordmark lg:hidden" wire:navigate>
+                            <span class="casino-mark">A</span>
+                            <span>ALLINBET</span>
+                        </a>
+                        <button type="button" class="casino-search-trigger" x-data x-on:click="$dispatch('casino-open-search')">
+                            <span>Procurar jogos, histórico…</span>
+                            <kbd>Ctrl K</kbd>
+                        </button>
+                        <nav aria-label="Navegação principal" class="casino-topbar__actions">
+                            <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle hidden sm:inline-flex">Som: desligado</button>
+                            <button type="button" x-data x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'" class="casino-theme-toggle" aria-label="Alternar tema">
+                                <span x-show="$flux.appearance === 'dark'">☀️ Tema claro</span>
+                                <span x-show="$flux.appearance !== 'dark'">🌙 Tema escuro</span>
+                            </button>
+                            @auth
+                                <a href="{{ route('casino.wallet') }}" class="casino-wallet-link" wire:navigate aria-label="Abrir carteira">@livewire('casino.wallet-balance')</a>
+                                <details class="casino-user-menu">
+                                    <summary aria-label="Menu do utilizador">{{ auth()->user()->initials() }}</summary>
+                                    <div class="casino-user-menu__panel">
+                                        <p class="casino-user-menu__name">{{ auth()->user()->name }}</p>
+                                        <a href="{{ route('casino.wallet') }}" wire:navigate>Carteira de créditos</a>
+                                        <a href="{{ route('profile.edit') }}" wire:navigate>Perfil e configurações</a>
+                                        <form method="POST" action="{{ route('logout') }}">
+                                            @csrf
+                                            <button type="submit">Terminar sessão</button>
+                                        </form>
+                                    </div>
+                                </details>
+                            @else
+                                <span class="hidden text-xs text-zinc-300 sm:inline">Créditos virtuais — sem valor monetário</span>
+                                <a href="{{ route('login') }}" class="text-sm text-zinc-200 transition hover:text-casino-gold-bright">Entrar</a>
+                                @if (Route::has('register'))
+                                    <a href="{{ route('register') }}" class="casino-button casino-button--primary min-h-10 px-3 py-2 text-xs sm:text-sm">Criar conta</a>
+                                @endif
+                            @endauth
+                        </nav>
+                    </div>
+                </header>
+
+                <main class="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 md:pb-8 lg:px-8">
+                    @yield('content')
+                </main>
+
+                <footer class="border-t border-casino-gold/15 px-4 py-5 text-center text-xs text-zinc-400">
+                    <span>AllinBet</span>
+                    <span class="mx-2 text-casino-gold/60">·</span>
+                    <span>Créditos virtuais — sem valor monetário</span>
+                    <span class="mx-2 text-casino-gold/60">·</span>
+                    <a href="{{ route('casino.help') }}" class="hover:text-casino-gold-bright" wire:navigate>Jogo responsável</a>
+                </footer>
             </div>
-        </header>
-
-        <main class="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 md:pb-8 lg:px-8">
-            @yield('content')
-        </main>
-
-        <footer class="border-t border-casino-gold/15 px-4 py-5 text-center text-xs text-zinc-400">
-            <span>AllinBet</span>
-            <span class="mx-2 text-casino-gold/60">·</span>
-            <span>Créditos virtuais — sem valor monetário</span>
-        </footer>
+        </div>
 
         <div
             class="casino-feedback-root"
@@ -93,8 +146,6 @@
                 <div class="casino-win-celebration__message"><span>GRANDE VITÓRIA</span><strong x-text="`+${celebration?.amount ?? 0}`"></strong><small>créditos virtuais</small></div>
             </div>
         </div>
-
-
 
         @auth
             <nav class="casino-bottomnav md:hidden" aria-label="Navegação rápida">
@@ -147,26 +198,23 @@
             x-data="{
                 open: false,
                 q: '',
-                items: [
-                    { n: 'Coinflip', u: '{{ route('casino.coinflip') }}' },
-                    { n: 'Dados', u: '{{ route('casino.dice') }}' },
-                    { n: 'Roleta', u: '{{ route('casino.roulette') }}' },
-                    { n: 'Blackjack', u: '{{ route('casino.blackjack') }}' },
-                    { n: 'Slots', u: '{{ route('casino.slots') }}' },
-                    { n: 'Histórico', u: '{{ route('casino.history') }}' },
-                    { n: 'Carteira', u: '{{ route('casino.wallet') }}' },
-                ],
+                items: {{ Js::from(collect($casinoGames)->map(fn ($game) => ['n' => $game['name'], 'u' => route($game['route'])])->concat([
+                    ['n' => 'Histórico', 'u' => route('casino.history')],
+                    ['n' => 'Carteira', 'u' => route('casino.wallet')],
+                    ['n' => 'Jogo responsável', 'u' => route('casino.help')],
+                ])->values()) }},
                 get results() { return this.items.filter(i => i.n.toLowerCase().includes(this.q.toLowerCase())); }
             }"
             x-on:keydown.window.ctrl.k.prevent="open = true; $nextTick(() => $refs.q.focus())"
+            x-on:casino-open-search.window="open = true; $nextTick(() => $refs.q.focus())"
             x-on:keydown.escape.window="open = false"
             x-cloak
             x-show="open"
             class="casino-modal"
             x-on:click.self="open = false"
         >
-            <div class="casino-modal__panel casino-card">
-                <input x-ref="q" x-model="q" type="search" placeholder="Procurar jogo… (Esc fecha)" class="casino-input w-full">
+            <div class="casino-modal__panel casino-card p-4">
+                <input x-ref="q" x-model="q" type="search" placeholder="Procurar jogo… (Esc fecha)" class="casino-field w-full">
                 <ul class="mt-3 space-y-1">
                     <template x-for="i in results" :key="i.u">
                         <li><a :href="i.u" class="casino-cmd-item" wire:navigate x-on:click="open = false" x-text="i.n"></a></li>

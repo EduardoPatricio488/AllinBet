@@ -4,13 +4,10 @@
 
 @section('content')
     @php
-        $games = [
-            ['route' => 'casino.coinflip', 'name' => 'Coinflip', 'code' => '01', 'kind' => 'coinflip', 'cat' => 'sorte', 'tag' => 'CLÁSSICO', 'label' => 'Cara ou coroa'],
-            ['route' => 'casino.dice', 'name' => 'Dados', 'code' => '02', 'kind' => 'dice', 'cat' => 'dados', 'tag' => 'NOVO', 'label' => 'Abaixo ou acima'],
-            ['route' => 'casino.roulette', 'name' => 'Roleta europeia', 'code' => '03', 'kind' => 'roulette', 'cat' => 'sorte', 'tag' => 'NOVO', 'label' => 'Roda de zero único'],
-            ['route' => 'casino.blackjack', 'name' => 'Blackjack', 'code' => '04', 'kind' => 'blackjack', 'cat' => 'cartas', 'tag' => 'NOVO', 'label' => 'Pedir, parar ou dobrar'],
-            ['route' => 'casino.slots', 'name' => 'Slots', 'code' => '05', 'kind' => 'slots', 'cat' => 'sorte', 'tag' => 'NOVO', 'label' => 'Rolos e linhas de prémio'],
-        ];
+        $games = $casinoGames ?? \App\Support\CasinoCatalog::games();
+        $categories = \App\Support\CasinoCatalog::categories();
+        $featured = array_slice($games, 0, 3);
+        $playFirst = auth()->check() && isset($games[0]) ? route($games[0]['route']) : route('login');
     @endphp
 
     <div class="casino-lobby space-y-10">
@@ -21,8 +18,8 @@
                 <h1>Escolha a sua<br><em class="casino-shimmer-text">próxima mesa.</em></h1>
                 <p>Jogos originais, resultados transparentes e créditos virtuais sem valor monetário.</p>
                 <div class="casino-lobby-hero__actions">
-                    <a class="casino-button casino-button--primary relative" href="{{ auth()->check() ? route('casino.coinflip') : route('login') }}" wire:navigate><span class="casino-cta-ring" aria-hidden="true"></span>Jogar agora <span aria-hidden="true">↗</span></a>
-                    <span class="casino-lobby-count"><strong data-casino-count-to="5">5</strong><span>jogos<br>disponíveis</span></span>
+                    <a class="casino-button casino-button--primary relative" href="{{ $playFirst }}" wire:navigate><span class="casino-cta-ring" aria-hidden="true"></span>Jogar agora <span aria-hidden="true">↗</span></a>
+                    <span class="casino-lobby-count"><strong data-casino-count-to="{{ count($games) }}">{{ count($games) }}</strong><span>jogos<br>disponíveis</span></span>
                 </div>
             </div>
             <div class="casino-lobby-hero__art" aria-hidden="true">
@@ -38,77 +35,58 @@
             </div>
         </section>
 
+        <section class="casino-lobby-section" aria-label="Em destaque" data-casino-reveal>
+            <div class="casino-section-heading">
+                <div><p class="casino-eyebrow">MESAS DA CASA</p><h2>Em destaque</h2></div>
+            </div>
+            <div class="casino-featured-strip">
+                @foreach ($featured as $game)
+                    <a class="casino-featured casino-game-card--{{ $game['slug'] }}" href="{{ auth()->check() ? route($game['route']) : route('login') }}" wire:navigate>
+                        <p class="casino-eyebrow">{{ $game['tag'] }}</p>
+                        <h3>{{ $game['name'] }}</h3>
+                        <p>{{ $game['blurb'] }}</p>
+                        <span class="casino-featured__cta">Entrar na mesa ↗</span>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+
         <section class="casino-lobby-section" aria-label="Estatísticas reais" data-casino-reveal>
             <livewire:casino.lobby-stats />
         </section>
 
         <section class="casino-lobby-section" aria-label="Jogos disponíveis">
-            <div class="casino-section-heading" data-casino-reveal>
-                <div><p class="casino-eyebrow">A CASA ESTÁ ABERTA</p><h2>Jogos em destaque</h2></div>
-                <span class="casino-section-count">05 EXPERIÊNCIAS</span>
+            <div class="casino-lobby-toolbar" data-casino-reveal>
+                <div><p class="casino-eyebrow">A CASA ESTÁ ABERTA</p><h2 class="mt-1 font-[family-name:var(--font-display)] text-3xl font-medium">Todos os jogos</h2></div>
+                <span class="casino-section-count">{{ str_pad((string) count($games), 2, '0', STR_PAD_LEFT) }} EXPERIÊNCIAS</span>
             </div>
 
-            <div x-data="{ filter: 'all' }">
-                <div class="casino-tabs" role="tablist" aria-label="Filtrar jogos">
-                    @foreach (['all' => 'Todos', 'sorte' => 'Sorte', 'cartas' => 'Cartas', 'dados' => 'Dados'] as $key => $label)
-                        <button type="button" role="tab" x-on:click="filter = '{{ $key }}'" x-bind:class="{ 'is-active': filter === '{{ $key }}' }" x-bind:aria-selected="filter === '{{ $key }}'">{{ $label }}</button>
-                    @endforeach
+            <div
+                x-data="{
+                    filter: 'all',
+                    q: '',
+                    matches(category, haystack) {
+                        const query = this.q.trim().toLowerCase();
+                        const categoryOk = this.filter === 'all' || this.filter === 'originais' || this.filter === category;
+                        const queryOk = query === '' || haystack.includes(query);
+                        return categoryOk && queryOk;
+                    }
+                }"
+            >
+                <div class="casino-lobby-toolbar mb-4">
+                    <div class="casino-tabs" role="tablist" aria-label="Filtrar jogos">
+                        @foreach ($categories as $key => $label)
+                            <button type="button" role="tab" x-on:click="filter = '{{ $key }}'" x-bind:class="{ 'is-active': filter === '{{ $key }}' }" x-bind:aria-selected="filter === '{{ $key }}'">{{ $label }}</button>
+                        @endforeach
+                    </div>
+                    <label class="sr-only" for="lobby-search">Procurar jogos</label>
+                    <input id="lobby-search" x-model="q" type="search" placeholder="Filtrar por nome…" class="casino-field casino-lobby-search">
                 </div>
 
                 <div class="casino-game-grid">
-            @foreach ($games as $game)
-                <a
-                    href="{{ auth()->check() ? route($game['route']) : route('login') }}"
-                    class="casino-game-card casino-game-card--{{ $game['kind'] }}"
-                    wire:navigate
-                    data-casino-reveal
-                    x-show="filter === 'all' || filter === '{{ $game['cat'] }}'"
-                    x-transition
-                    x-data="{
-                        tiltX: 0, tiltY: 0, glowX: 50, glowY: 50,
-                        move(event) {
-                            if (window.matchMedia('(hover: none)').matches) return;
-                            const rect = this.$el.getBoundingClientRect();
-                            this.tiltX = ((event.clientY - rect.top) / rect.height - .5) * -5;
-                            this.tiltY = ((event.clientX - rect.left) / rect.width - .5) * 6;
-                            this.glowX = ((event.clientX - rect.left) / rect.width) * 100;
-                            this.glowY = ((event.clientY - rect.top) / rect.height) * 100;
-                        },
-                        reset() { this.tiltX = 0; this.tiltY = 0; this.glowX = 50; this.glowY = 50; }
-                    }"
-                    x-on:pointermove="move($event)"
-                    x-on:pointerleave="reset()"
-                    x-bind:style="`--tilt-x:${tiltX}deg; --tilt-y:${tiltY}deg; --glow-x:${glowX}%; --glow-y:${glowY}%`"
-                >
-                    <span class="casino-game-card__aura" aria-hidden="true"></span>
-                    <span class="casino-game-card__shine" aria-hidden="true"></span>
-                    <div class="casino-game-card__art" aria-hidden="true">
-                        @switch($game['kind'])
-                            @case('coinflip')
-                                <svg viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="45" stroke="currentColor" stroke-width="3"/><circle cx="60" cy="60" r="36" stroke="currentColor" stroke-opacity=".45" stroke-width="1.5"/><path d="M60 27v66M46 43h18a9 9 0 0 1 0 18H49a9 9 0 0 0 0 18h25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m60 20 5 8-5 8-5-8 5-8Zm0 56 5 8-5 8-5-8 5-8Z" fill="currentColor"/></svg>
-                                @break
-                            @case('dice')
-                                <svg viewBox="0 0 120 120" fill="none"><path d="m60 15 39 22v46l-39 22-39-22V37l39-22Z" stroke="currentColor" stroke-width="3"/><path d="m21 37 39 23 39-23M60 60v45" stroke="currentColor" stroke-width="2"/><circle cx="43" cy="42" r="4" fill="currentColor"/><circle cx="77" cy="42" r="4" fill="currentColor"/><circle cx="43" cy="77" r="4" fill="currentColor"/><circle cx="77" cy="77" r="4" fill="currentColor"/><circle cx="60" cy="60" r="4" fill="currentColor"/></svg>
-                                @break
-                            @case('roulette')
-                                <svg viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="47" stroke="currentColor" stroke-width="3"/><circle cx="60" cy="60" r="37" stroke="currentColor" stroke-opacity=".5" stroke-width="1.5"/><path d="M60 13v24m33-10L77 47m30 13H83M93 93 77 77m-17 30V83m-33 10 16-16M13 60h24m-10-33 16 16" stroke="currentColor" stroke-width="3"/><circle cx="60" cy="60" r="16" stroke="currentColor" stroke-width="3"/><circle cx="60" cy="60" r="4" fill="currentColor"/></svg>
-                                @break
-                            @case('blackjack')
-                                <svg viewBox="0 0 120 120" fill="none"><rect x="22" y="19" width="48" height="70" rx="7" transform="rotate(-12 22 19)" stroke="currentColor" stroke-width="3"/><rect x="50" y="27" width="48" height="70" rx="7" transform="rotate(9 50 27)" stroke="currentColor" stroke-width="3"/><path d="M40 36c7-8 19-1 15 8-2 5-9 10-9 10s-8-5-10-10c-3-6 0-9 4-8Zm33 11c7-8 19-1 15 8-2 5-9 10-9 10s-8-5-10-10c-3-6 0-9 4-8Z" fill="currentColor"/></svg>
-                                @break
-                            @default
-                                <svg viewBox="0 0 120 120" fill="none"><rect x="15" y="28" width="27" height="64" rx="5" stroke="currentColor" stroke-width="3"/><rect x="47" y="20" width="27" height="80" rx="5" stroke="currentColor" stroke-width="3"/><rect x="79" y="28" width="27" height="64" rx="5" stroke="currentColor" stroke-width="3"/><path d="M23 47h11m-11 18h11m-11 18h11m25-43h11m-11 20h11m-11 20h11m21-15h11m-11 18h11" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="m60 8 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Zm35 79 2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z" fill="currentColor"/></svg>
-                        @endswitch
-                    </div>
-                    <span class="casino-game-card__index">{{ $game['code'] }}</span>
-                    <div class="casino-game-card__copy">
-                        <span class="casino-game-card__tag">{{ $game['tag'] }} · JOGO {{ $game['code'] }}</span>
-                        <h3>{{ $game['name'] }}</h3>
-                        <p>{{ $game['label'] }}</p>
-                    </div>
-                    <span class="casino-game-card__arrow" aria-hidden="true">↗</span>
-                </a>
-            @endforeach
+                    @foreach ($games as $game)
+                        <x-casino.game-tile :game="$game" />
+                    @endforeach
                 </div>
             </div>
         </section>
@@ -120,7 +98,7 @@
 
         <section class="casino-lobby-bottom grid gap-6 md:grid-cols-2" data-casino-reveal>
             <livewire:casino.top-wins />
-            <section class="casino-card casino-fair">
+            <section class="casino-card casino-fair p-5">
                 <div class="casino-fair__icon" aria-hidden="true">🔐</div>
                 <div>
                     <p class="casino-eyebrow">JOGO TRANSPARENTE</p>
@@ -134,14 +112,14 @@
         @auth
             <section class="casino-lobby-bottom" data-casino-reveal>
                 <div class="casino-section-heading"><div><p class="casino-eyebrow">SUA ATIVIDADE</p><h2>Movimento recente</h2></div></div>
-                <div class="casino-card casino-lobby-history"><livewire:casino.history /></div>
+                <div class="casino-card casino-lobby-history casino-history-wrap"><livewire:casino.history /></div>
                 @php
                     $recent = \App\Models\GameRound::where('user_id', auth()->id())->latest()->limit(20)->pluck('game')->map(fn ($game) => $game instanceof \BackedEnum ? $game->value : (string) $game)->unique()->take(3);
                 @endphp
                 @if ($recent->isNotEmpty())
-                    <div class="casino-card">
+                    <div class="casino-card p-5">
                         <p class="casino-eyebrow">CONTINUAR A JOGAR</p>
-                        <div class="flex flex-wrap gap-2">
+                        <div class="mt-3 flex flex-wrap gap-2">
                             @foreach ($recent as $g)
                                 @if (Route::has('casino.'.$g))
                                     <a class="casino-button casino-button--secondary" href="{{ route('casino.'.$g) }}" wire:navigate>{{ ucfirst($g) }} ↗</a>

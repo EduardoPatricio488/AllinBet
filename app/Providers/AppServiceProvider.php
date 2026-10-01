@@ -16,11 +16,13 @@ use App\Livewire\Casino\Roulette;
 use App\Livewire\Casino\Slots;
 use App\Livewire\Casino\WalletBalance;
 use App\Livewire\Casino\Wallet;
+use App\Support\CasinoCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
@@ -64,6 +66,10 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('casino.wallet-balance', WalletBalance::class);
         Livewire::component('casino.wallet', Wallet::class);
         Livewire::component('casino.history', History::class);
+
+        View::composer(['layouts.casino', 'layouts.app.sidebar'], function ($view): void {
+            $view->with('casinoGames', CasinoCatalog::games());
+        });
     }
 
     /**

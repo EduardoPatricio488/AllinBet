@@ -3,14 +3,36 @@
 @section('page-title', 'Ajuda e jogo responsável')
 
 @section('content')
-    <div class="max-w-3xl space-y-6">
-        <a href="{{ route('home') }}" class="text-sm text-zinc-400 hover:text-white" wire:navigate>← Lobby</a>
-        <div class="border-b border-zinc-800 pb-5">
-            <p class="text-xs font-semibold uppercase text-emerald-300">Ajuda</p>
-            <h1 class="mt-2 text-2xl font-semibold">Jogo responsável</h1>
+    <div class="space-y-6">
+        <div class="casino-page-hero">
+            <div>
+                <a href="{{ route('home') }}" class="text-sm text-zinc-400 hover:text-casino-gold-bright" wire:navigate>← Lobby</a>
+                <p class="casino-eyebrow mt-4">AJUDA</p>
+                <h1>Jogo responsável</h1>
+            </div>
         </div>
-        <p class="text-sm text-zinc-300">Todos os saldos e resultados nesta plataforma usam créditos virtuais sem valor monetário. Não há depósitos, pagamentos ou levantamentos.</p>
-        <p class="text-sm text-zinc-300">Faça pausas, acompanhe o tempo de sessão e defina limites pessoais antes de jogar. Pode suspender temporariamente ou encerrar o acesso ao jogo nas configurações da conta.</p>
-        <a href="{{ route('profile.edit') }}" class="inline-flex rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium hover:border-zinc-500" wire:navigate>Configurações da conta</a>
+        <div class="casino-help-grid">
+            <section class="casino-card casino-help-card">
+                <p class="casino-eyebrow">CRÉDITOS VIRTUAIS</p>
+                <h2>Sem dinheiro real</h2>
+                <p>Todos os saldos e resultados nesta plataforma usam créditos virtuais sem valor monetário. Não há depósitos, pagamentos ou levantamentos.</p>
+            </section>
+            <section class="casino-card casino-help-card">
+                <p class="casino-eyebrow">RITMO</p>
+                <h2>Faça pausas</h2>
+                <p>Acompanhe o tempo de sessão e defina limites pessoais antes de jogar. Pode suspender temporariamente ou encerrar o acesso ao jogo nas configurações da conta.</p>
+            </section>
+            <section class="casino-card casino-help-card">
+                <p class="casino-eyebrow">TRANSPARÊNCIA</p>
+                <h2>Resultados verificáveis</h2>
+                <p>Cada ronda guarda o compromisso da semente. Abra o histórico para confirmar o hash e o seed revelado depois do resultado.</p>
+            </section>
+            <section class="casino-card casino-help-card">
+                <p class="casino-eyebrow">CONTA</p>
+                <h2>Limites e segurança</h2>
+                <p>Use uma palavra-passe forte, verifique o e-mail e ajuste o perfil quando precisar de uma pausa.</p>
+                <a href="{{ route('profile.edit') }}" class="casino-button casino-button--secondary mt-4" wire:navigate>Configurações da conta</a>
+            </section>
+        </div>
     </div>
 @endsection
