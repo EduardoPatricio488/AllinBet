@@ -38,7 +38,7 @@ final class JetX extends CasinoGameComponent
         }
 
         $this->roundId = $round->id;
-        $this->roundPhase = $round->status->value;
+        $this->roundPhase = (string) $round->getRawOriginal('status');
         $this->serverSeedHash = $round->server_seed_hash;
         $this->roundResult = $round->publicResult();
         $this->roundPayout = $round->payout;
