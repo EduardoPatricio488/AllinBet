@@ -303,3 +303,37 @@
 .casino-settings [data-flux-radio-group] { border-color:rgb(245 215 120 / 18%); }
 @media (max-width: 800px) { .casino-settings__hero { align-items:flex-start; flex-direction:column; } .casino-settings__grid { grid-template-columns:1fr; } .casino-settings__nav { position:static; } .casino-settings__nav .flux-navlist { display:grid; grid-template-columns:repeat(3,1fr); gap:.35rem; } .casino-settings__tip { display:none; } }
 @media (max-width: 520px) { .casino-settings__hero,.casino-settings__panel { padding:1rem; } .casino-settings__nav .flux-navlist { grid-template-columns:1fr; } .casino-settings__back { width:100%; text-align:center; } }
+
+
+/* Carteira virtual */
+.casino-wallet-page{width:min(100%,72rem);margin:0 auto}
+.casino-wallet-hero{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding:1.6rem;margin-bottom:1.25rem;border:1px solid rgb(245 215 120 / 16%);border-radius:1.25rem;background:linear-gradient(135deg,rgb(245 215 120 / 8%),rgb(255 255 255 / 2%))}
+.casino-wallet-hero h1{margin:.2rem 0 .4rem;font-size:clamp(1.6rem,4vw,2.35rem);font-weight:800;letter-spacing:-.03em}
+.casino-wallet-hero p:not(.casino-eyebrow){max-width:42rem;color:#aeb9c2;font-size:.85rem}
+.casino-wallet-hero__balance{min-width:13rem;padding:1rem 1.2rem;border:1px solid rgb(245 215 120 / 22%);border-radius:1rem;background:rgb(0 0 0 / 18%);text-align:right}
+.casino-wallet-hero__balance span,.casino-wallet-hero__balance small{display:block;color:#aeb9c2;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em}
+.casino-wallet-hero__balance strong{display:block;margin:.2rem 0;color:#f5d778;font-size:2rem;font-variant-numeric:tabular-nums}
+.casino-wallet-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.25rem}
+.casino-wallet-card{padding:1.35rem}
+.casino-wallet-card__head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:1.2rem}
+.casino-wallet-card__head h2{margin:.2rem 0 .25rem;font-size:1.15rem;font-weight:800}
+.casino-wallet-card__head p:not(.casino-eyebrow){color:#9ca8b1;font-size:.75rem}
+.casino-wallet-card__icon{display:grid;place-items:center;width:2.5rem;height:2.5rem;border:1px solid rgb(245 215 120 / 25%);border-radius:.8rem;color:#f5d778}
+.casino-wallet-amounts{display:grid;grid-template-columns:repeat(2,1fr);gap:.65rem}
+.casino-wallet-amounts button{padding:1rem;border:1px solid rgb(245 215 120 / 15%);border-radius:.85rem;background:rgb(255 255 255 / 3%);color:inherit;text-align:left;transition:.2s ease}
+.casino-wallet-amounts button:hover{border-color:rgb(245 215 120 / 45%);transform:translateY(-1px)}
+.casino-wallet-amounts button.is-selected{border-color:#f5d778;background:rgb(245 215 120 / 10%);box-shadow:0 0 0 1px rgb(245 215 120 / 15%),0 8px 25px rgb(0 0 0 / 15%)}
+.casino-wallet-amounts strong{display:block;color:#f5d778;font-size:1.1rem;font-variant-numeric:tabular-nums}
+.casino-wallet-amounts span{color:#8f9ba4;font-size:.65rem}
+.casino-wallet-submit{width:100%;margin-top:1rem}
+.casino-wallet-error,.casino-wallet-success{margin-top:.7rem;font-size:.75rem}
+.casino-wallet-error{color:#ff7d88}.casino-wallet-success{color:#79df9b}
+.casino-wallet-notice{display:grid;gap:.2rem;margin-top:1.1rem;padding:.8rem;border:1px solid rgb(245 215 120 / 10%);border-radius:.75rem;background:rgb(255 255 255 / 2%)}
+.casino-wallet-notice strong{color:#d9c57e;font-size:.7rem}.casino-wallet-notice span{color:#7f8b94;font-size:.65rem;line-height:1.45}
+.casino-wallet-transactions{display:grid}.casino-wallet-transaction{display:grid;grid-template-columns:2.1rem minmax(0,1fr) auto;align-items:center;gap:.7rem;padding:.8rem 0;border-top:1px solid rgb(255 255 255 / 6%)}
+.casino-wallet-transaction__icon{display:grid;place-items:center;width:2rem;height:2rem;border-radius:.65rem;background:rgb(121 223 155 / 10%);color:#79df9b;font-weight:800}
+.casino-wallet-transaction strong,.casino-wallet-transaction small{display:block}.casino-wallet-transaction strong{font-size:.72rem}.casino-wallet-transaction small{margin-top:.15rem;color:#77838d;font-size:.6rem}
+.casino-wallet-transaction b{font-size:.8rem;font-variant-numeric:tabular-nums}.casino-wallet-transaction b.is-positive{color:#79df9b}.casino-wallet-transaction b.is-negative{color:#ff9ca5}
+.casino-wallet-empty{display:grid;place-items:center;min-height:14rem;padding:1rem;text-align:center;color:#7f8b94}.casino-wallet-empty span{margin-bottom:.5rem;color:#f5d778;font-size:2rem}.casino-wallet-empty strong{color:#cbd2d7;font-size:.8rem}.casino-wallet-empty p{margin-top:.2rem;font-size:.7rem}
+.casino-wallet-link{display:inline-flex;align-items:center}.casino-wallet-link .casino-balance{cursor:pointer;transition:transform .2s ease}.casino-wallet-link:hover .casino-balance{transform:translateY(-1px)}
+@media(max-width:800px){.casino-wallet-hero,.casino-wallet-grid{grid-template-columns:1fr}.casino-wallet-hero{align-items:flex-start;flex-direction:column}.casino-wallet-hero__balance{width:100%;text-align:left}}
