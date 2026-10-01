@@ -15,6 +15,7 @@ use App\Livewire\Casino\Dice;
 use App\Livewire\Casino\History;
 use App\Livewire\Casino\Roulette;
 use App\Livewire\Casino\Slots;
+use App\Livewire\Casino\JetX;
 use App\Livewire\Casino\WalletBalance;
 use App\Livewire\Casino\Wallet;
 use App\Support\CasinoCatalog;
@@ -64,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('casino.dice', Dice::class);
         Livewire::component('casino.roulette', Roulette::class);
         Livewire::component('casino.slots', Slots::class);
+        Livewire::component('casino.jet-x', JetX::class);
         Livewire::component('casino.blackjack', Blackjack::class);
         Livewire::component('casino.wallet-balance', WalletBalance::class);
         Livewire::component('casino.wallet', Wallet::class);
