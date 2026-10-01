@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace AppModels;
+namespace App\Models;
 
-use IlluminateDatabaseEloquentModel;
-use IlluminateDatabaseEloquentRelationsBelongsTo;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SportsBet extends Model
 {
