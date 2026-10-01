@@ -247,7 +247,7 @@
         @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket::after{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
     </style>
 
-    <x-casino.loading-overlay target="prepare,launch,tick,cashout" />
+    <x-casino.loading-overlay target="prepare,launch,cashout" />
 
     <div class="jetx-hero">
         <div class="jetx-hero__title">
