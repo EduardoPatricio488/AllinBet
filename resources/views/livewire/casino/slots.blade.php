@@ -100,6 +100,8 @@
      }"
      x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">
 
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Faz girar uma grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só combinações de três símbolos iguais pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é distribuída pelas 6 linhas de pagamento.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar para revelar os 9 símbolos da grelha.'], ['title'=>'6 linhas de pagamento','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'Só 3 iguais pagam','text'=>'Uma linha só paga quando os seus 3 símbolos são iguais. Os prémios das linhas vencedoras acumulam.']]" />
+
 <style>
         .allin-slots{--gold:#f2c14e;--green:#23d99a;--panel:#0a1010;--line:rgba(255,255,255,.08)}
         .slot-cabinet{position:relative;overflow:hidden;border:1px solid rgba(242,193,78,.22);border-radius:2rem;background:radial-gradient(circle at 50% 0%,rgba(35,217,154,.1),transparent 35%),linear-gradient(145deg,#07110f,#101315 52%,#090d0f);box-shadow:0 35px 90px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
