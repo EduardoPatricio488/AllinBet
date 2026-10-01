@@ -77,7 +77,7 @@
             return \`transform: translate3d(\${x}%, \${y}%, 0) rotate(-18deg);\`;
         },
 
-        async start() {
+        async startFlight() {
             if (this.busy) return;
 
             const w = this.$wire;
@@ -87,19 +87,12 @@
             this.resetFlight();
 
             try {
-                if (w.roundPhase !== 'prepared') {
-                    await w.prepare();
-                }
-
-                if (w.roundPhase !== 'prepared') {
-                    this.status = 'ready';
-                    return;
-                }
-
                 await w.launch();
 
                 if (w.roundPhase !== 'in_progress') {
-                    this.finalize();
+                    this.phase = w.roundPhase;
+                    this.busy = false;
+                    this.status = 'ready';
                     return;
                 }
 
@@ -126,6 +119,7 @@
                 this.flying = false;
                 this.busy = false;
                 this.status = 'ready';
+                this.phase = w.roundPhase;
             }
         },
 
@@ -218,7 +212,7 @@
         }
      }"
      x-init="$watch('$wire.roundPhase', (value) => phase = value)"
-     x-on:keydown.window="if ($event.code === 'Space' && ['ready','completed'].includes(phase) && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); start(); }"
+     x-on:keydown.window="if ($event.code === 'Space' && phase === 'prepared' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); startFlight(); }"
      x-on:pagehide.window="resetFlight()">
 
     <style>
@@ -302,7 +296,7 @@
 
             <section class="jetx-controls">
                 <div>
-                    <form x-show="['ready','completed'].includes(phase)" wire:submit="prepare">
+                    @if (in_array($roundPhase, ['ready', 'completed'], true))
                         <div class="jetx-bet">
                             <label class="jetx-field">
                                 <span>Aposta</span>
@@ -313,35 +307,45 @@
                                 <input type="text" maxlength="128" wire:model="clientSeed" class="jetx-input font-mono text-xs">
                             </label>
                         </div>
-                        <p class="jetx-mini">Primeiro prepara a ronda para fixar o hash do servidor.</p>
-                    </form>
-
-                    <div x-show="phase === 'prepared'" x-cloak>
-                        <p class="jetx-mini">Ronda preparada. O hash foi fixado antes do lançamento.</p>
-                    </div>
-
-                    <div x-show="phase === 'in_progress'" x-cloak>
+                        <p class="jetx-mini">Define a aposta e prepara a ronda antes de lançares o foguete.</p>
+                    @elseif ($roundPhase === 'prepared')
+                        <p class="jetx-mini">Ronda preparada. O hash foi fixado. Carrega em LANÇAR para iniciar o voo.</p>
+                    @elseif ($roundPhase === 'in_progress')
                         <p class="jetx-mini">O foguete está em voo. O valor mostrado pelo servidor é o valor usado para o cálculo do COLETAR.</p>
-                    </div>
+                    @endif
                 </div>
 
                 <div>
-                    <button type="button"
-                            class="jetx-action"
-                            x-show="['ready','completed','prepared'].includes(phase)"
-                            :disabled="busy || phase === 'preparing'"
-                            x-on:click="start()">
-                        <span x-text="phase === 'prepared' ? '🚀 LANÇAR' : '🚀 PREPARAR & LANÇAR'"></span>
-                    </button>
-
-                    <button type="button"
-                            class="jetx-action collect"
-                            x-show="phase === 'in_progress'"
-                            x-cloak
-                            :disabled="busy || !flying"
-                            x-on:click="cashout()">
-                        ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
-                    </button>
+                    @if (in_array($roundPhase, ['ready', 'completed'], true))
+                        <button type="button"
+                                class="jetx-action"
+                                wire:click="prepare"
+                                wire:loading.attr="disabled"
+                                wire:target="prepare">
+                            <span>🚀 PREPARAR RONDA</span>
+                        </button>
+                    @elseif ($roundPhase === 'prepared')
+                        <button type="button"
+                                class="jetx-action"
+                                wire:click="launch"
+                                wire:loading.attr="disabled"
+                                wire:target="launch"
+                                x-on:click="
+                                    busy = true;
+                                    status = 'preparing';
+                                    resetFlight();
+                                    resultOpen = false;
+                                ">
+                            <span>🚀 LANÇAR</span>
+                        </button>
+                    @elseif ($roundPhase === 'in_progress')
+                        <button type="button"
+                                class="jetx-action collect"
+                                :disabled="busy || !flying"
+                                x-on:click="cashout()">
+                            ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
+                        </button>
+                    @endif
                 </div>
             </section>
 
