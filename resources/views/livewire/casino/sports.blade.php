@@ -1,4 +1,21 @@
-<div class="sports-page">
+<div class="sports-page"
+     x-data="{
+         flashKey: null,
+         slipPulse: false,
+         pulseTimer: null,
+         handleSelection(event) {
+             this.flashKey = `${event.detail.matchId}:${event.detail.marketId}`;
+             this.slipPulse = false;
+             window.clearTimeout(this.pulseTimer);
+             this.$nextTick(() => {
+                 this.slipPulse = true;
+                 this.pulseTimer = window.setTimeout(() => {
+                     this.slipPulse = false;
+                 }, 620);
+             });
+         }
+     }"
+     x-on:sports-selection-added.window="handleSelection($event)">
     <style>
         .sports-page{
             --sp-gold:#f5c451;
@@ -409,6 +426,30 @@
             background:rgba(81,216,255,.045);
             transform:translateY(-1px);
         }
+        .sports-market--flash{
+            animation:sportsMarketFlash .62s ease-out;
+        }
+        .sports-market--flash .sports-market__odd{
+            animation:sportsOddBounce .62s cubic-bezier(.2,.85,.25,1);
+        }
+        .sports-market--flash .sports-market__check{
+            animation:sportsCheckPop .42s cubic-bezier(.2,.9,.25,1);
+        }
+        @keyframes sportsMarketFlash{
+            0%{transform:scale(.985);box-shadow:inset 0 0 0 1px rgba(245,196,81,.06)}
+            35%{transform:scale(1.018);box-shadow:inset 0 0 0 1px rgba(245,196,81,.16),0 0 0 5px rgba(245,196,81,.06),0 10px 30px rgba(245,196,81,.11)}
+            100%{transform:scale(1);box-shadow:inset 0 0 0 1px rgba(245,196,81,.06),0 6px 18px rgba(245,196,81,.05)}
+        }
+        @keyframes sportsOddBounce{
+            0%{transform:translateY(0) scale(1)}
+            35%{transform:translateY(-2px) scale(1.1)}
+            100%{transform:translateY(0) scale(1)}
+        }
+        @keyframes sportsCheckPop{
+            0%{transform:scale(.5);opacity:.3}
+            65%{transform:scale(1.25);opacity:1}
+            100%{transform:scale(1);opacity:1}
+        }
         .sports-market.is-selected{
             border-color:rgba(245,196,81,.5);
             background:linear-gradient(180deg,rgba(245,196,81,.11),rgba(245,196,81,.045));
@@ -561,6 +602,45 @@
             border-color:rgba(255,118,125,.28);
             background:rgba(255,118,125,.06);
             color:#ff9da3;
+        }
+        .sports-selection{
+            animation:sportsSlipIn .34s cubic-bezier(.18,.82,.25,1);
+            transform-origin:top center;
+        }
+        .sports-selection--flash{
+            animation:sportsSlipIn .34s cubic-bezier(.18,.82,.25,1),sportsSelectionGlow .62s ease-out .04s;
+        }
+        @keyframes sportsSlipIn{
+            from{opacity:0;transform:translate3d(20px,0,0) scale(.975)}
+            to{opacity:1;transform:translate3d(0,0,0) scale(1)}
+        }
+        @keyframes sportsSelectionGlow{
+            0%,100%{background:transparent}
+            35%{background:linear-gradient(90deg,rgba(245,196,81,.09),transparent 85%)}
+        }
+        .sports-slip__count--pulse{
+            animation:sportsCountPulse .62s cubic-bezier(.18,.8,.22,1);
+        }
+        @keyframes sportsCountPulse{
+            0%{transform:scale(1)}
+            35%{transform:scale(1.28);box-shadow:0 0 0 7px rgba(245,196,81,.07)}
+            100%{transform:scale(1)}
+        }
+        .sports-value--pulse{
+            animation:sportsValuePulse .62s ease-out;
+        }
+        @keyframes sportsValuePulse{
+            0%{transform:translateY(0);filter:brightness(1)}
+            35%{transform:translateY(-2px);filter:brightness(1.3)}
+            100%{transform:translateY(0);filter:brightness(1)}
+        }
+        .sports-summary .sports-potential strong.sports-value--pulse{
+            animation:sportsPotentialPulse .62s ease-out;
+        }
+        @keyframes sportsPotentialPulse{
+            0%{transform:scale(1);text-shadow:none}
+            35%{transform:scale(1.08);text-shadow:0 0 18px rgba(73,224,163,.3)}
+            100%{transform:scale(1);text-shadow:none}
         }
 
         .sports-summary{
@@ -768,6 +848,14 @@
             color:#75e9b7;
         }
 
+        @media(prefers-reduced-motion:reduce){
+            .sports-page *, .sports-page *:before, .sports-page *:after{
+                animation-duration:.001ms !important;
+                animation-iteration-count:1 !important;
+                scroll-behavior:auto !important;
+                transition-duration:.001ms !important;
+            }
+        }
         @media(max-width:1080px){
             .sports-top{grid-template-columns:1fr}
             .sports-head-actions{grid-template-columns:1fr 1fr;grid-template-rows:none}
@@ -920,6 +1008,7 @@
 
                                 <button type="button"
                                         class="sports-market {{ $isSelected ? 'is-selected' : '' }}"
+                                        x-bind:class="flashKey === '{{ $match['id'] }}:{{ $market['id'] }}' ? 'sports-market--flash' : ''"
                                         wire:click="select('{{ $match['id'] }}', '{{ $market['id'] }}')"
                                         aria-pressed="{{ $isSelected ? 'true' : 'false' }}">
                                     <span class="sports-market__name">{{ $market['label'] }} · {{ $market['name'] }}</span>
@@ -946,7 +1035,10 @@
                 <div class="sports-slip__head">
                     <div class="sports-slip__title">
                         🎟️ Boletim
-                        <span class="sports-slip__count">{{ count($slip) }}</span>
+                        <span class="sports-slip__count"
+                              x-bind:class="{ 'sports-slip__count--pulse': slipPulse }">
+                            {{ count($slip) }}
+                        </span>
                     </div>
 
                     @if ($slip)
@@ -957,7 +1049,9 @@
                 <div class="sports-slip__body">
                     @if ($slip)
                         @foreach ($slip as $selection)
-                            <div class="sports-selection">
+                            <div class="sports-selection"
+                                 wire:key="sports-selection-{{ $selection['match_id'] }}"
+                                 x-bind:class="flashKey === '{{ $selection['match_id'] }}:{{ $selection['market_id'] }}' ? 'sports-selection--flash' : ''">
                                 <button type="button"
                                         class="sports-selection__remove"
                                         wire:click="remove('{{ $selection['match_id'] }}')"
@@ -984,15 +1078,15 @@
                         <div class="sports-summary">
                             <div class="sports-summary-row">
                                 <span>Odd combinada</span>
-                                <strong>{{ number_format($roundedCombinedOdd, 2, ',', '.') }}</strong>
+                                <strong x-bind:class="{ 'sports-value--pulse': slipPulse }">{{ number_format($roundedCombinedOdd, 2, ',', '.') }}</strong>
                             </div>
                             <div class="sports-summary-row">
                                 <span>Aposta</span>
-                                <strong>{{ number_format((int) $stake, 0, ',', '.') }} CR</strong>
+                                <strong x-bind:class="{ 'sports-value--pulse': slipPulse }">{{ number_format((int) $stake, 0, ',', '.') }} CR</strong>
                             </div>
                             <div class="sports-potential">
                                 <span>Prémio potencial</span>
-                                <strong>+{{ number_format($potential, 0, ',', '.') }} CR</strong>
+                                <strong x-bind:class="{ 'sports-value--pulse': slipPulse }">+{{ number_format($potential, 0, ',', '.') }} CR</strong>
                             </div>
                         </div>
 
