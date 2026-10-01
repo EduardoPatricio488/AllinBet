@@ -43,7 +43,6 @@ class SlotsGame implements Game
         return $this->settle($grid, $round->bet, $variant);
     }
 
-    
     /** @return array<string, mixed> */
     private function variantFor(GameRound $round): array
     {
@@ -60,13 +59,14 @@ class SlotsGame implements Game
     }
 
     /** @param array<int, array<int, int>> $grid */
-    public function settle(array $grid, int $bet): GameResult
+    public function settle(array $grid, int $bet, ?array $variant = null): GameResult
     {
+        $variant ??= config('casino.games.slots.variants.classic', []);
         $rows = (int) config('casino.games.slots.rows', 3);
         $columns = (int) config('casino.games.slots.columns', 3);
         $paylines = config('casino.games.slots.paylines', []);
-        $paytable = config('casino.games.slots.paytable', []);
-        $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
+        $paytable = $variant['paytable'] ?? [];
+        $symbolCount = count($variant['symbols'] ?? []);
 
         $paylines = array_values(array_filter(
             $paylines,
