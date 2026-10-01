@@ -23,7 +23,12 @@
 
                 <a href="{{ route('home') }}" class="casino-rail__item {{ request()->routeIs('home', 'dashboard') ? 'is-current' : '' }}" wire:navigate>
                     <span class="casino-rail__glyph">▣</span>
-                    Lobby
+                    Casino
+                </a>
+
+                <a href="{{ route('casino.sports') }}" class="casino-rail__item {{ request()->routeIs('casino.sports') ? 'is-current' : '' }}" wire:navigate>
+                    <span class="casino-rail__glyph">⚽</span>
+                    Apostas desportivas
                 </a>
 
                 <p class="casino-rail__label">ORIGINALS</p>
@@ -149,7 +154,7 @@
 
         @auth
             <nav class="casino-bottomnav md:hidden" aria-label="Navegação rápida">
-                <a href="{{ route('home') }}" wire:navigate>🎰<span>Lobby</span></a>
+                <a href="{{ route('home') }}" wire:navigate>🎰<span>Casino</span></a>
                 <a href="{{ route('casino.history') }}" wire:navigate>📜<span>Histórico</span></a>
                 <a href="{{ route('casino.help') }}" wire:navigate>🛟<span>Ajuda</span></a>
                 <a href="{{ route('casino.wallet') }}" wire:navigate>💳<span>Carteira</span></a>
