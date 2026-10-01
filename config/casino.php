@@ -64,12 +64,31 @@ return [
             'blurb' => 'Três linhas horizontais e três verticais. Três símbolos iguais numa linha pagam.',
             'icon' => '✦',
         ],
+        [
+            'slug' => 'jetx',
+            'route' => 'casino.jetx',
+            'name' => 'JetX',
+            'code' => '06',
+            'category' => 'sorte',
+            'tag' => 'ORIGINAL',
+            'label' => 'Foguete em ascensão',
+            'blurb' => 'Lança o foguete, acompanha o multiplicador e recolhe antes do crash.',
+            'icon' => '🚀',
+        ],
     ],
     'games' => [
         'coinflip' => ['house_edge_bps' => 250],
         'dice' => [
             'house_edge_bps' => 500,
             'target_rtp_basis_points' => 9500,
+        ],
+        'jetx' => [
+            'target_rtp_basis_points' => 9700,
+            'starting_multiplier' => 1.00,
+            'max_multiplier' => 2500.00,
+            'multiplier_time_constant_ms' => 6500,
+            'crash_precision' => 2,
+            'instant_crash_probability_basis_points' => 300,
         ],
         'slots' => [
             'rows' => 3,
