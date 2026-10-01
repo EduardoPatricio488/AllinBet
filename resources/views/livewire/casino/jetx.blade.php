@@ -201,7 +201,7 @@
             this.resetFlight();
         }
      }"
-     x-init="$watch('$wire.roundPhase', (value) => phase = value)"
+     x-init="$watch('$wire.roundPhase', (value) => { phase = value; if (value === 'in_progress' && !flying) { const result = $wire.roundResult || {}; beginFlight(Number(result.started_at_ms || Date.now())); } })"
      x-on:keydown.window="if ($event.code === 'Space' && ['ready','completed','prepared'].includes(phase) && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); $wire.start(); }"
      x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
      x-on:pagehide.window="resetFlight()">
