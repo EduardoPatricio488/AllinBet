@@ -77,6 +77,35 @@
             return \`transform: translate3d(\${x}%, \${y}%, 0) rotate(-18deg);\`;
         },
 
+        async beginFlight(startedAtMs = Date.now()) {
+            const w = this.$wire;
+
+            this.flightStartedAt = Number(startedAtMs || Date.now());
+            this.phase = w.roundPhase;
+            this.flying = true;
+            this.status = 'flying';
+            this.busy = false;
+            this.multiplier = 1;
+            this.displayMultiplier = 1;
+            this.resultOpen = false;
+            this.tone('launch');
+
+            this.animate();
+
+            try {
+                await w.tick();
+
+                if (w.roundPhase === 'completed') {
+                    this.finalize();
+                    return;
+                }
+
+                this.schedulePoll();
+            } catch (e) {
+                this.schedulePoll();
+            }
+        },
+
         async startFlight() {
             if (this.busy) return;
 
@@ -88,32 +117,6 @@
 
             try {
                 await w.launch();
-
-                if (w.roundPhase !== 'in_progress') {
-                    this.phase = w.roundPhase;
-                    this.busy = false;
-                    this.status = 'ready';
-                    return;
-                }
-
-                this.flightStartedAt = Number(w.roundResult?.started_at_ms || Date.now());
-                this.phase = w.roundPhase;
-                this.flying = true;
-                this.status = 'flying';
-                this.multiplier = 1;
-                this.displayMultiplier = 1;
-                this.tone('launch');
-
-                this.animate();
-                await w.tick();
-
-                if (w.roundPhase === 'completed') {
-                    this.finalize();
-                    return;
-                }
-
-                this.busy = false;
-                this.schedulePoll();
             } catch (e) {
                 this.resetFlight();
                 this.flying = false;
@@ -213,6 +216,7 @@
      }"
      x-init="$watch('$wire.roundPhase', (value) => phase = value)"
      x-on:keydown.window="if ($event.code === 'Space' && phase === 'prepared' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); startFlight(); }"
+     x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
      x-on:pagehide.window="resetFlight()">
 
     <style>
@@ -327,15 +331,10 @@
                     @elseif ($roundPhase === 'prepared')
                         <button type="button"
                                 class="jetx-action"
-                                wire:click="launch"
                                 wire:loading.attr="disabled"
                                 wire:target="launch"
-                                x-on:click="
-                                    busy = true;
-                                    status = 'preparing';
-                                    resetFlight();
-                                    resultOpen = false;
-                                ">
+                                :disabled="busy"
+                                x-on:click="startFlight()">
                             <span>🚀 LANÇAR</span>
                         </button>
                     @elseif ($roundPhase === 'in_progress')
