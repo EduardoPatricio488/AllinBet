@@ -45,7 +45,7 @@
             </div>
         </header>
 
-        <main class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <main class="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 md:pb-8 lg:px-8">
             @yield('content')
         </main>
 
@@ -93,6 +93,84 @@
             </div>
         </div>
 
+
+
+        @auth
+            <nav class="casino-bottomnav md:hidden" aria-label="Navegação rápida">
+                <a href="{{ route('home') }}" wire:navigate>🎰<span>Lobby</span></a>
+                <a href="{{ route('casino.history') }}" wire:navigate>📜<span>Histórico</span></a>
+                <a href="{{ route('casino.help') }}" wire:navigate>🛟<span>Ajuda</span></a>
+                <a href="{{ route('profile.edit') }}" wire:navigate>👤<span>Perfil</span></a>
+            </nav>
+        @endauth
+
+        <div
+            x-data="{
+                open: false,
+                started: Number(sessionStorage.getItem('casino-start') || Date.now()),
+                timer: null,
+                init() {
+                    sessionStorage.setItem('casino-start', this.started);
+                    this.timer = window.setInterval(() => {
+                        const next = Number(sessionStorage.getItem('casino-next') || (this.started + 1800000));
+                        if (Date.now() >= next) {
+                            this.open = true;
+                            sessionStorage.setItem('casino-next', String(Date.now() + 1800000));
+                        }
+                    }, 15000);
+                },
+                destroy() { window.clearInterval(this.timer); },
+                get minutes() { return Math.floor((Date.now() - this.started) / 60000); }
+            }"
+            x-cloak
+            x-show="open"
+            x-transition.opacity
+            class="casino-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rc-title"
+        >
+            <div class="casino-modal__panel casino-card">
+                <p class="casino-eyebrow">PAUSA</p>
+                <h2 id="rc-title">Já joga há <span x-text="minutes"></span> minutos</h2>
+                <p>Que tal esticar as pernas? Pode continuar quando quiser.</p>
+                <div class="flex gap-3">
+                    <button type="button" class="casino-button casino-button--secondary" x-on:click="open = false">Continuar a jogar</button>
+                    <a class="casino-button casino-button--secondary" href="{{ route('casino.help') }}" wire:navigate>Fazer uma pausa</a>
+                </div>
+            </div>
+        </div>
+
+        <div
+            x-data="{
+                open: false,
+                q: '',
+                items: [
+                    { n: 'Coinflip', u: '{{ route('casino.coinflip') }}' },
+                    { n: 'Dados', u: '{{ route('casino.dice') }}' },
+                    { n: 'Roleta', u: '{{ route('casino.roulette') }}' },
+                    { n: 'Blackjack', u: '{{ route('casino.blackjack') }}' },
+                    { n: 'Slots', u: '{{ route('casino.slots') }}' },
+                    { n: 'Histórico', u: '{{ route('casino.history') }}' },
+                ],
+                get results() { return this.items.filter(i => i.n.toLowerCase().includes(this.q.toLowerCase())); }
+            }"
+            x-on:keydown.window.ctrl.k.prevent="open = true; $nextTick(() => $refs.q.focus())"
+            x-on:keydown.escape.window="open = false"
+            x-cloak
+            x-show="open"
+            class="casino-modal"
+            x-on:click.self="open = false"
+        >
+            <div class="casino-modal__panel casino-card">
+                <input x-ref="q" x-model="q" type="search" placeholder="Procurar jogo… (Esc fecha)" class="casino-input w-full">
+                <ul class="mt-3 space-y-1">
+                    <template x-for="i in results" :key="i.u">
+                        <li><a :href="i.u" class="casino-cmd-item" wire:navigate x-on:click="open = false" x-text="i.n"></a></li>
+                    </template>
+                </ul>
+            </div>
+        </div>
         @fluxScripts
         @livewireScripts
     </body>
