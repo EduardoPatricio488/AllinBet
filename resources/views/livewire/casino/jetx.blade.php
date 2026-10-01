@@ -308,34 +308,30 @@
                 </div>
 
                 <div class="jetx-action-wrap">
-                    <button type="button"
-                            class="jetx-action"
-                            wire:click="start"
-                            wire:loading.attr="disabled"
-                            wire:target="start"
-                            x-show="phase !== 'in_progress' && phase !== 'prepared'"
-                            x-cloak>
-                        🚀 INICIAR JETX
-                    </button>
-
-                    <button type="button"
-                            class="jetx-action"
-                            wire:click="launch"
-                            wire:loading.attr="disabled"
-                            wire:target="launch"
-                            x-show="phase === 'prepared'"
-                            x-cloak>
-                        🚀 LANÇAR
-                    </button>
-
-                    <button type="button"
-                            class="jetx-action collect"
-                            :disabled="busy || !flying"
-                            x-on:click="cashout()"
-                            x-show="phase === 'in_progress'"
-                            x-cloak>
-                        ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
-                    </button>
+                    @if ($roundPhase === 'prepared')
+                        <button type="button"
+                                class="jetx-action"
+                                wire:click="launch"
+                                wire:loading.attr="disabled"
+                                wire:target="launch">
+                            🚀 LANÇAR
+                        </button>
+                    @elseif ($roundPhase === 'in_progress')
+                        <button type="button"
+                                class="jetx-action collect"
+                                :disabled="busy || !flying"
+                                x-on:click="cashout()">
+                            ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
+                        </button>
+                    @else
+                        <button type="button"
+                                class="jetx-action"
+                                wire:click="start"
+                                wire:loading.attr="disabled"
+                                wire:target="start">
+                            🚀 INICIAR JETX
+                        </button>
+                    @endif
                 </div>
             </section>
 
