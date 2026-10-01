@@ -82,6 +82,7 @@ class Coinflip extends CasinoGameComponent
             if ($this->streakSide === '') {
                 $this->streakSide = $outcome;
                 $this->currentStreak = 1;
+
                 continue;
             }
 
