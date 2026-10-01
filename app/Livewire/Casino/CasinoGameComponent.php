@@ -78,6 +78,7 @@ abstract class CasinoGameComponent extends Component
                 (int) $this->bet,
                 $this->clientSeed,
                 $this->requestKey,
+                $metadata,
             );
         } catch (DomainException|InvalidArgumentException $exception) {
             $this->addError('bet', $exception->getMessage());
