@@ -87,12 +87,62 @@ final class JetX extends CasinoGameComponent
 
     public function tick(): void
     {
+        if (! $this->restoreActiveRound()) {
+            return;
+        }
+
         $this->playGame(GameType::Jetx, ['action' => 'tick']);
     }
 
     public function cashout(): void
     {
+        if (! $this->restoreActiveRound()) {
+            return;
+        }
+
         $this->playGame(GameType::Jetx, ['action' => 'cashout']);
+    }
+
+    private function restoreActiveRound(): bool
+    {
+        if (
+            $this->roundId !== null
+            && in_array($this->roundPhase, [
+                RoundStatus::Prepared->value,
+                RoundStatus::InProgress->value,
+            ], true)
+        ) {
+            return true;
+        }
+
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $round = GameRound::query()
+            ->where('user_id', $user->getKey())
+            ->where('game', GameType::Jetx)
+            ->whereIn('status', [
+                RoundStatus::Prepared,
+                RoundStatus::InProgress,
+            ])
+            ->latest('id')
+            ->first();
+
+        if ($round === null) {
+            return false;
+        }
+
+        $this->roundId = $round->id;
+        $this->roundPhase = (string) $round->getRawOriginal('status');
+        $this->serverSeedHash = $round->server_seed_hash;
+        $this->roundResult = $round->publicResult();
+        $this->roundPayout = $round->payout;
+        $this->bet = $round->bet;
+
+        return true;
     }
 
     public function render(): View
