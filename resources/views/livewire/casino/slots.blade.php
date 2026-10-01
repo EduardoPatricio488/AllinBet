@@ -145,7 +145,7 @@
             <div>
                 <p class="casino-eyebrow">SLOTS ORIGINALS</p>
                 <h2 class="slot-collection__title">Escolhe a tua máquina</h2>
-                <p class="slot-collection__subtitle">Seis estilos diferentes, com a mesma grelha 3×3 e os mesmos créditos virtuais.</p>
+                <p class="slot-collection__subtitle">Seis máquinas com símbolos, prémios e identidade própria. Todas usam a mesma base de créditos virtuais.</p>
             </div>
             <span class="slot-collection__count">6 JOGOS</span>
         </div>
@@ -157,6 +157,7 @@
                         :class="{ 'is-active': selectedSlot === '{{ $key }}' }"
                         x-on:click="selectSlot('{{ $key }}')"
                         :aria-pressed="selectedSlot === '{{ $key }}'"
+                        :disabled="busy || @js($locked)"
                         wire:key="slot-variant-{{ $key }}">
                     <span class="slot-variant-card__glow" aria-hidden="true"></span>
                     <span class="slot-variant-card__icon" aria-hidden="true">{{ $variant['icon'] }}</span>
@@ -258,7 +259,7 @@
             content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
             background: linear-gradient(180deg, rgba(0, 0, 0, .7), transparent 28%, transparent 72%, rgba(0, 0, 0, .7));
         }
-        .slot-sym { display: grid; place-items: center; width: 100%; height: var(--cell); font-size: clamp(2.5rem, 6vw, 4rem); line-height: 1; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); user-select: none; }
+        .slot-sym { display: grid; place-items: center; width: 100%; height: var(--cell); font-size: clamp(2.3rem, 5.8vw, 4rem); line-height: 1; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); user-select: none; }
         .slot-spinner { display: none; }
         .slot-landing { display: grid; grid-template-columns: 1fr; align-content: start; }
         .slot-reel.is-spin .slot-landing { display: none; }
@@ -488,7 +489,7 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 iguais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 horizontais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
-                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 símbolos iguais</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">{{ $selectedSlotConfig['tag'] ?? 'ORIGINAL' }}</div>
             </div>
             <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
         </div>
