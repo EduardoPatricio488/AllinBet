@@ -15,12 +15,13 @@
 
     <div class="casino-lobby space-y-10">
         <section class="casino-lobby-hero" data-casino-reveal>
+            <span class="casino-bulbs" aria-hidden="true"></span>
             <div class="casino-lobby-hero__copy">
                 <p class="casino-eyebrow"><span></span> ALLINBET · CLUBE DE JOGOS VIRTUAIS</p>
-                <h1>Escolha sua<br><em>próxima mesa.</em></h1>
+                <h1>Escolha a sua<br><em class="casino-shimmer-text">próxima mesa.</em></h1>
                 <p>Jogos originais, resultados transparentes e créditos virtuais sem valor monetário.</p>
                 <div class="casino-lobby-hero__actions">
-                    <a class="casino-button casino-button--primary" href="{{ auth()->check() ? route('casino.coinflip') : route('login') }}" wire:navigate>Jogar agora <span aria-hidden="true">↗</span></a>
+                    <a class="casino-button casino-button--primary relative" href="{{ auth()->check() ? route('casino.coinflip') : route('login') }}" wire:navigate><span class="casino-cta-ring" aria-hidden="true"></span>Jogar agora <span aria-hidden="true">↗</span></a>
                     <span class="casino-lobby-count"><strong data-casino-count-to="5">5</strong><span>jogos<br>disponíveis</span></span>
                 </div>
             </div>
@@ -31,6 +32,9 @@
                 <div class="casino-hero-spark casino-hero-spark--one"></div>
                 <div class="casino-hero-spark casino-hero-spark--two"></div>
                 <p>PLAY<br><em>VIRTUAL</em></p>
+                <span class="casino-float-chip" style="--x:8%; --y:18%; --d:0s">100</span>
+                <span class="casino-float-chip" style="--x:84%; --y:12%; --d:-1.4s">25</span>
+                <span class="casino-float-chip" style="--x:78%; --y:76%; --d:-2.6s">5</span>
             </div>
         </section>
 
@@ -63,6 +67,8 @@
                     x-on:pointerleave="reset()"
                     x-bind:style="`--tilt-x:${tiltX}deg; --tilt-y:${tiltY}deg; --glow-x:${glowX}%; --glow-y:${glowY}%`"
                 >
+                    <span class="casino-game-card__aura" aria-hidden="true"></span>
+                    <span class="casino-game-card__shine" aria-hidden="true"></span>
                     <div class="casino-game-card__art" aria-hidden="true">
                         @switch($game['kind'])
                             @case('coinflip')
@@ -115,13 +121,9 @@
                     <div class="casino-bonus-card__copy"><p class="casino-eyebrow">PRESENTE DIÁRIO</p><h2>Bónus de créditos</h2><p>Um pequeno reforço virtual para a próxima mesa.</p><strong>{{ config('casino.daily_bonus', 100) }} <small>CRÉDITOS</small></strong></div>
                     <div class="casino-bonus-card__action">
                         @if (auth()->user()->hasVerifiedEmail())
-                            @if (auth()->user()->hasVerifiedEmail())
-                                <livewire:casino.daily-bonus />
-                            @else
-                                <a class="casino-button casino-button--secondary" href="{{ route('verification.notice') }}" wire:navigate>Verifique o e-mail para receber o bónus</a>
-                            @endif
+                            <livewire:casino.daily-bonus />
                         @else
-                            <a class="casino-button casino-button--secondary" href="{{ route('verification.notice') }}">Verifique o e-mail</a>
+                            <a class="casino-button casino-button--secondary" href="{{ route('verification.notice') }}" wire:navigate>Verifique o e-mail para receber o bónus</a>
                         @endif
                         <p>Próxima atualização em <time x-text="countdown" class="tabular-nums"></time></p>
                     </div>
