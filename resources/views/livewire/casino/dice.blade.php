@@ -149,12 +149,23 @@
                 <div class="dice-cube-wrap">
                     <div class="dice-cube" :class="{ 'is-rolling': rolling }" role="img" :aria-label="'Dado com resultado ' + dieFace">
                         <div class="dice-face dice-front">
+                            @php
+                                $facePips = [
+                                    1 => [4],
+                                    2 => [0,8],
+                                    3 => [0,4,8],
+                                    4 => [0,2,6,8],
+                                    5 => [0,2,4,6,8],
+                                    6 => [0,2,3,5,6,8],
+                                ];
+                                $activePips = $facePips[$dieFace] ?? $facePips[6];
+                            @endphp
                             <div class="pip-grid">
                                 @for ($p = 0; $p < 9; $p++)
-                                    <span class="pip" style="opacity: {{ in_array($p, [0,4,8], true) ? '1' : '.0' }}"></span>
+                                    <span class="pip" style="opacity: {{ in_array($p, $activePips, true) ? '1' : '.0' }}"></span>
                                 @endfor
                             </div>
-                            <span class="dice-face-label">ALLIN</span>
+                            <span class="dice-face-label">ALLIN · {{ $dieFace }}</span>
                         </div>
                         <div class="dice-face dice-back">
                             <div class="pip-grid">
