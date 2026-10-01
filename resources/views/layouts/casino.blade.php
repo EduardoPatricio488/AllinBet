@@ -34,6 +34,7 @@
                 @auth
                     <a href="#sports-bets"
                        class="casino-rail__item"
+                       x-data
                        x-on:click.prevent="$dispatch('casino-open-sports-bets')"
                        aria-haspopup="dialog"
                        aria-controls="casino-sports-bets-modal">
