@@ -22,7 +22,7 @@
                     @auth
                         <a href="{{ route('casino.history') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright sm:inline" wire:navigate>Histórico</a>
                         <a href="{{ route('casino.help') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright lg:inline" wire:navigate>Jogo responsável</a>
-                        @livewire('casino.wallet-balance')
+                        <a href="{{ route('casino.wallet') }}" class="casino-wallet-link" wire:navigate aria-label="Abrir carteira">@livewire('casino.wallet-balance')</a>
                         <details class="casino-user-menu">
                             <summary aria-label="Menu do utilizador">{{ auth()->user()->initials() }}</summary>
                             <div class="casino-user-menu__panel">
