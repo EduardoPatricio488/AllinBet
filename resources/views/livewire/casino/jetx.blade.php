@@ -418,8 +418,7 @@
     <div class="jetx-layout">
         <main class="jetx-main">
             <section class="jetx-stage"
-                     :class="status"
-                     :class="{ 'is-launching': status === 'flying' && displayMultiplier <= 1.08, 'is-flying-fast': status === 'flying' && displayMultiplier >= 2, 'is-crashed': status === 'crashed' }"
+                     :class="{ [status]: true, 'is-launching': status === 'flying' && displayMultiplier <= 1.08, 'is-flying-fast': status === 'flying' && displayMultiplier >= 2, 'is-crashed': status === 'crashed' }"
                      aria-label="JetX">
                 <div class="jetx-stars jetx-stars--far" aria-hidden="true"></div>
                 <div class="jetx-stars jetx-stars--near" aria-hidden="true"></div>
