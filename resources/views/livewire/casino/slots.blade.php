@@ -1,48 +1,42 @@
 @php
-    $symbols = ['🍒', '🍋', '🍊', '🔔', '⭐', '🍀', '💎', '7️⃣'];
-    $glyph = fn (int $s) => $symbols[$s] ?? chr(65 + $s);
-
     $grid = $roundResult['grid'] ?? [[0, 1, 2], [3, 4, 5], [2, 1, 0]];
     $maxBet = (int) config('casino.bet_limits.max');
     $locked = $roundPhase === 'prepared';
-
     $winningLines = $roundPhase === 'completed'
         ? collect($roundResult['winning_lines'] ?? [])->values()->all()
         : [];
-
-    $horizontalWins = collect($winningLines)
-        ->filter(fn ($line) => ($line['direction'] ?? '') === 'horizontal')
+    $winRows = collect($winningLines)
+        ->where('direction', 'horizontal')
         ->pluck('line')
-        ->map(fn ($line) => (int) $line)
+        ->map(fn ($l) => (int) $l)
         ->all();
-
-    $verticalWins = collect($winningLines)
-        ->filter(fn ($line) => ($line['direction'] ?? '') === 'vertical')
+    $winCols = collect($winningLines)
+        ->where('direction', 'vertical')
         ->pluck('line')
-        ->map(fn ($line) => (int) $line)
+        ->map(fn ($l) => (int) $l)
         ->all();
-
-    $winningCells = collect($winningLines)->flatMap(function ($line) {
-        $index = (int) ($line['line'] ?? 0);
-
-        if (($line['direction'] ?? '') === 'vertical') {
-            return collect(range(0, 2))->map(fn ($row) => ($row * 3) + $index);
-        }
-
-        return collect(range(0, 2))->map(fn ($column) => ($index * 3) + $column);
-    })->unique()->values()->all();
+    $payout = (int) $roundPayout;
+    $paytable = $paytable ?? config('casino.games.slots.paytable', []);
+    $orders = [
+        [0, 3, 6, 1, 4, 7, 2, 5],
+        [5, 2, 7, 4, 1, 6, 3, 0],
+        [2, 6, 1, 5, 0, 4, 7, 3],
+    ];
+    $sym = fn (int $n, string $c = '') => '<svg class="slot-sym '.$c.'" viewBox="0 0 64 64" aria-hidden="true"><use href="#s'.($n % 8).'"/></svg>';
 @endphp
 
 <div class="casino-game-play grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
      x-data="{
-        reels: [false, false, false],
-        settling: [false, false, false],
-        finalReveal: true,
+        st: ['idle', 'idle', 'idle'],
         busy: false,
-        resultVisible: true,
-        prizeVisible: false,
-        prizeAmount: 0,
+        done: true,
+        overlay: false,
+        shown: 0,
+        prize: 0,
+        tier: '',
         maxBet: {{ $maxBet }},
+        wait: (ms) => new Promise((r) => setTimeout(r, ms)),
+        sfx(name) { this.$dispatch('casino-sfx', { name }); },
         step(d) {
             const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
             this.$wire.bet = Math.min(this.maxBet, Math.max(6, v));
@@ -50,82 +44,107 @@
         async go() {
             if (this.busy) return;
             const w = this.$wire;
-            this.resultVisible = false;
-            this.prizeVisible = false;
-            this.finalReveal = false;
-            let spun = false;
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
             this.busy = true;
-            this.reels = [true, true, true];
-            this.settling = [false, false, false];
+            this.done = false;
+            this.overlay = false;
+            this.st = ['spin', 'spin', 'spin'];
+            this.sfx('spin');
+
             const t0 = Date.now();
+            let ok = false;
 
             try {
                 if (w.roundPhase !== 'prepared') await w.prepare();
                 if (w.roundPhase === 'prepared') {
                     await w.spin();
-                    spun = true;
+                    ok = true;
                 }
             } catch (e) {}
 
-            const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-            if (calm) {
-                this.reels = [false, false, false];
-                this.settling = [false, false, false];
-            } else {
-                await new Promise(r => setTimeout(r, Math.max(0, 1250 - (Date.now() - t0))));
-                this.settling[0] = true;
-                await new Promise(r => setTimeout(r, 180));
-                this.reels[0] = false;
-                await new Promise(r => setTimeout(r, 80));
-                this.settling[0] = false;
-
-                await new Promise(r => setTimeout(r, 330));
-                this.settling[1] = true;
-                await new Promise(r => setTimeout(r, 180));
-                this.reels[1] = false;
-                await new Promise(r => setTimeout(r, 80));
-                this.settling[1] = false;
-
-                await new Promise(r => setTimeout(r, 330));
-                this.settling[2] = true;
-                await new Promise(r => setTimeout(r, 180));
-                this.reels[2] = false;
-                await new Promise(r => setTimeout(r, 80));
-                this.settling[2] = false;
+            if (!ok) {
+                this.st = ['idle', 'idle', 'idle'];
+                this.done = true;
+                this.busy = false;
+                return;
             }
 
-            this.finalReveal = true;
-            this.resultVisible = true;
+            if (!calm) {
+                await this.wait(Math.max(0, 1200 - (Date.now() - t0)));
+            }
+
+            for (let i = 0; i < 3; i++) {
+                this.st[i] = 'land';
+                this.sfx('stop');
+                if (!calm) await this.wait(380);
+            }
+
+            if (!calm) await this.wait(520);
+
+            this.st = ['idle', 'idle', 'idle'];
+            this.done = true;
             this.busy = false;
 
-            const payout = Number(w.roundPayout || 0);
-            if (spun && w.roundPhase === 'completed' && payout > 0) {
-                this.prizeAmount = payout;
-                this.prizeVisible = true;
-                window.setTimeout(() => { this.prizeVisible = false; }, 3200);
-            }
-            if (spun && w.roundPhase === 'completed' && payout > 0) {
-                this.$dispatch('casino-toast', {
-                    title: 'Vitória!',
-                    message: '+' + payout + ' créditos virtuais'
-                });
+            const p = Number(w.roundPayout || 0);
 
-                if (payout >= Number(w.bet || 0) * 10) {
-                    this.$dispatch('casino-big-win', { amount: payout });
-                }
+            if (w.roundPhase === 'completed' && p > 0) {
+                this.win(p, Number(w.bet || 1));
+            }
+        },
+        win(p, b) {
+            const m = p / b;
+            this.tier = m >= 15 ? 'Mega vitória' : m >= 5 ? 'Grande vitória' : 'Vitória';
+            this.prize = p;
+            this.shown = 0;
+            this.overlay = true;
+            this.sfx(m >= 5 ? 'bigwin' : 'win');
+
+            const t0 = performance.now();
+            const tick = (t) => {
+                const k = Math.min(1, (t - t0) / 1100);
+                this.shown = Math.round(p * (1 - Math.pow(1 - k, 3)));
+                if (k < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+
+            setTimeout(() => { this.overlay = false; }, 3400);
+
+            this.$dispatch('casino-toast', {
+                title: 'Vitória!',
+                message: '+' + p + ' créditos virtuais'
+            });
+
+            if (m >= 10) {
+                this.$dispatch('casino-big-win', { amount: p });
             }
         }
      }"
-     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">
+     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">    {{-- Símbolos SVG, definidos uma só vez --}}
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a86"/><stop offset="1" stop-color="#c4162a"/></linearGradient>
+            <linearGradient id="gY" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff08a"/><stop offset="1" stop-color="#e0a912"/></linearGradient>
+            <linearGradient id="gO" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#e86a10"/></linearGradient>
+            <linearGradient id="gG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe58a"/><stop offset="1" stop-color="#b8861b"/></linearGradient>
+            <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cf3ff"/><stop offset="1" stop-color="#1c7fd0"/></linearGradient>
+            <linearGradient id="gN" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7df0a8"/><stop offset="1" stop-color="#159a52"/></linearGradient>
+            <symbol id="s0" viewBox="0 0 64 64"><path d="M22 30C26 18 34 12 46 8M43 32C42 22 44 14 46 8" stroke="#2fa85a" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="22" cy="44" r="14" fill="url(#gR)"/><circle cx="43" cy="46" r="14" fill="url(#gR)"/><circle cx="17" cy="39" r="3" fill="#fff" opacity=".5"/></symbol>
+            <symbol id="s1" viewBox="0 0 64 64"><ellipse cx="32" cy="33" rx="25" ry="17" fill="url(#gY)" transform="rotate(-20 32 33)"/><ellipse cx="25" cy="27" rx="7" ry="3" fill="#fff" opacity=".45" transform="rotate(-20 25 27)"/></symbol>
+            <symbol id="s2" viewBox="0 0 64 64"><circle cx="32" cy="36" r="22" fill="url(#gO)"/><path d="M32 14c2-6 8-8 14-6-2 6-8 8-14 6Z" fill="#2fa85a"/><circle cx="24" cy="28" r="4" fill="#fff" opacity=".35"/></symbol>
+            <symbol id="s3" viewBox="0 0 64 64"><path d="M32 6a4 4 0 0 1 4 4c10 3 14 12 14 22l4 9H10l4-9c0-10 4-19 14-22a4 4 0 0 1 4-4Z" fill="url(#gG)"/><circle cx="32" cy="50" r="5" fill="#b8861b"/></symbol>
+            <symbol id="s4" viewBox="0 0 64 64"><path d="m32 6 7.6 17.2 18.4 1.8-13.9 12.3 4.1 18.2L32 45.7 15.8 55.5l4.1-18.2L6 25l18.4-1.8Z" fill="url(#gG)" stroke="#fff3b0" stroke-width="1.5"/></symbol>
+            <symbol id="s5" viewBox="0 0 64 64"><path d="M32 34c0 12-2 18-8 24" stroke="#159a52" stroke-width="4" fill="none" stroke-linecap="round"/><g fill="url(#gN)"><circle cx="22" cy="22" r="11"/><circle cx="42" cy="22" r="11"/><circle cx="22" cy="40" r="11"/><circle cx="42" cy="40" r="11"/></g></symbol>
+            <symbol id="s6" viewBox="0 0 64 64"><path d="M18 10h28l14 16-28 30L4 26Z" fill="url(#gC)"/><path d="M4 26h56M18 10l14 16 14-16M32 26v30" stroke="#fff" stroke-opacity=".55" stroke-width="1.5" fill="none"/></symbol>
+            <symbol id="s7" viewBox="0 0 64 64"><text x="32" y="52" text-anchor="middle" font-size="58" font-weight="900" font-family="Georgia,serif" fill="url(#gR)" stroke="#ffe58a" stroke-width="2.5" paint-order="stroke">7</text></symbol>
+        </defs>
+    </svg>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Faz girar uma grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só combinações de três símbolos iguais numa dessas linhas pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é distribuída pelas 6 linhas de pagamento.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar para revelar os 9 símbolos da grelha.'], ['title'=>'6 linhas de pagamento','text'=>'Existem três linhas horizontais e três linhas verticais.'], ['title'=>'Só 3 iguais pagam','text'=>'Uma linha só paga quando os seus 3 símbolos são iguais. Os prémios das linhas vencedoras acumulam.']]" />
+        <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é dividida pelas 6 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'6 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-machine { --cell: clamp(4.2rem, 16vw, 6.6rem); --gold: #f2c14e; --gold-hi: #ffe39a; }
         .allin-slots { --green: #23d99a; --line: rgba(255,255,255,.08); }
 
-        /* Cabinet */
         .slot-cabinet {
             position: relative; overflow: hidden; padding: 1.1rem; border-radius: 1.75rem;
             border: 1px solid rgba(242, 193, 78, .3);
@@ -138,7 +157,6 @@
         .slot-title em { font-style: normal; color: var(--gold); }
         .slot-badge { padding: .35rem .7rem; border: 1px solid rgba(242, 193, 78, .25); border-radius: 9999px; font-size: .7rem; color: #cdb878; }
 
-        /* Janela dos rolos */
         .slot-window {
             position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: .5rem; padding: .8rem;
             border-radius: 1.2rem; background: #030706;
@@ -163,17 +181,14 @@
         }
         .slot-sym { display: block; width: 100%; height: var(--cell); padding: 14%; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); }
         .slot-spinner { display: none; }
-        .slot-landing { display: grid; }
+        .slot-landing { display: grid; grid-template-columns: 1fr; align-content: start; }
         .slot-reel.is-spin .slot-landing { display: none; }
-        .slot-reel.is-spin .slot-spinner { display: grid; animation: slot-loop var(--t, .5s) linear infinite; filter: blur(2.2px); }
+        .slot-reel.is-spin .slot-spinner { display: grid; grid-template-columns: 1fr; animation: slot-loop var(--t, .5s) linear infinite; filter: blur(2.2px); }
         .slot-reel:nth-child(2) { --t: .46s; }
         .slot-reel:nth-child(3) { --t: .42s; }
         .slot-reel.is-land .slot-landing { animation: slot-land .55s cubic-bezier(.22, .8, .3, 1) both; }
 
-        @keyframes slot-loop {
-            from { transform: translateY(calc(var(--cell) * -8)); }
-            to { transform: translateY(0); }
-        }
+        @keyframes slot-loop { from { transform: translateY(calc(var(--cell) * -8)); } to { transform: translateY(0); } }
         @keyframes slot-land {
             from { transform: translateY(calc(var(--cell) * -6)); }
             65% { transform: translateY(calc(var(--cell) * .14)); }
@@ -181,7 +196,6 @@
             to { transform: translateY(0); }
         }
 
-        /* Vitória: só visível quando todos os rolos terminaram */
         .slot-payline {
             position: absolute; left: -.3rem; right: -.3rem; top: calc((var(--row) + .5) * var(--cell)); z-index: 4;
             height: 3px; border-radius: 2px; opacity: 0; pointer-events: none;
@@ -202,7 +216,6 @@
         @keyframes slot-pulse { to { transform: scale(1.1); } }
         @keyframes slot-line { to { opacity: .55; } }
 
-        /* Painel de controlo */
         .slot-deck {
             position: relative; display: grid; grid-template-columns: minmax(12rem, 1fr) auto minmax(10rem, 1fr); align-items: center; gap: 1rem;
             margin-top: 1rem; padding: 1rem; border-radius: 1rem; border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .025);
@@ -230,7 +243,6 @@
         .slot-spin:disabled, .slot-stepper button:disabled, .slot-chips button:disabled, .slot-bet-input:disabled { opacity: .55; cursor: not-allowed; }
         .slot-error { margin-top: .75rem; font-size: .85rem; color: #fda4af; }
 
-        /* Prémio */
         .slot-prize-overlay {
             position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; pointer-events: none;
             background: radial-gradient(circle, rgba(0, 0, 0, .06), rgba(0, 0, 0, .22));
@@ -246,7 +258,6 @@
         .slot-prize__card small, .slot-prize-sub { color: #aef5d2; font-weight: 700; }
         @keyframes slot-prize-in { from { opacity: 0; transform: scale(.65) translateY(1rem); } to { opacity: 1; transform: none; } }
 
-        /* Lateral */
         .slot-payout { font-size: 1.9rem; font-weight: 800; line-height: 1.1; }
         .slot-payout--win { color: var(--gold); text-shadow: 0 0 18px rgba(242, 193, 78, .5); }
 
@@ -263,88 +274,85 @@
         }
     </style>
 
-    <section class="slot-machine relative allin-slots" :class="{ 'is-busy': busy }">
+        <section class="slot-machine">
         <div class="slot-cabinet">
-            <div x-show="prizeVisible" x-cloak x-transition.opacity class="slot-prize-overlay" role="status" aria-live="assertive">
-                <div class="slot-prize-card">
-                    <p class="slot-prize-label">🎉 Prémio ganho</p>
-                    <p class="slot-prize-amount">+<span x-text="Number(prizeAmount).toLocaleString('pt-PT')"></span></p>
-                    <p class="slot-prize-sub">créditos virtuais</p>
-                </div>
-            </div>
             <span class="casino-bulbs" aria-hidden="true"></span>
 
-            <div class="slot-header">
-                <span class="slot-title">ALLINBET <em class="casino-shimmer-text">SLOTS</em></span>
-                <span class="slot-badge">9 POSIÇÕES · 3×3</span>
+            <div class="slot-prize-overlay" x-show="overlay" x-cloak x-transition.opacity role="status" aria-live="assertive">
+                <div class="slot-prize__card">
+                    <p x-text="tier"></p>
+                    <strong>+<span x-text="Number(shown).toLocaleString('pt-PT')"></span></strong>
+                    <small>créditos virtuais</small>
+                </div>
             </div>
+
+            <header class="slot-header">
+                <h1 class="slot-title">Allinbet <em class="casino-shimmer-text">Slots</em></h1>
+                <span class="slot-badge">9 posições · 3×3 · 6 linhas</span>
+            </header>
 
             <div class="slot-window"
                  :class="{
-                    'is-done': finalReveal,
-                    'has-win': finalReveal && @js(count($winningLines) > 0)
+                    'is-done': done,
+                    'has-win': done && @js(count($winningLines) > 0)
                  }">
                 <div class="slot-markers" aria-hidden="true">
                     @foreach ([0, 1, 2] as $r)
-                        <span class="slot-marker" :class="{ 'is-win': finalReveal && @js(in_array($r, $horizontalWins, true)) }">{{ $r + 1 }}</span>
+                        <span :class="{ 'is-win': done && @js(in_array($r, $winRows, true)) }">{{ $r + 1 }}</span>
                     @endforeach
                 </div>
 
-                <div class="slot-reels" role="img" aria-label="Grelha de slots com 9 posições, 3 colunas e 3 linhas">
-                    @foreach ([0, 1, 2] as $col)
-                        <div class="slot-reel"
-                             :class="{
-                                'is-spin': reels[{{ $col }}],
-                                'is-land': settling[{{ $col }}]
-                             }">
+                <div class="slot-reels" role="img" aria-label="Rolos com 9 posições, 3 colunas e 3 linhas">
+                    @foreach ([0, 1, 2] as $c)
+                        <div class="slot-reel" :class="'is-' + st[{{ $c }}]">
                             <div class="slot-spinner" aria-hidden="true">
-                                @for ($k = 0; $k < 3; $k++)
-                                    @foreach ($symbols as $s)
-                                        <span class="slot-sym">{{ $s }}</span>
+                                @for ($k = 0; $k < 2; $k++)
+                                    @foreach ($orders[$c] as $n)
+                                        {!! $sym($n) !!}
                                     @endforeach
                                 @endfor
                             </div>
 
                             <div class="slot-landing">
-                                @foreach ($grid as $rowIndex => $row)
-                                    @php $cellIndex = ($rowIndex * 3) + $col; @endphp
-                                    <span class="slot-sym"
-                                          :class="{ 'is-win': finalReveal && @js(in_array($cellIndex, $winningCells, true)) }">
-                                        {{ $glyph((int) ($row[$col] ?? 0)) }}
-                                    </span>
+                                @foreach ($grid as $r => $row)
+                                    @php
+                                        $isWin = in_array($r, $winRows, true) || in_array($c, $winCols, true);
+                                    @endphp
+                                    {!! $sym((int) ($row[$c] ?? 0), $isWin ? 'is-win' : '') !!}
+                                @endforeach
+
+                                @foreach (array_slice($orders[$c], 0, 6) as $n)
+                                    {!! $sym($n) !!}
                                 @endforeach
                             </div>
                         </div>
                     @endforeach
 
-                    <template x-if="finalReveal">
-                        <div aria-hidden="true">
-                            @foreach ($horizontalWins as $r)
-                                <i class="slot-payline" style="--row: {{ $r }}" aria-label="Linha horizontal vencedora"></i>
-                            @endforeach
-                            @foreach ($verticalWins as $col)
-                                <i class="slot-payline slot-payline--vertical" style="--col: {{ $col }}" aria-label="Linha vertical vencedora"></i>
-                            @endforeach
-                        </div>
-                    </template>
+                    @foreach ($winRows as $r)
+                        <i class="slot-payline" style="--row: {{ $r }}" aria-hidden="true"></i>
+                    @endforeach
+
+                    @foreach ($winCols as $c)
+                        <i class="slot-payline slot-payline--vertical" style="--col: {{ $c }}" aria-hidden="true"></i>
+                    @endforeach
+                </div>
+
+                <div class="slot-markers" aria-hidden="true">
+                    @foreach ([0, 1, 2] as $r)
+                        <span :class="{ 'is-win': done && @js(in_array($r, $winRows, true)) }">{{ $r + 1 }}</span>
+                    @endforeach
                 </div>
             </div>
 
-            <div class="slot-payline-legend" aria-label="Linhas de pagamento">
-                <span>9 posições · 3×3</span><span>↔ 3 horizontais + ↕ 3 verticais</span>
-                <span>3 símbolos iguais = prémio</span>
-            </div>
-
             <div class="slot-deck">
-                <div class="slot-bet">
-                    <span class="slot-label">APOSTA TOTAL</span>
+                <div>
+                    <span class="slot-label">Aposta total</span>
                     <div class="slot-stepper">
                         <button type="button" x-on:click="step(-6)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
-                        <input type="number" min="6" step="6" max="{{ $maxBet }}" wire:model="bet"
-                               :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
+                        <input type="number" min="6" step="6" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
                         <button type="button" x-on:click="step(6)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 6)"></b> · 6 linhas</small>
+                    <small class="slot-hint">Por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 6)"></b> créditos · 6 linhas</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
@@ -353,18 +361,17 @@
                             <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || @js($locked)">{{ $chip }}</button>
                         @endif
                     @endforeach
-                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 6) * 6" :disabled="busy || @js($locked)">MAX</button>
+                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 6) * 6" :disabled="busy || @js($locked)">Máx.</button>
                 </div>
 
                 <button type="button" class="slot-spin" x-on:click="go()" :disabled="busy">
-                    <span x-show="!busy">GIRAR</span>
-                    <span x-show="busy" x-cloak>A GIRAR…</span>
-                    <small>barra de espaço</small>
+                    <span x-text="busy ? 'A girar…' : 'Girar'"></span>
+                    <small>ou barra de espaço</small>
                 </button>
             </div>
 
-            @error('bet') <p role="alert" class="mt-3 text-sm text-rose-300">{{ $message }}</p> @enderror
-            @error('game') <p role="alert" class="mt-3 text-sm text-rose-300">{{ $message }}</p> @enderror
+            @error('bet')<p role="alert" class="slot-error">{{ $message }}</p>@enderror
+            @error('game')<p role="alert" class="slot-error">{{ $message }}</p>@enderror
         </div>
     </section>
 
@@ -375,10 +382,10 @@
 
             <div x-show="resultVisible" x-cloak class="mt-2">
                 @if ($roundResult !== [])
-                    @if ((int) $roundPayout > 0)
-                        <p class="slot-payout slot-payout--win">+{{ number_format((int) $roundPayout) }}</p>
+                    @if ($payout > 0)
+                        <p class="slot-payout slot-payout--win">+{{ number_format($payout) }}</p>
                         <p class="text-sm text-zinc-400">
-                            {{ count($winningLines) }} linha(s) vencedora(s) · apenas triplos pagam
+                            {{ count($winningLines) }} linha(s) vencedora(s) · 3 símbolos iguais
                         </p>
                     @else
                         <p class="slot-payout">Sem prémio</p>
