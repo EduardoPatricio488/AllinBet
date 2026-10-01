@@ -1,22 +1,40 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white antialiased dark:bg-linear-to-b dark:from-neutral-950 dark:to-neutral-900">
-        <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <div class="flex w-full max-w-sm flex-col gap-2">
-                <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
-                    <span class="flex h-9 w-9 mb-1 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
-                    </span>
-                    <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
+    <body class="casino-auth-body">
+        <main class="casino-auth-shell">
+            <aside class="casino-auth-stage" aria-label="AllinBet casino virtual">
+                <a href="{{ route('home') }}" class="casino-wordmark" wire:navigate>
+                    <span class="casino-mark">A</span>
+                    <span>ALLINBET</span>
                 </a>
-                <div class="flex flex-col gap-6">
-                    {{ $slot }}
+
+                <div class="casino-auth-copy">
+                    <p class="casino-auth-kicker">MESAS VIRTUAIS · SEM DINHEIRO REAL</p>
+                    <h1 class="casino-auth-title">A sorte está<br>na <em>sua mão.</em></h1>
+                    <p class="casino-auth-description">Jogos, estratégia e uma mesa só sua. Entre no AllinBet com créditos virtuais, sem depósitos, pagamentos ou levantamentos.</p>
                 </div>
-            </div>
-        </div>
+
+                <div class="casino-auth-art" aria-hidden="true">
+                    <span class="casino-auth-art__card casino-auth-art__card--one" data-suit="♥">A</span>
+                    <span class="casino-auth-art__card casino-auth-art__card--two" data-suit="♠">7</span>
+                    <span class="casino-auth-art__chip">VIRTUAL</span>
+                </div>
+
+                <footer class="casino-auth-stage-footer">
+                    <span>CRÉDITOS VIRTUAIS</span>
+                    <span>SEM VALOR MONETÁRIO</span>
+                    <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle">Som: desligado</button>
+                    <a href="{{ route('home') }}" class="text-inherit underline decoration-casino-gold/50 underline-offset-4" wire:navigate>JOGO RESPONSÁVEL</a>
+                </footer>
+            </aside>
+
+            <section class="casino-auth-main">
+                <div>{{ $slot }}</div>
+            </section>
+        </main>
 
         @persist('toast')
             <flux:toast.group>

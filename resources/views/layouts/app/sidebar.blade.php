@@ -3,30 +3,37 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+    <body class="casino-app-body min-h-screen">
+        <flux:sidebar sticky collapsible="mobile" class="casino-sidebar border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
+                <a href="{{ route('dashboard') }}" class="casino-wordmark" wire:navigate>
+                    <span class="casino-mark">A</span>
+                    <span>ALLINBET</span>
+                </a>
+                <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle">Som: desligado</button>
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
+                <flux:sidebar.group heading="Casino" class="grid">
+                    <flux:sidebar.item icon="squares-2x2" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
+                        Lobby
                     </flux:sidebar.item>
+                    <flux:sidebar.item icon="clock" :href="route('casino.history')" :current="request()->routeIs('casino.history')" wire:navigate>Histórico</flux:sidebar.item>
+                    <flux:sidebar.item icon="heart" :href="route('casino.help')" :current="request()->routeIs('casino.help')" wire:navigate>Jogo responsável</flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
+
+            <div class="px-3 py-3">
+                @livewire('casino.wallet-balance')
+                <p class="mt-2 text-[10px] text-zinc-500">Créditos virtuais — sem valor monetário</p>
+            </div>
 
             <flux:spacer />
 
             <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
+                <flux:sidebar.item icon="cog-6-tooth" :href="route('profile.edit')" :current="request()->routeIs('profile.*', 'security.*', 'appearance.*')" wire:navigate>
+                    Configurações
                 </flux:sidebar.item>
             </flux:sidebar.nav>
 
@@ -34,10 +41,14 @@
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
-        <flux:header class="lg:hidden">
+        <flux:header class="casino-mobile-header lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
+            <a href="{{ route('dashboard') }}" class="casino-wordmark" wire:navigate>AllinBet</a>
+
             <flux:spacer />
+
+            @livewire('casino.wallet-balance')
 
             <flux:dropdown position="top" align="end">
                 <flux:profile

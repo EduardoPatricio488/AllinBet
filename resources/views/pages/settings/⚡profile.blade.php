@@ -8,10 +8,11 @@ use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
-use Livewire\Component;
+use Livewire\Volt\Component;
 
-new #[Title('Profile settings')] class extends Component {
+new #[Layout('layouts.app'), Title('Profile settings')] class extends Component {
     use ProfileValidationRules;
 
     public string $name = '';
@@ -126,7 +127,7 @@ new #[Title('Profile settings')] class extends Component {
         {{-- @chisel-email-verification --}}
         @if ($this->showDeleteUser)
         {{-- @end-chisel-email-verification --}}
-            <livewire:pages::settings.delete-user-form />
+            <livewire:settings.⚡delete-user-form />
         {{-- @chisel-email-verification --}}
         @endif
         {{-- @end-chisel-email-verification --}}

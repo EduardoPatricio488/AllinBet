@@ -24,7 +24,7 @@ class ProfileUpdateTest extends TestCase
 
         $this->actingAs($user);
 
-        $response = Livewire::test('pages::settings.profile')
+        $response = Livewire::test('settings.⚡profile')
             ->set('name', 'Test User')
             ->set('email', 'test@example.com')
             ->call('updateProfileInformation');
@@ -44,7 +44,7 @@ class ProfileUpdateTest extends TestCase
 
         $this->actingAs($user);
 
-        $response = Livewire::test('pages::settings.profile')
+        $response = Livewire::test('settings.⚡profile')
             ->set('name', 'Test User')
             ->set('email', $user->email)
             ->call('updateProfileInformation');
@@ -60,7 +60,7 @@ class ProfileUpdateTest extends TestCase
 
         $this->actingAs($user);
 
-        $response = Livewire::test('pages::settings.delete-user-modal')
+        $response = Livewire::test('settings.⚡delete-user-modal')
             ->set('password', 'password')
             ->call('deleteUser');
 
@@ -78,7 +78,7 @@ class ProfileUpdateTest extends TestCase
 
         $this->actingAs($user);
 
-        $response = Livewire::test('pages::settings.delete-user-modal')
+        $response = Livewire::test('settings.⚡delete-user-modal')
             ->set('password', 'wrong-password')
             ->call('deleteUser');
 
