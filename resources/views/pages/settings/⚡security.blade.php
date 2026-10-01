@@ -26,16 +26,16 @@ new #[Layout('layouts.app'), Title('Definições de segurança')] class extends 
     public string $password_confirmation = '';
 
     /* @chisel-2fa */
-    public bool $canManageTwoFactor;
+    public bool $canManageTwoFactor = false;
 
-    public bool $twoFactorEnabled;
+    public bool $twoFactorEnabled = false;
 
-    public bool $requiresConfirmation;
+    public bool $requiresConfirmation = false;
     /* @end-chisel-2fa */
 
     /* @chisel-passkeys */
     #[Locked]
-    public bool $canManagePasskeys;
+    public bool $canManagePasskeys = false;
 
     #[Locked]
     public array $passkeys = [];
@@ -108,7 +108,7 @@ new #[Layout('layouts.app'), Title('Definições de segurança')] class extends 
     public function loadPasskeys(): void
     {
         $this->passkeys = auth()->user()->passkeys()
-            ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
+            ->select(['id', 'name', 'authenticator', 'created_at', 'last_used_at'])
             ->latest()
             ->get()
             ->map(fn ($passkey) => [
