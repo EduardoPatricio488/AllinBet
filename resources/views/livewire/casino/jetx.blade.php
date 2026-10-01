@@ -263,6 +263,10 @@
 
     <x-casino.loading-overlay target="prepare,launch,cashout" />
 
+    @if ($roundPhase === 'in_progress')
+        <div wire:poll.700ms="tick" class="hidden" aria-hidden="true"></div>
+    @endif
+
     <div class="jetx-hero">
         <div class="jetx-hero__title">
             <span class="jetx-mark" aria-hidden="true">🚀</span>
