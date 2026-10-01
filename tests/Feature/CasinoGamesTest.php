@@ -56,7 +56,7 @@ class CasinoGamesTest extends TestCase
         $this->assertSame(0, $zeroMiss->payout);
     }
 
-    public function test_slots_paytable_uses_integer_wagers_and_configured_paylines(): void
+    public function test_slots_paytable_uses_integer_wagers_and_only_horizontal_paylines(): void
     {
         $grid = [
             [4, 4, 4],
@@ -67,7 +67,22 @@ class CasinoGamesTest extends TestCase
 
         $this->assertSame(21300, $result->payout);
         $this->assertCount(3, $result->result['winning_lines']);
+        $this->assertSame(['horizontal', 'horizontal', 'horizontal'], array_column($result->result['winning_lines'], 'direction'));
         $this->assertIsInt($result->payout);
+    }
+
+    public function test_slots_do_not_pay_vertical_triples(): void
+    {
+        $grid = [
+            [4, 1, 2],
+            [4, 1, 3],
+            [4, 0, 2],
+        ];
+
+        $result = app(SlotsGame::class)->settle($grid, 300);
+
+        $this->assertSame(0, $result->payout);
+        $this->assertCount(0, $result->result['winning_lines']);
     }
 
     public function test_dice_and_slots_simulations_stay_within_two_percent_of_target_rtp(): void
