@@ -5,6 +5,11 @@
     $slotVariants = config('casino.games.slots.variants', []);
     $selectedSlotConfig = $slotVariants[$selectedSlot] ?? $slotVariants['classic'] ?? [];
     $symbols = $selectedSlotConfig['symbols'] ?? ['🍒', '🍋', '🍊', '🔔', '⭐', '🍀', '💎', '7️⃣'];
+    $orders = [
+        [0, 3, 6, 1, 4, 7, 2, 5],
+        [5, 2, 7, 4, 1, 6, 3, 0],
+        [2, 6, 1, 5, 0, 4, 7, 3],
+    ];
 
     $winningLines = $roundPhase === 'completed'
         ? collect($roundResult['winning_lines'] ?? [])->values()->all()
