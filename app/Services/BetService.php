@@ -32,6 +32,7 @@ class BetService
         int $bet,
         string $clientSeed,
         string $idempotencyKey,
+        array $metadata = [],
     ): GameRound {
         $this->games->get($game);
         $this->validateBet($bet);
@@ -45,7 +46,7 @@ class BetService
         }
 
         try {
-            return DB::transaction(function () use ($user, $game, $bet, $clientSeed, $idempotencyKey): GameRound {
+            return DB::transaction(function () use ($user, $game, $bet, $clientSeed, $idempotencyKey, $metadata): GameRound {
                 $existing = $this->findExistingRound($user, $game, $bet, $clientSeed, $idempotencyKey);
 
                 if ($existing !== null) {
@@ -71,7 +72,10 @@ class BetService
                     'bet' => $bet,
                     'payout' => 0,
                     'status' => RoundStatus::Prepared,
-                    'result' => null,
+                    'result' => [
+                        'public' => [],
+                        'private' => $metadata,
+                    ],
                     'server_seed_hash' => $this->provablyFair->commitment($serverSeed),
                     'server_seed' => $serverSeed,
                     'client_seed' => $clientSeed,
