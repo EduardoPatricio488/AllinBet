@@ -31,6 +31,17 @@
                     Apostas desportivas
                 </a>
 
+                @auth
+                    <a href="#sports-bets"
+                       class="casino-rail__item"
+                       x-on:click.prevent="$dispatch('casino-open-sports-bets')"
+                       aria-haspopup="dialog"
+                       aria-controls="casino-sports-bets-modal">
+                        <span class="casino-rail__glyph">🎟️</span>
+                        As minhas apostas
+                    </a>
+                @endauth
+
                 <p class="casino-rail__label">ORIGINALS</p>
                 @foreach ($casinoGames as $game)
                     <a href="{{ auth()->check() ? route($game['route']) : route('login') }}" class="casino-rail__item {{ request()->routeIs($game['route']) ? 'is-current' : '' }}" wire:navigate>
@@ -207,7 +218,7 @@
                     ['n' => 'Histórico', 'u' => route('casino.history')],
                     ['n' => 'Carteira', 'u' => route('casino.wallet')],
                     ['n' => 'Jogo responsável', 'u' => route('casino.help')],
-                    ['n' => 'As minhas apostas', 'u' => route('casino.sports.bets')],
+                    ['n' => 'As minhas apostas', 'u' => '#sports-bets'],
                 ])->values()) }},
                 get results() { return this.items.filter(i => i.n.toLowerCase().includes(this.q.toLowerCase())); }
             }"
@@ -223,11 +234,37 @@
                 <input x-ref="q" x-model="q" type="search" placeholder="Procurar jogo… (Esc fecha)" class="casino-field w-full">
                 <ul class="mt-3 space-y-1">
                     <template x-for="i in results" :key="i.u">
-                        <li><a :href="i.u" class="casino-cmd-item" wire:navigate x-on:click="open = false" x-text="i.n"></a></li>
+                        <li>
+                            <a :href="i.u"
+                               class="casino-cmd-item"
+                               x-on:click="if (i.n === 'As minhas apostas') { $event.preventDefault(); $dispatch('casino-open-sports-bets'); open = false; } else { open = false; }"
+                               x-text="i.n"></a>
+                        </li>
                     </template>
                 </ul>
             </div>
         </div>
+        @auth
+            <div
+                id="casino-sports-bets-modal"
+                x-data="{ open: false }"
+                x-on:casino-open-sports-bets.window="open = true; $dispatch('sports-bets-refresh')"
+                x-on:keydown.escape.window="open = false"
+                x-cloak
+                x-show="open"
+                x-transition.opacity
+                class="casino-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="casino-sports-bets-title"
+                x-on:click.self="open = false"
+            >
+                <div class="casino-modal__panel casino-card w-full max-w-2xl overflow-hidden p-0">
+                    @livewire('casino.sports-bets')
+                </div>
+            </div>
+        @endauth
+
         @livewire('casino.fairness-modal')
 
         @fluxScripts
