@@ -9,7 +9,7 @@
 
 @if ($game)
     <div class="casino-game-chrome">
-        <a href="{{ route('home') }}" class="text-sm text-zinc-400 hover:text-casino-gold-bright" wire:navigate>← Lobby</a>
+        <a href="{{ route('home') }}" class="text-sm text-zinc-400 hover:text-casino-gold-bright" wire:navigate>← Casino</a>
         <div class="casino-game-chrome__head">
             <div>
                 <p class="casino-eyebrow">JOGO {{ $game['code'] }} · {{ $game['tag'] }}</p>
