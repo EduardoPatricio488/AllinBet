@@ -6,7 +6,7 @@
         @else
             <div class="divide-y divide-zinc-800">
                 @foreach ($rounds as $round)
-                    <a href="{{ route('fairness.verify', $round) }}" class="flex items-center justify-between gap-4 py-3 text-sm hover:text-emerald-200" wire:navigate>
+                    <button type="button" class="flex w-full items-center justify-between gap-4 py-3 text-left text-sm hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $round->id }} })">
                         <span><span class="block font-medium">{{ str($round->game->value)->headline() }}</span><span class="text-xs text-zinc-500">{{ $round->created_at->diffForHumans() }} · {{ $round->status->value }}</span></span>
                         <span class="tabular-nums text-zinc-300">{{ $round->payout }} créditos</span>
                     </a>
