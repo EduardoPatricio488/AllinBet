@@ -48,6 +48,12 @@ final class Sports extends Component
         ));
 
         $this->slip[] = $selection;
+
+        $this->dispatch(
+            'sports-selection-added',
+            matchId: $matchId,
+            marketId: $marketId,
+        );
     }
 
     public function remove(string $matchId): void
