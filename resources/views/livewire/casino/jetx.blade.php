@@ -151,8 +151,7 @@
         },
 
         startFlight() {
-            this.status = 'preparing';
-            this.busy = true;
+            this.busy = false;
             this.resultOpen = false;
             this.resultLabel = '';
             this.resetFlight();
@@ -339,14 +338,11 @@
         .jetx-side{display:grid;gap:.8rem;align-content:start}.jetx-card{border:1px solid rgba(255,255,255,.08);border-radius:1rem;background:rgba(11,17,26,.78);padding:1rem;box-shadow:0 16px 38px rgba(0,0,0,.15)}.jetx-card__eyebrow{margin:0;color:#6e7d8c;font-size:.58rem;font-weight:950;letter-spacing:.16em;text-transform:uppercase}.jetx-card h3{margin:.35rem 0 0;color:#f4f7fa;font-size:.92rem;font-weight:900}.jetx-card p{margin:.4rem 0 0;color:#8996a4;font-size:.68rem;line-height:1.55}.jetx-stat{display:flex;justify-content:space-between;gap:1rem;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.68rem}.jetx-stat:last-child{border-bottom:0}.jetx-stat span{color:#738292}.jetx-stat strong{color:#dfe8ef}.jetx-seed{margin-top:.55rem;padding:.6rem;border:1px solid rgba(255,255,255,.06);border-radius:.65rem;background:#060a10;color:#93a1af;font: .56rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
         @keyframes jetx-stars{from{transform:translate3d(0,0,0)}to{transform:translate3d(-120px,80px,0)}}@keyframes jetx-flame{from{transform:scaleX(.85);opacity:.55}to{transform:scaleX(1.15);opacity:1}}@keyframes jetx-trail-pulse{from{opacity:.35;transform:translateX(-8px)}to{opacity:.9;transform:translateX(10px)}}@keyframes jetx-boom{from{opacity:0;transform:translate(-50%,-50%) scale(.45)}65%{transform:translate(-50%,-50%) scale(1.12)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}        
         @media(max-width:900px){.jetx-layout{grid-template-columns:1fr}.jetx-side{grid-template-columns:repeat(2,minmax(0,1fr))}.jetx-controls{grid-template-columns:1fr}.jetx-action-wrap{width:100%}.jetx-action{width:100%}}@media(max-width:600px){.jetx-hero{align-items:flex-start;flex-direction:column}.jetx-stage{min-height:30rem}.jetx-bet{grid-template-columns:1fr}.jetx-side{grid-template-columns:1fr}.jetx-multiplier{top:19%}.jetx-result{bottom:6%}}
-        @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket::after{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
+        @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket__flame,.jetx-result{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
     </style>
 
     <x-casino.loading-overlay target="prepare,launch,cashout" />
 
-    @if ($roundPhase === 'in_progress')
-        <div wire:poll.700ms="tick" class="hidden" aria-hidden="true"></div>
-    @endif
 
     <div class="jetx-hero">
         <div class="jetx-hero__title">
@@ -448,6 +444,7 @@
                     @else
                         <button type="button"
                                 class="jetx-action"
+                                x-on:click="startFlight()"
                                 wire:click="start"
                                 wire:loading.attr="disabled"
                                 wire:target="start">
