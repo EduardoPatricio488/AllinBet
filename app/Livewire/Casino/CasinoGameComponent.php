@@ -48,7 +48,7 @@ abstract class CasinoGameComponent extends Component
         $this->actionKey = bin2hex(random_bytes(16));
     }
 
-    protected function prepareGame(GameType $game): void
+    protected function prepareGame(GameType $game, array $metadata = []): void
     {
         $this->resetErrorBag();
         $this->validate([
