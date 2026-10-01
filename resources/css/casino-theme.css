@@ -597,11 +597,11 @@ html:not(.dark) .casino-card {
 }
 
 html:not(.dark) .casino-lobby-hero {
-    background-color: #e6efe5;
+    background-color: #f0f7f0;
     background-image:
-        repeating-linear-gradient(0deg, rgb(23 70 44 / 2%) 0 1px, transparent 1px 6px),
-        radial-gradient(ellipse at 72% 50%, rgb(33 99 67 / 18%), transparent 45%),
-        linear-gradient(120deg, #f5f8f3, #dfece0 68%, #edf3eb);
+        repeating-linear-gradient(0deg, rgb(23 70 44 / 1.5%) 0 1px, transparent 1px 6px),
+        radial-gradient(ellipse at 72% 50%, rgb(33 99 67 / 12%), transparent 45%),
+        linear-gradient(120deg, #ffffff, #edf6ee 68%, #f7faf6);
 }
 
 html:not(.dark) .casino-lobby-hero h1 {
@@ -676,11 +676,11 @@ html:not(.dark) .casino-body {
     --casino-muted: #5d6b61;
     --casino-line: rgb(44 75 52 / 18%);
     --casino-glass: rgb(255 255 255 / 94%);
-    background-color: #f4f6f2;
+    background-color: #fafcf9;
     background-image:
-        radial-gradient(ellipse at 14% 0%, rgb(197 225 205 / 35%), transparent 43%),
-        radial-gradient(ellipse at 87% 18%, rgb(221 239 224 / 45%), transparent 38%),
-        linear-gradient(155deg, #f7f9f5 5%, #eef4ed 55%, #f4f8f3 100%);
+        radial-gradient(ellipse at 14% 0%, rgb(211 232 217 / 28%), transparent 43%),
+        radial-gradient(ellipse at 87% 18%, rgb(231 242 233 / 34%), transparent 38%),
+        linear-gradient(155deg, #ffffff 5%, #f6faf5 55%, #fafcf9 100%);
     color: #17251c;
 }
 
