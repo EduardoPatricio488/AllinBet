@@ -7,6 +7,8 @@
         multiplier: 1,
         serverMultiplier: 1,
         displayMultiplier: 1,
+        multiplierTimeConstant: @js((int) config('casino.games.jetx.multiplier_time_constant_ms', 6500)),
+        multiplierMaximum: @js((float) config('casino.games.jetx.max_multiplier', 2500)),
         flightStartedAt: 0,
         lastServerSyncAt: 0,
         finalMultiplier: 0,
@@ -58,33 +60,37 @@
             this.raf = null;
         },
 
+        currentMultiplier() {
+            const elapsed = Math.max(0, Date.now() - Number(this.flightStartedAt || Date.now()));
+            return Math.min(
+                this.multiplierMaximum,
+                Math.round(Math.exp(elapsed / this.multiplierTimeConstant) * 100) / 100
+            );
+        },
+
         animate() {
-            if (!this.flying) return;
+            if (!this.flying || !this.flightStartedAt) return;
 
-            const gap = this.serverMultiplier - this.displayMultiplier;
+            // O valor visual é calculado a cada frame pelo mesmo relógio exponencial
+            // usado pelo servidor. Assim não existem saltos entre ticks do Livewire.
+            const nextMultiplier = this.currentMultiplier();
 
-            if (Math.abs(gap) > 0.01) {
-                this.displayMultiplier = Math.max(
-                    1,
-                    Math.min(2500, this.displayMultiplier + (gap * 0.18))
-                );
-            } else {
-                this.displayMultiplier = this.serverMultiplier;
-            }
-
+            this.displayMultiplier = Math.max(1, Math.min(this.multiplierMaximum, nextMultiplier));
             this.multiplier = this.displayMultiplier;
+
             this.raf = requestAnimationFrame(() => this.animate());
         },
 
         rocketStyle() {
             const progress = Math.min(
                 1,
-                Math.log(Math.max(1, this.displayMultiplier)) / Math.log(2500)
+                Math.log(Math.max(1, this.displayMultiplier)) / Math.log(this.multiplierMaximum)
             );
             const x = 9 + progress * 79;
             const y = 78 - Math.pow(progress, 1.2) * 63;
+            const tilt = -18 - (progress * 7);
 
-            return `left: ${x}%; top: ${y}%; transform: translate(-50%, -50%) rotate(-18deg);`;
+            return `left: ${x}%; top: ${y}%; transform: translate(-50%, -50%) rotate(${tilt}deg);`;
         },
 
         syncServerResult() {
