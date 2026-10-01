@@ -129,6 +129,14 @@ abstract class CasinoGameComponent extends Component
         $this->dispatch('wallet-updated');
         $this->dispatch('history-updated');
 
+        if ($round->status === RoundStatus::Completed) {
+            $this->dispatch(
+                'casino-round-result',
+                outcome: $round->payout > 0 ? 'win' : ($round->payout === $round->bet ? 'push' : 'loss'),
+                amount: $round->payout > 0 ? $round->payout : $round->bet,
+            );
+        }
+
         if ($round->status === RoundStatus::Completed && $round->payout > 0) {
             $this->dispatch('casino-toast', type: 'success', title: 'Vitória confirmada', message: "+{$round->payout} créditos virtuais.");
 
