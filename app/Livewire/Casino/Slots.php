@@ -9,6 +9,33 @@ use Illuminate\View\View;
 
 class Slots extends CasinoGameComponent
 {
+    public string $selectedSlot = 'classic';
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $key = request()->query('slot');
+        $variants = array_keys(config('casino.games.slots.variants', []));
+
+        if (is_string($key) && in_array($key, $variants, true)) {
+            $this->selectedSlot = $key;
+        }
+    }
+
+    public function selectSlot(string $slot): void
+    {
+        if ($this->roundPhase === 'prepared' || $this->roundPhase === 'in_progress') {
+            return;
+        }
+
+        $variants = array_keys(config('casino.games.slots.variants', []));
+
+        if (in_array($slot, $variants, true)) {
+            $this->selectedSlot = $slot;
+        }
+    }
+
     public function prepare(): void
     {
         if (! is_numeric($this->bet) || (int) $this->bet < 6 || (int) $this->bet % 6 !== 0) {
