@@ -114,7 +114,7 @@ final class JetXGameTest extends TestCase
 
     private function round(int $bet = 10): GameRound
     {
-        $round = new GameRound();
+        $round = new GameRound;
         $round->server_seed = 'server-seed';
         $round->client_seed = 'client-seed';
         $round->nonce = 0;
