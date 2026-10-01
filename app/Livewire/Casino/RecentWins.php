@@ -26,15 +26,7 @@ class RecentWins extends Component
                 'preview' => false,
             ]);
 
-        $isPreview = $wins->isEmpty();
-
-        if ($isPreview) {
-            $wins = collect([
-                ['game' => 'coinflip', 'payout' => 120, 'created_at' => null, 'preview' => true],
-                ['game' => 'roulette', 'payout' => 360, 'created_at' => null, 'preview' => true],
-                ['game' => 'slots', 'payout' => 240, 'created_at' => null, 'preview' => true],
-            ]);
-        }
+        $isPreview = false;
 
         return view('livewire.casino.recent-wins', [
             'wins' => $wins,
