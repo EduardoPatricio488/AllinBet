@@ -2,6 +2,10 @@
     $grid = $roundResult['grid'] ?? [[0, 1, 2], [3, 4, 5], [2, 1, 0]];
     $maxBet = (int) config('casino.bet_limits.max');
     $locked = $roundPhase === 'prepared';
+    $slotVariants = config('casino.games.slots.variants', []);
+    $selectedSlotConfig = $slotVariants[$selectedSlot] ?? $slotVariants['classic'] ?? [];
+    $symbols = $selectedSlotConfig['symbols'] ?? ['🍒', '🍋', '🍊', '🔔', '⭐', '🍀', '💎', '7️⃣'];
+
     $winningLines = $roundPhase === 'completed'
         ? collect($roundResult['winning_lines'] ?? [])->values()->all()
         : [];
@@ -16,57 +20,13 @@
         ->map(fn ($l) => (int) $l)
         ->all();
     $payout = (int) $roundPayout;
-    $paytable = $paytable ?? config('casino.games.slots.paytable', []);
-    $orders = [
-        [0, 3, 6, 1, 4, 7, 2, 5],
-        [5, 2, 7, 4, 1, 6, 3, 0],
-        [2, 6, 1, 5, 0, 4, 7, 3],
-    ];
-    $slotVariants = [
-        'classic' => [
-            'name' => 'Allin Classic',
-            'tag' => 'FRUIT · RETRO',
-            'icon' => '🍒',
-            'description' => 'Fruta clássica, ouro e estética de máquina arcade.',
-        ],
-        'neon' => [
-            'name' => 'Neon Pulse',
-            'tag' => 'NEON · CYBER',
-            'icon' => '✦',
-            'description' => 'Um visual futurista com brilho eléctrico e contraste intenso.',
-        ],
-        'gems' => [
-            'name' => 'Gem Royale',
-            'tag' => 'GEMS · ROYAL',
-            'icon' => '💎',
-            'description' => 'Cristais, metal escuro e acabamento premium.',
-        ],
-        'candy' => [
-            'name' => 'Candy Pop',
-            'tag' => 'SWEET · POP',
-            'icon' => '🍭',
-            'description' => 'Uma máquina doce, colorida e mais descontraída.',
-        ],
-        'space' => [
-            'name' => 'Space 777',
-            'tag' => 'SPACE · 777',
-            'icon' => '🚀',
-            'description' => 'Uma slot espacial com brilho cósmico e atmosfera sci-fi.',
-        ],
-        'wild' => [
-            'name' => 'Wild Gold',
-            'tag' => 'WILD · GOLD',
-            'icon' => '🐺',
-            'description' => 'Uma variante selvagem com madeira, ouro e tons de floresta.',
-        ],
-    ];
-    $sym = fn (int $n, string $c = '') => '<svg class="slot-sym '.$c.'" viewBox="0 0 64 64" aria-hidden="true"><use href="#s'.($n % 8).'"/></svg>';
+    $paytable = $selectedSlotConfig['paytable'] ?? [];
 @endphp
 
 <div class="casino-game-play slot-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
      x-data="{
         st: ['idle', 'idle', 'idle'],
-        selectedSlot: ['classic', 'neon', 'gems', 'candy', 'space', 'wild'].includes(new URLSearchParams(window.location.search).get('slot')) ? new URLSearchParams(window.location.search).get('slot') : 'classic',
+        selectedSlot: @js($selectedSlot),
         busy: false,
         done: true,
         overlay: false,
@@ -76,13 +36,20 @@
         maxBet: {{ $maxBet }},
         wait: (ms) => new Promise((r) => setTimeout(r, ms)),
         sfx(name) { this.$dispatch('casino-sfx', { name }); },
-        selectSlot(key) {
+        async selectSlot(key) {
             const allowed = @js(array_keys($slotVariants));
-            if (!allowed.includes(key) || key === this.selectedSlot) return;
+
+            if (this.busy || !allowed.includes(key) || key === this.selectedSlot) {
+                return;
+            }
+
             this.selectedSlot = key;
+
             const url = new URL(window.location.href);
             url.searchParams.set('slot', key);
             window.history.replaceState({}, '', url);
+
+            await this.$wire.selectSlot(key);
         },
         step(d) {
             const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
@@ -168,26 +135,6 @@
      }"
      x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">
     <div class="slot-page-main">
-        {{-- Símbolos SVG, definidos uma só vez --}}
-    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-        <defs>
-            <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a86"/><stop offset="1" stop-color="#c4162a"/></linearGradient>
-            <linearGradient id="gY" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff08a"/><stop offset="1" stop-color="#e0a912"/></linearGradient>
-            <linearGradient id="gO" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#e86a10"/></linearGradient>
-            <linearGradient id="gG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe58a"/><stop offset="1" stop-color="#b8861b"/></linearGradient>
-            <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cf3ff"/><stop offset="1" stop-color="#1c7fd0"/></linearGradient>
-            <linearGradient id="gN" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7df0a8"/><stop offset="1" stop-color="#159a52"/></linearGradient>
-            <symbol id="s0" viewBox="0 0 64 64"><path d="M22 30C26 18 34 12 46 8M43 32C42 22 44 14 46 8" stroke="#2fa85a" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="22" cy="44" r="14" fill="url(#gR)"/><circle cx="43" cy="46" r="14" fill="url(#gR)"/><circle cx="17" cy="39" r="3" fill="#fff" opacity=".5"/></symbol>
-            <symbol id="s1" viewBox="0 0 64 64"><ellipse cx="32" cy="33" rx="25" ry="17" fill="url(#gY)" transform="rotate(-20 32 33)"/><ellipse cx="25" cy="27" rx="7" ry="3" fill="#fff" opacity=".45" transform="rotate(-20 25 27)"/></symbol>
-            <symbol id="s2" viewBox="0 0 64 64"><circle cx="32" cy="36" r="22" fill="url(#gO)"/><path d="M32 14c2-6 8-8 14-6-2 6-8 8-14 6Z" fill="#2fa85a"/><circle cx="24" cy="28" r="4" fill="#fff" opacity=".35"/></symbol>
-            <symbol id="s3" viewBox="0 0 64 64"><path d="M32 6a4 4 0 0 1 4 4c10 3 14 12 14 22l4 9H10l4-9c0-10 4-19 14-22a4 4 0 0 1 4-4Z" fill="url(#gG)"/><circle cx="32" cy="50" r="5" fill="#b8861b"/></symbol>
-            <symbol id="s4" viewBox="0 0 64 64"><path d="m32 6 7.6 17.2 18.4 1.8-13.9 12.3 4.1 18.2L32 45.7 15.8 55.5l4.1-18.2L6 25l18.4-1.8Z" fill="url(#gG)" stroke="#fff3b0" stroke-width="1.5"/></symbol>
-            <symbol id="s5" viewBox="0 0 64 64"><path d="M32 34c0 12-2 18-8 24" stroke="#159a52" stroke-width="4" fill="none" stroke-linecap="round"/><g fill="url(#gN)"><circle cx="22" cy="22" r="11"/><circle cx="42" cy="22" r="11"/><circle cx="22" cy="40" r="11"/><circle cx="42" cy="40" r="11"/></g></symbol>
-            <symbol id="s6" viewBox="0 0 64 64"><path d="M18 10h28l14 16-28 30L4 26Z" fill="url(#gC)"/><path d="M4 26h56M18 10l14 16 14-16M32 26v30" stroke="#fff" stroke-opacity=".55" stroke-width="1.5" fill="none"/></symbol>
-            <symbol id="s7" viewBox="0 0 64 64"><text x="32" y="52" text-anchor="middle" font-size="58" font-weight="900" font-family="Georgia,serif" fill="url(#gR)" stroke="#ffe58a" stroke-width="2.5" paint-order="stroke">7</text></symbol>
-        </defs>
-    </svg>
-
         <section class="slot-collection" aria-label="Escolher máquina de Slots">
         <div class="slot-collection__head">
             <div>
@@ -306,7 +253,7 @@
             content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
             background: linear-gradient(180deg, rgba(0, 0, 0, .7), transparent 28%, transparent 72%, rgba(0, 0, 0, .7));
         }
-        .slot-sym { display: block; width: 100%; height: var(--cell); padding: 14%; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); }
+        .slot-sym { display: grid; place-items: center; width: 100%; height: var(--cell); font-size: clamp(2.5rem, 6vw, 4rem); line-height: 1; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); user-select: none; }
         .slot-spinner { display: none; }
         .slot-landing { display: grid; grid-template-columns: 1fr; align-content: start; }
         .slot-reel.is-spin .slot-landing { display: none; }
@@ -416,9 +363,9 @@
             <header class="slot-header">
                 <h1 class="slot-title">
                     Allinbet <em class="casino-shimmer-text">Slots</em>
-                    <span class="slot-title__variant" x-text="({classic:'Allin Classic',neon:'Neon Pulse',gems:'Gem Royale',candy:'Candy Pop',space:'Space 777',wild:'Wild Gold'})[selectedSlot]"></span>
+                    <span class="slot-title__variant" x-text="@js($slotVariants)[selectedSlot].name"></span>
                 </h1>
-                <span class="slot-badge" x-text="({classic:'FRUIT · RETRO',neon:'NEON · CYBER',gems:'GEMS · ROYAL',candy:'SWEET · POP',space:'SPACE · 777',wild:'WILD · GOLD'})[selectedSlot]">9 posições · 3×3 · 6 linhas</span>
+                <span class="slot-badge" x-text="@js($slotVariants)[selectedSlot].tag"></span>
             </header>
 
             <div class="slot-window"
@@ -438,7 +385,7 @@
                             <div class="slot-spinner" aria-hidden="true">
                                 @for ($k = 0; $k < 2; $k++)
                                     @foreach ($orders[$c] as $n)
-                                        {!! $sym($n) !!}
+                                        <span class="slot-sym">{{ $symbols[$n % count($symbols)] }}</span>
                                     @endforeach
                                 @endfor
                             </div>
@@ -448,11 +395,9 @@
                                     @php
                                         $isWin = in_array($r, $winRows, true) || in_array($c, $winCols, true);
                                     @endphp
-                                    {!! $sym((int) ($row[$c] ?? 0), $isWin ? 'is-win' : '') !!}
-                                @endforeach
-
-                                @foreach (array_slice($orders[$c], 0, 6) as $n)
-                                    {!! $sym($n) !!}
+                                    <span class="slot-sym {{ $isWin ? 'is-win' : '' }}">
+                                        {{ $symbols[((int) ($row[$c] ?? 0)) % count($symbols)] }}
+                                    </span>
                                 @endforeach
                             </div>
                         </div>
