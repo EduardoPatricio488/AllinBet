@@ -1,7 +1,9 @@
 @extends('layouts.casino')
 
-@section('page-title', 'As minhas apostas')
+@section('page-title', 'Apostas desportivas')
 
 @section('content')
-    <livewire:casino.sports-bets />
+    <div x-data x-init="$nextTick(() => $dispatch('casino-open-sports-bets'))">
+        <livewire:casino.sports />
+    </div>
 @endsection
