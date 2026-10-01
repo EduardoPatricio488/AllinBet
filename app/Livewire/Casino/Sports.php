@@ -143,6 +143,7 @@ final class Sports extends Component
 
         $this->dispatch('wallet-updated');
         $this->dispatch('history-updated');
+        $this->dispatch('sports-bet-updated');
         $this->dispatch(
             'casino-toast',
             type: 'success',
