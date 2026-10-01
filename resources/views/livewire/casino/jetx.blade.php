@@ -106,24 +106,11 @@
             }
         },
 
-        async startFlight() {
-            if (this.busy) return;
-
-            const w = this.$wire;
+        startFlight() {
+            this.status = 'preparing';
             this.busy = true;
             this.resultOpen = false;
-            this.status = 'preparing';
             this.resetFlight();
-
-            try {
-                await w.launch();
-            } catch (e) {
-                this.resetFlight();
-                this.flying = false;
-                this.busy = false;
-                this.status = 'ready';
-                this.phase = w.roundPhase;
-            }
         },
 
         schedulePoll() {
@@ -215,7 +202,7 @@
         }
      }"
      x-init="$watch('$wire.roundPhase', (value) => phase = value)"
-     x-on:keydown.window="if ($event.code === 'Space' && phase === 'prepared' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); startFlight(); }"
+     x-on:keydown.window="if ($event.code === 'Space' && ['ready','completed','prepared'].includes(phase) && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); $wire.start(); }"
      x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
      x-on:pagehide.window="resetFlight()">
 
@@ -323,18 +310,17 @@
                     @if (in_array($roundPhase, ['ready', 'completed'], true))
                         <button type="button"
                                 class="jetx-action"
-                                wire:click="prepare"
+                                wire:click="start"
                                 wire:loading.attr="disabled"
-                                wire:target="prepare">
-                            <span>🚀 PREPARAR RONDA</span>
+                                wire:target="start">
+                            <span>🚀 INICIAR JETX</span>
                         </button>
                     @elseif ($roundPhase === 'prepared')
                         <button type="button"
                                 class="jetx-action"
+                                wire:click="launch"
                                 wire:loading.attr="disabled"
-                                wire:target="launch"
-                                :disabled="busy"
-                                x-on:click="startFlight()">
+                                wire:target="launch">
                             <span>🚀 LANÇAR</span>
                         </button>
                     @elseif ($roundPhase === 'in_progress')
