@@ -3,7 +3,7 @@
         busy: false,
         flying: false,
         phase: @js($roundPhase),
-        status: @js($roundPhase === 'in_progress' ? 'flying' : 'ready'),
+        status: @js($roundPhase === 'in_progress' ? 'paused' : 'ready'),
         multiplier: 1,
         serverMultiplier: 1,
         displayMultiplier: 1,
@@ -274,11 +274,6 @@
         }
      }"
      x-init="
-        if ($wire.roundPhase === 'in_progress') {
-            const result = $wire.roundResult || {};
-            beginFlight(Number(result.started_at_ms || Date.now()));
-        }
-
         $watch('$wire.roundPhase', (value) => {
             phase = value;
 
@@ -357,7 +352,7 @@
             flying: status === 'flying',
             crashed: status === 'crashed',
             cashed: status === 'cashed_out'
-        }" x-text="status === 'flying' ? 'Foguete em voo' : status === 'crashed' ? 'Crash' : status === 'cashed_out' ? 'Prémio recolhido' : status === 'cashing_out' ? 'A recolher…' : 'Pronto'"></span>
+        }" x-text="status === 'flying' ? 'Foguete em voo' : status === 'paused' ? 'Ronda em espera' : status === 'crashed' ? 'Crash' : status === 'cashed_out' ? 'Prémio recolhido' : status === 'cashing_out' ? 'A recolher…' : 'Pronto'"></span>
     </div>
 
     <x-casino.how-it-works
@@ -421,7 +416,7 @@
                     @elseif ($roundPhase === 'prepared')
                         <p class="jetx-mini">A ronda foi preparada e o hash já está fixado. Carrega em LANÇAR para iniciar o voo.</p>
                     @elseif ($roundPhase === 'in_progress')
-                        <p class="jetx-mini">O foguete está em voo. O multiplicador é atualizado pelo servidor. Podes carregar em COLETAR a qualquer momento antes do crash.</p>
+                        <p class="jetx-mini">Esta ronda já estava iniciada antes do refresh. O jogo não arranca sozinho: carrega em RETOMAR VOO para continuar a ronda.</p>
                     @endif
                 </div>
 
@@ -435,9 +430,19 @@
                             🚀 LANÇAR
                         </button>
                     @elseif ($roundPhase === 'in_progress')
+                        <template x-if="!flying">
+                            <button type="button"
+                                    class="jetx-action"
+                                    :disabled="busy"
+                                    x-on:click="beginFlight(Number(($wire.roundResult || {}).started_at_ms || Date.now()))">
+                                🚀 RETOMAR VOO
+                            </button>
+                        </template>
                         <button type="button"
                                 class="jetx-action collect"
-                                :disabled="busy || !flying"
+                                x-show="flying"
+                                x-cloak
+                                :disabled="busy"
                                 x-on:click="cashout()">
                             ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
                         </button>
@@ -461,7 +466,7 @@
         <aside class="jetx-side">
             <div class="jetx-card">
                 <p class="jetx-card__eyebrow">Estado da ronda</p>
-                <h3 x-text="status === 'flying' ? '🚀 Em voo' : status === 'crashed' ? '💥 Crash confirmado' : status === 'cashed_out' ? '⚡ Recolhida com sucesso' : 'Pronta para lançar'"></h3>
+                <h3 x-text="status === 'flying' ? '🚀 Em voo' : status === 'paused' ? '⏸️ Ronda em espera' : status === 'crashed' ? '💥 Crash confirmado' : status === 'cashed_out' ? '⚡ Recolhida com sucesso' : 'Pronta para lançar'"></h3>
                 <div class="mt-3">
                     <div class="jetx-stat"><span>Multiplicador</span><strong x-text="Number(displayMultiplier).toFixed(2) + '×'"></strong></div>
                     <div class="jetx-stat"><span>Prémio</span><strong x-text="Number(payout).toLocaleString('pt-PT') + ' créditos'"></strong></div>
