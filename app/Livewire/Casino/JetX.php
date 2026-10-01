@@ -17,6 +17,13 @@ final class JetX extends CasinoGameComponent
     public function launch(): void
     {
         $this->playGame(GameType::Jetx, ['action' => 'launch']);
+
+        if ($this->roundPhase === 'in_progress') {
+            $this->dispatch(
+                'jetx-flight-started',
+                startedAtMs: (int) ($this->roundResult['started_at_ms'] ?? round(microtime(true) * 1000)),
+            );
+        }
     }
 
     public function tick(): void
