@@ -55,16 +55,16 @@ class SlotsGame implements Game
             $paylines,
             static fn ($line): bool => is_array($line)
                 && isset($line['direction'], $line['index'])
-                && $line['direction'] === 'horizontal'
+                && in_array($line['direction'], ['horizontal', 'vertical'], true)
                 && is_int($line['index'])
                 && $line['index'] >= 0
-                && $line['index'] < $rows,
+                && $line['index'] < ($line['direction'] === 'horizontal' ? $rows : $columns),
         ));
 
         $lineCount = count($paylines);
 
         if ($bet <= 0 || $lineCount === 0 || $bet % $lineCount !== 0) {
-            throw new InvalidArgumentException('The slots wager must be positive and divisible by the number of horizontal paylines.');
+            throw new InvalidArgumentException('The slots wager must be positive and divisible by the number of active paylines.');
         }
 
         if (count($grid) !== $rows) {
@@ -88,12 +88,21 @@ class SlotsGame implements Game
         $payout = 0;
 
         foreach ($paylines as $line) {
-            $row = $line['index'];
-            $firstSymbol = $grid[$row][0];
+            $direction = $line['direction'];
+            $index = $line['index'];
+            $firstSymbol = $direction === 'horizontal'
+                ? $grid[$index][0]
+                : $grid[0][$index];
             $allMatch = true;
 
-            for ($column = 1; $column < $columns; $column++) {
-                if ($grid[$row][$column] !== $firstSymbol) {
+            $length = $direction === 'horizontal' ? $columns : $rows;
+
+            for ($position = 1; $position < $length; $position++) {
+                $symbol = $direction === 'horizontal'
+                    ? $grid[$index][$position]
+                    : $grid[$position][$index];
+
+                if ($symbol !== $firstSymbol) {
                     $allMatch = false;
                     break;
                 }
@@ -111,10 +120,10 @@ class SlotsGame implements Game
 
             $payout += $lineBet * $multiplier;
             $winningLines[] = [
-                'direction' => 'horizontal',
-                'line' => $row,
+                'direction' => $direction,
+                'line' => $index,
                 'symbol' => $firstSymbol,
-                'count' => $columns,
+                'count' => $length,
                 'multiplier' => $multiplier,
             ];
         }
