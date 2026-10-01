@@ -150,15 +150,7 @@
                         </div>
                     </div>
                 @endif
-                <div class="casino-card casino-bonus-card" x-data="{
-                    remaining: 0,
-                    timer: null,
-                    init() { this.update(); this.timer = window.setInterval(() => this.update(), 1000); },
-                    destroy() { window.clearInterval(this.timer); },
-                    update() { const now = new Date(); const next = new Date(now); next.setHours(24, 0, 0, 0); this.remaining = Math.max(0, Math.floor((next - now) / 1000)); },
-                    pad(value) { return String(value).padStart(2, '0'); },
-                    get countdown() { const h = Math.floor(this.remaining / 3600); const m = Math.floor((this.remaining % 3600) / 60); const s = this.remaining % 60; return `${this.pad(h)}:${this.pad(m)}:${this.pad(s)}`; }
-                }" x-on:daily-bonus-claimed.window="$el.classList.add('casino-bonus-card--claimed')">
+                <div class="casino-card casino-bonus-card" x-on:daily-bonus-claimed.window="$el.classList.add('casino-bonus-card--claimed')">
                     <div class="casino-bonus-card__seal" aria-hidden="true"><span>+</span></div>
                     <div class="casino-bonus-card__copy"><p class="casino-eyebrow">PRESENTE DIÁRIO</p><h2>Bónus de créditos</h2><p>Um pequeno reforço virtual para a próxima mesa.</p><strong>{{ config('casino.daily_bonus', 100) }} <small>CRÉDITOS</small></strong></div>
                     <div class="casino-bonus-card__action">
@@ -167,7 +159,6 @@
                         @else
                             <a class="casino-button casino-button--secondary" href="{{ route('verification.notice') }}" wire:navigate>Verifique o e-mail para receber o bónus</a>
                         @endif
-                        <p>Próxima atualização em <time x-text="countdown" class="tabular-nums"></time></p>
                     </div>
                 </div>
             </section>
