@@ -132,7 +132,7 @@ final class Sports extends Component
                     $bet,
                 );
             });
-        } catch (DomainException|Throwable $exception) {
+        } catch (Throwable $exception) {
             $this->addError('stake', $exception instanceof DomainException ? $exception->getMessage() : 'Não foi possível registar a aposta.');
 
             return;
