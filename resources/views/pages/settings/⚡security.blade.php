@@ -18,7 +18,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 /* @end-chisel-2fa */
 
-new #[Layout('layouts.app'), Title('Security settings')] class extends Component {
+new #[Layout('layouts.app'), Title('Definições de segurança')] class extends Component {
     use PasswordValidationRules;
 
     public string $current_password = '';
@@ -98,7 +98,7 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
 
         $this->reset('current_password', 'password', 'password_confirmation');
 
-        Flux::toast(variant: 'success', text: __('Password updated.'));
+        Flux::toast(variant: 'success', text: __('Palavra-passe atualizada.'));
     }
 
     /* @chisel-passkeys */
@@ -186,13 +186,13 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <flux:heading level="2" class="sr-only">{{ __('Security settings') }}</flux:heading>
+    <flux:heading level="2" class="sr-only">{{ __('Definições de segurança') }}</flux:heading>
 
-    <x-pages::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
+    <x-pages::settings.layout :heading="__('Palavra-passe')" :subheading="__('Mantém a tua conta protegida com uma palavra-passe forte e única.')">
         <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
             <flux:input
                 wire:model="current_password"
-                :label="__('Current password')"
+                :label="__('Palavra-passe atual')"
                 type="password"
                 required
                 autocomplete="current-password"
@@ -200,7 +200,7 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
             />
             <flux:input
                 wire:model="password"
-                :label="__('New password')"
+                :label="__('Nova palavra-passe')"
                 type="password"
                 required
                 autocomplete="new-password"
@@ -209,7 +209,7 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
             />
             <flux:input
                 wire:model="password_confirmation"
-                :label="__('Confirm password')"
+                :label="__('Confirmar palavra-passe')"
                 type="password"
                 required
                 autocomplete="new-password"
@@ -219,7 +219,7 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
 
             <div class="flex items-center gap-4">
                 <flux:button variant="primary" type="submit" data-test="update-password-button">
-                    {{ __('Save') }}
+                    {{ __('Guardar alterações') }}
                 </flux:button>
             </div>
         </form>
@@ -227,8 +227,8 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
         {{-- @chisel-2fa --}}
         @if ($canManageTwoFactor)
             <section class="mt-12">
-                <flux:heading>{{ __('Two-factor authentication') }}</flux:heading>
-                <flux:subheading>{{ __('Manage your two-factor authentication settings') }}</flux:subheading>
+                <flux:heading>{{ __('Autenticação de dois fatores') }}</flux:heading>
+                <flux:subheading>{{ __('Adiciona uma camada extra de proteção à tua conta.') }}</flux:subheading>
 
                 <div class="flex flex-col w-full mx-auto space-y-6 text-sm" wire:cloak>
                     @if ($twoFactorEnabled)
@@ -242,7 +242,7 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
                                     variant="danger"
                                     wire:click="disable"
                                 >
-                                    {{ __('Disable 2FA') }}
+                                    {{ __('Desativar 2FA') }}
                                 </flux:button>
                             </div>
 
@@ -259,7 +259,7 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
                                     variant="primary"
                                     wire:click="$dispatch('start-two-factor-setup')"
                                 >
-                                    {{ __('Enable 2FA') }}
+                                    {{ __('Ativar 2FA') }}
                                 </flux:button>
                             </flux:modal.trigger>
 
@@ -274,8 +274,8 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
         {{-- @chisel-passkeys --}}
         @if ($canManagePasskeys)
             <section class="mt-12">
-                <flux:heading>{{ __('Passkeys') }}</flux:heading>
-                <flux:subheading>{{ __('Manage your passkeys for passwordless sign-in') }}</flux:subheading>
+                <flux:heading>{{ __('Chaves de acesso') }}</flux:heading>
+                <flux:subheading>{{ __('Usa chaves de acesso para iniciar sessão sem depender da palavra-passe.') }}</flux:subheading>
 
                 <div class="mt-6 flex flex-col w-full mx-auto space-y-6 text-sm" wire:cloak>
                     <div class="border rounded-lg border-zinc-200 dark:border-zinc-700 overflow-hidden">
@@ -293,10 +293,10 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
                                             @endif
                                         </div>
                                         <p class="text-zinc-500 dark:text-zinc-400 text-xs">
-                                            {{ __('Added :time', ['time' => $passkey['created_at_diff']]) }}
+                                            {{ __('Adicionada :time', ['time' => $passkey['created_at_diff']]) }}
                                             @if ($passkey['last_used_at_diff'])
                                                 <span class="opacity-50 mx-1">/</span>
-                                                {{ __('Last used :time', ['time' => $passkey['last_used_at_diff']]) }}
+                                                {{ __('Última utilização :time', ['time' => $passkey['last_used_at_diff']]) }}
                                             @endif
                                         </p>
                                     </div>
@@ -316,8 +316,8 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
                                 <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800">
                                     <flux:icon.key class="size-7 text-zinc-400 dark:text-zinc-500" />
                                 </div>
-                                <p class="font-medium">{{ __('No passkeys yet') }}</p>
-                                <flux:text class="mt-1">{{ __('Add a passkey to sign in without a password') }}</flux:text>
+                                <p class="font-medium">{{ __('Ainda não existem chaves de acesso') }}</p>
+                                <flux:text class="mt-1">{{ __('Adiciona uma chave de acesso para iniciar sessão sem palavra-passe.') }}</flux:text>
                             </div>
                         @endforelse
                     </div>
@@ -338,9 +338,9 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
     >
         <div class="space-y-6">
             <div class="space-y-2">
-                <flux:heading size="lg">{{ __('Remove passkey') }}</flux:heading>
+                <flux:heading size="lg">{{ __('Remover chave de acesso') }}</flux:heading>
                 <flux:text>
-                    {{ __('Are you sure you want to remove the passkey ":name"? You will no longer be able to use it to sign in.', ['name' => $deletingPasskeyName]) }}
+                    {{ __('Queres remover a chave de acesso ":name"? Deixarás de poder utilizá-la para iniciar sessão.'), ['name' => $deletingPasskeyName]) }}
                 </flux:text>
             </div>
 
@@ -349,13 +349,13 @@ new #[Layout('layouts.app'), Title('Security settings')] class extends Component
                     variant="outline"
                     wire:click="closeDeleteModal"
                 >
-                    {{ __('Cancel') }}
+                    {{ __('Cancelar') }}
                 </flux:button>
                 <flux:button
                     variant="danger"
                     wire:click="deletePasskey"
                 >
-                    {{ __('Remove passkey') }}
+                    {{ __('Remover chave de acesso') }}
                 </flux:button>
             </div>
         </div>
