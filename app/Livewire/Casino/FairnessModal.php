@@ -18,6 +18,8 @@ class FairnessModal extends Component
 
     public function openRound(int $roundId): void
     {
+        abort_unless(Auth::check(), 403);
+
         $round = GameRound::query()
             ->whereKey($roundId)
             ->where('user_id', Auth::id())
