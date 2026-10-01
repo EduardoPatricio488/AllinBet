@@ -69,7 +69,9 @@ final class SportsBettingTest extends TestCase
 
         Livewire::test(Sports::class)
             ->call('select', 'slb-fcp', 'home')
+            ->assertDispatched('sports-selection-added', matchId: 'slb-fcp', marketId: 'home')
             ->call('select', 'ars-mci', 'away')
+            ->assertDispatched('sports-selection-added', matchId: 'ars-mci', marketId: 'away')
             ->set('stake', 100)
             ->call('placeBet')
             ->assertDispatched('wallet-updated')
