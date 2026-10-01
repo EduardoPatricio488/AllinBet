@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @php($pageTitle = $__env->yieldContent('page-title', 'Casino'))
         @include('partials.head', ['title' => $pageTitle])
@@ -14,6 +14,10 @@
                 </a>
                 <nav aria-label="Navegação principal" class="flex items-center gap-3 sm:gap-5">
                     <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle hidden sm:inline-flex">Som: desligado</button>
+                    <button type="button" x-data x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'" class="casino-theme-toggle" aria-label="Alternar tema">
+                        <span x-show="$flux.appearance === 'dark'">☀️ Tema claro</span>
+                        <span x-show="$flux.appearance !== 'dark'">🌙 Tema escuro</span>
+                    </button>
                     <a href="{{ route('home') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright sm:inline" wire:navigate>Lobby</a>
                     @auth
                         <a href="{{ route('casino.history') }}" class="hidden text-sm text-zinc-300 transition hover:text-casino-gold-bright sm:inline" wire:navigate>Histórico</a>
