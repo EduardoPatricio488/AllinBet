@@ -14,6 +14,8 @@ class Coinflip extends CasinoGameComponent
     /** @var array<int, array{outcome:string,won:bool,payout:int,bet:int,time:string}> */
     public array $recentFlips = [];
 
+    public string $side = 'heads';
+
     public int $headsCount = 0;
 
     public int $tailsCount = 0;
