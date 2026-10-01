@@ -24,6 +24,7 @@
 <div class="casino-game-play grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
      x-data="{
         reels: [false, false, false],
+        settling: [false, false, false],
         busy: false,
         resultVisible: true,
         prizeVisible: false,
@@ -41,6 +42,7 @@
             let spun = false;
             this.busy = true;
             this.reels = [true, true, true];
+            this.settling = [false, false, false];
             const t0 = Date.now();
 
             try {
@@ -57,13 +59,25 @@
                 this.reels = [false, false, false];
             } else {
                 await new Promise(r => setTimeout(r, Math.max(0, 1250 - (Date.now() - t0))));
+                this.settling[0] = true;
+                await new Promise(r => setTimeout(r, 180));
                 this.reels[0] = false;
+                await new Promise(r => setTimeout(r, 80));
+                this.settling[0] = false;
 
                 await new Promise(r => setTimeout(r, 330));
+                this.settling[1] = true;
+                await new Promise(r => setTimeout(r, 180));
                 this.reels[1] = false;
+                await new Promise(r => setTimeout(r, 80));
+                this.settling[1] = false;
 
                 await new Promise(r => setTimeout(r, 330));
+                this.settling[2] = true;
+                await new Promise(r => setTimeout(r, 180));
                 this.reels[2] = false;
+                await new Promise(r => setTimeout(r, 80));
+                this.settling[2] = false;
             }
 
             this.resultVisible = true;
@@ -101,7 +115,7 @@
         .slot-reels{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;min-height:23rem}
         .slot-reel{position:relative;overflow:hidden;height:23rem;min-height:23rem;perspective:700px;border:1px solid rgba(255,255,255,.09);border-radius:1rem;background:linear-gradient(180deg,#151c1c,#070a0a);box-shadow:inset 0 12px 20px rgba(255,255,255,.025),inset 0 -18px 25px rgba(0,0,0,.5)}
         .slot-reel:before,.slot-reel:after{content:"";position:absolute;left:0;right:0;z-index:4;height:5rem;pointer-events:none}.slot-reel:before{top:0;background:linear-gradient(#020404,transparent)}.slot-reel:after{bottom:0;background:linear-gradient(transparent,#020404)}
-        .slot-landed,.slot-strip{position:absolute;inset:0;height:100%;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));grid-auto-flow:row;min-height:0}.slot-landed{will-change:transform;transform:translateZ(0)}.slot-strip{position:absolute;inset:0;display:grid;grid-template-rows:repeat(24,minmax(0,1fr));animation:slotReel 1.85s cubic-bezier(.16,1,.3,1) infinite;will-change:transform;transform:translate3d(0,0,0);backface-visibility:hidden}.slot-cell{position:relative;display:grid;place-items:center;min-height:0;height:100%;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1;filter:drop-shadow(0 7px 8px rgba(0,0,0,.35));transition:transform .2s,filter .2s}.slot-strip .slot-cell{font-size:clamp(2rem,5vw,3.4rem);opacity:.68;filter:blur(1.8px);transform:scaleY(1.06)}.slot-reel:nth-child(1) .slot-strip{animation-duration:1.72s}.slot-reel:nth-child(2) .slot-strip{animation-duration:1.94s}.slot-reel:nth-child(3) .slot-strip{animation-duration:2.16s}
+        .slot-landed,.slot-strip{position:absolute;inset:0;height:100%;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));grid-auto-flow:row;min-height:0}.slot-landed{will-change:transform,opacity;transform:translateZ(0);opacity:1;transition:opacity .16s ease,transform .16s ease}.slot-landed--hidden{opacity:0;transform:scale(.985);pointer-events:none}.slot-landed--settling{animation:slotLandedSettle .18s cubic-bezier(.2,.9,.25,1)}.slot-strip{position:absolute;inset:0;display:grid;grid-template-rows:repeat(24,minmax(0,1fr));will-change:transform,filter;transform:translate3d(0,0,0);backface-visibility:hidden;opacity:0;transition:opacity .12s ease}.slot-strip--spinning{opacity:1;animation:slotReel 1.15s linear infinite}.slot-strip--settling{animation:slotReelStop .18s cubic-bezier(.16,1,.3,1) forwards}.slot-cell{position:relative;display:grid;place-items:center;min-height:0;height:100%;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1;filter:drop-shadow(0 7px 8px rgba(0,0,0,.35));transition:transform .2s,filter .2s}.slot-strip .slot-cell{font-size:clamp(2rem,5vw,3.4rem);opacity:.58;filter:blur(2.2px);transform:scaleY(1.04);text-shadow:0 0 12px rgba(255,255,255,.12)}.slot-reel:nth-child(1) .slot-strip--spinning{animation-duration:1.08s}.slot-reel:nth-child(2) .slot-strip--spinning{animation-duration:1.14s}.slot-reel:nth-child(3) .slot-strip--spinning{animation-duration:1.2s}
         .slot-cell--win{z-index:5;border-radius:.9rem;background:radial-gradient(circle,rgba(242,193,78,.25),transparent 65%);box-shadow:0 0 28px rgba(242,193,78,.35),inset 0 0 0 1px rgba(242,193,78,.28);animation:slotWinPulse .7s ease-in-out infinite alternate;filter:drop-shadow(0 0 12px rgba(242,193,78,.45))}
         .slot-marker{position:absolute;left:-.15rem;z-index:10;width:1.8rem;height:1.8rem;border-radius:50%;display:grid;place-items:center;background:#121918;border:1px solid rgba(255,255,255,.08);font-size:.58rem;font-weight:1000;color:#68756f}.slot-marker--win{background:var(--gold);color:#382600;box-shadow:0 0 18px rgba(242,193,78,.45)}
         .slot-payline-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:.5rem .9rem;margin:.75rem .2rem 0;color:#7f8b85;font-size:.58rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase}.slot-payline-legend span{padding:.35rem .55rem;border:1px solid rgba(242,193,78,.1);border-radius:999px;background:rgba(242,193,78,.025)}
@@ -110,7 +124,7 @@
         .slot-spin{min-height:3.5rem;border:1px solid rgba(242,193,78,.55);border-radius:1rem;background:linear-gradient(135deg,#ffe39a,#e4ae39 48%,#9c6610);color:#2b1c05;font-size:.9rem;font-weight:1000;letter-spacing:.1em;box-shadow:0 14px 32px rgba(177,116,20,.22),inset 0 1px rgba(255,255,255,.5);cursor:pointer;transition:.18s}.slot-spin:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.05)}.slot-spin:active:not(:disabled){transform:translateY(1px)}.slot-spin small{display:block;margin-top:.15rem;font-size:.5rem;letter-spacing:.04em;opacity:.65}.slot-spin:disabled{opacity:.6;cursor:not-allowed}
         .slot-prize-overlay{position:absolute;inset:0;z-index:30;display:grid;place-items:center;pointer-events:none;background:radial-gradient(circle,rgba(0,0,0,.15),rgba(0,0,0,.7));backdrop-filter:blur(3px)}.slot-prize-card{min-width:min(88%,30rem);padding:1.5rem 2rem;border:2px solid rgba(242,193,78,.8);border-radius:1.4rem;background:linear-gradient(145deg,rgba(10,16,14,.98),rgba(43,31,8,.98));box-shadow:0 0 60px rgba(242,193,78,.4),0 30px 80px rgba(0,0,0,.6);text-align:center;animation:slotPrizeIn .45s cubic-bezier(.2,.9,.25,1.2),slotPrizePulse 1s ease-in-out .45s 2}.slot-prize-label{color:var(--gold);font-size:.7rem;font-weight:950;letter-spacing:.2em;text-transform:uppercase}.slot-prize-amount{margin:.25rem 0;color:#fff;font-size:clamp(3rem,8vw,5.5rem);font-weight:1000;line-height:1;text-shadow:0 0 28px rgba(242,193,78,.55)}.slot-prize-sub{color:#aef5d2;font-size:.85rem;font-weight:850}
         .slot-stat{padding:.9rem;border:1px solid var(--line);border-radius:1rem;background:rgba(255,255,255,.02)}.slot-stat strong{font-size:1.2rem;color:#fff}.slot-stat span{display:block;margin-top:.2rem;font-size:.58rem;color:#68756f;text-transform:uppercase;letter-spacing:.12em}
-        @keyframes slotReel{0%{transform:translate3d(0,0,0) scaleY(1);filter:blur(1.2px)}8%{transform:translate3d(0,-5%,0) scaleY(1.015);filter:blur(2.4px)}38%{transform:translate3d(0,-31%,0) scaleY(1.035);filter:blur(3.4px)}72%{transform:translate3d(0,-56%,0) scaleY(1.025);filter:blur(2.8px)}92%{transform:translate3d(0,-65.2%,0) scaleY(1.008);filter:blur(1.7px)}100%{transform:translate3d(0,-66.6667%,0) scaleY(1);filter:blur(1px)}}@keyframes slotWinPulse{to{transform:scale(1.08);filter:drop-shadow(0 0 20px rgba(242,193,78,.7))}}@keyframes slotLine{to{opacity:.45;box-shadow:0 0 5px rgba(242,193,78,.4)}}@keyframes slotPrizeIn{0%{opacity:0;transform:scale(.65) translateY(1rem)}65%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}@keyframes slotPrizePulse{50%{transform:scale(1.025);box-shadow:0 0 80px rgba(242,193,78,.6),0 30px 80px rgba(0,0,0,.6)}}@keyframes slotSheen{0%,60%{transform:translateX(-100%)}80%,100%{transform:translateX(100%)}}
+        @keyframes slotReel{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(0,-66.6667%,0)}}@keyframes slotReelStop{0%{transform:translate3d(0,-66.6667%,0) scaleY(1.04);filter:blur(2.2px)}55%{transform:translate3d(0,-69%,0) scaleY(1.015);filter:blur(1px)}100%{transform:translate3d(0,-66.6667%,0) scaleY(1);filter:blur(0)}}@keyframes slotLandedSettle{0%{transform:scale(1.025)}100%{transform:scale(1)}}@keyframes slotWinPulse{to{transform:scale(1.08);filter:drop-shadow(0 0 20px rgba(242,193,78,.7))}}@keyframes slotLine{to{opacity:.45;box-shadow:0 0 5px rgba(242,193,78,.4)}}@keyframes slotPrizeIn{0%{opacity:0;transform:scale(.65) translateY(1rem)}65%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}@keyframes slotPrizePulse{50%{transform:scale(1.025);box-shadow:0 0 80px rgba(242,193,78,.6),0 30px 80px rgba(0,0,0,.6)}}@keyframes slotSheen{0%,60%{transform:translateX(-100%)}80%,100%{transform:translateX(100%)}}
         @media(max-width:900px){.slot-deck{grid-template-columns:1fr 1fr}.slot-spin{grid-column:1/-1}.slot-chips{justify-content:flex-start}}@media(max-width:640px){.slot-header{padding:.9rem}.slot-window{margin:0 .7rem;padding:.65rem}.slot-reels{gap:.35rem;min-height:17rem}.slot-reel{height:17rem;min-height:17rem}.slot-cell{min-height:0;font-size:2.3rem}.slot-deck{grid-template-columns:1fr;padding:.8rem}.slot-spin{grid-column:auto}.slot-title{font-size:1.1rem}.slot-badge{font-size:.5rem}}
         @media(prefers-reduced-motion:reduce){.slot-cabinet:before,.slot-strip,.slot-cell--win,.slot-payline,.slot-prize-card{animation:none}}
     </style>
@@ -131,7 +145,7 @@
                 <span class="slot-badge">9 POSIÇÕES · 3×3</span>
             </div>
 
-            <div class="slot-window">
+            <div class="slot-window" :class="{ 'slot-window--spinning': busy }">
                 <div class="slot-markers" aria-hidden="true">
                     @foreach ([0, 1, 2] as $r)
                         <span class="slot-marker {{ in_array($r, $horizontalWins, true) ? 'slot-marker--win' : '' }}">{{ $r + 1 }}</span>
@@ -140,8 +154,8 @@
 
                 <div class="slot-reels" role="img" aria-label="Grelha de slots com 9 posições, 3 colunas e 3 linhas">
                     @foreach ([0, 1, 2] as $col)
-                        <div class="slot-reel">
-                            <div class="slot-strip" x-show="reels[{{ $col }}]" x-cloak aria-hidden="true">
+                        <div class="slot-reel" :class="{ 'slot-reel--settling': settling[{{ $col }}] }">
+                            <div class="slot-strip" :class="{ 'slot-strip--spinning': reels[{{ $col }}], 'slot-strip--settling': settling[{{ $col }}] }" aria-hidden="true">
                                 @for ($k = 0; $k < 3; $k++)
                                     @foreach ($symbols as $s)
                                         <span class="slot-cell">{{ $s }}</span>
@@ -149,7 +163,7 @@
                                 @endfor
                             </div>
 
-                            <div class="slot-landed" x-show="!reels[{{ $col }}]">
+                            <div class="slot-landed" :class="{ 'slot-landed--hidden': reels[{{ $col }}], 'slot-landed--settling': settling[{{ $col }}] }">
                                 @foreach ($grid as $rowIndex => $row)
                                     @php $cellIndex = ($rowIndex * 3) + $col; @endphp
                                     <span class="slot-cell {{ in_array($cellIndex, $winningCells, true) ? 'slot-cell--win' : '' }}">
