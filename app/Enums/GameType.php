@@ -11,4 +11,5 @@ enum GameType: string
     case Roulette = 'roulette';
     case Blackjack = 'blackjack';
     case Slots = 'slots';
+    case Jetx = 'jetx';
 }
