@@ -201,28 +201,35 @@
             this.resetFlight();
         }
      }"
-     x-init="$watch('$wire.roundPhase', (value) => {
-        phase = value;
-
-        if (value === 'in_progress' && !flying) {
+     x-init="
+        if ($wire.roundPhase === 'in_progress') {
             const result = $wire.roundResult || {};
             beginFlight(Number(result.started_at_ms || Date.now()));
-            return;
         }
 
-        if (value === 'ready' || value === 'prepared') {
-            resetFlight();
-            flying = false;
-            busy = false;
-            status = 'ready';
-            multiplier = 1;
-            displayMultiplier = 1;
-            finalMultiplier = 0;
-            payout = 0;
-            resultOpen = false;
-            resultLabel = '';
-        }
-     })"
+        $watch('$wire.roundPhase', (value) => {
+            phase = value;
+
+            if (value === 'in_progress' && !flying) {
+                const result = $wire.roundResult || {};
+                beginFlight(Number(result.started_at_ms || Date.now()));
+                return;
+            }
+
+            if (value === 'ready' || value === 'prepared') {
+                resetFlight();
+                flying = false;
+                busy = false;
+                status = 'ready';
+                multiplier = 1;
+                displayMultiplier = 1;
+                finalMultiplier = 0;
+                payout = 0;
+                resultOpen = false;
+                resultLabel = '';
+            }
+        })
+     "
      x-on:keydown.window="if ($event.code === 'Space' && ['ready','completed','prepared'].includes(phase) && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); $wire.start(); }"
      x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
      x-on:pagehide.window="resetFlight()">
