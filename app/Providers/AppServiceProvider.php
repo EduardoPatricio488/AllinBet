@@ -8,6 +8,7 @@ use App\Games\DiceGame;
 use App\Games\GameRegistry;
 use App\Games\RouletteGame;
 use App\Games\SlotsGame;
+use App\Games\JetXGame;
 use App\Livewire\Casino\Blackjack;
 use App\Livewire\Casino\Coinflip;
 use App\Livewire\Casino\Dice;
@@ -42,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(RouletteGame::class),
                 $app->make(BlackjackGame::class),
                 $app->make(SlotsGame::class),
+                $app->make(JetXGame::class),
             ]);
         });
     }
