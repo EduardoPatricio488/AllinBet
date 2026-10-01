@@ -94,6 +94,8 @@
     }"
     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); if (!busy && $wire.roundPhase === 'prepared') launch(); }"
 >
+
+    <x-casino.how-it-works game-key="coinflip" title="Como funciona o Coinflip?" description="Escolhe Cara ou Coroa e lança a moeda. Se o resultado coincidir com a tua escolha, recebes o pagamento definido para a ronda." :rules="[['title'=>'Escolhe o lado','text'=>'Seleciona Cara ou Coroa antes de preparar a ronda.'], ['title'=>'Define a aposta','text'=>'Escolhe quantos créditos virtuais queres colocar na ronda.'], ['title'=>'Lança a moeda','text'=>'Quando a ronda estiver preparada, carrega em Lançar para revelar o resultado.'], ['title'=>'Ganha se acertares','text'=>'Se a moeda cair no lado escolhido, a ronda é vencedora e recebes os créditos correspondentes.']]" />
     <style>
         .coinflip-page{--cf-gold:#f4c45f;--cf-gold-deep:#b77a18;--cf-red:#f05d62;--cf-green:#42e3a2}
         .coinflip-layout{display:grid;gap:1.5rem;grid-template-columns:minmax(0,1.45fr) minmax(18rem,.75fr)}
