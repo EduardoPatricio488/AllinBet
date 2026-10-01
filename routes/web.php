@@ -14,6 +14,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('casino/slots', 'casino.games.slots')->name('casino.slots');
     Route::view('casino/blackjack', 'casino.games.blackjack')->name('casino.blackjack');
     Route::view('casino/history', 'casino.history')->name('casino.history');
+      Route::view('casino/wallet', 'casino.wallet')->name('casino.wallet');
     Route::view('casino/help', 'casino.help')->name('casino.help');
 });
 
