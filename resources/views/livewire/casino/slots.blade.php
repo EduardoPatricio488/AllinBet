@@ -16,6 +16,12 @@
         ->map(fn ($line) => (int) $line)
         ->all();
 
+    $verticalWins = collect($winningLines)
+        ->filter(fn ($line) => ($line['direction'] ?? '') === 'vertical')
+        ->pluck('line')
+        ->map(fn ($line) => (int) $line)
+        ->all();
+
     $winningCells = collect($winningLines)->flatMap(function ($line) {
         if (($line['direction'] ?? '') === 'horizontal') {
             return collect(range(0, 2))->map(fn ($column) => ($line['line'] * 3) + $column);
@@ -34,8 +40,8 @@
         prizeAmount: 0,
         maxBet: {{ $maxBet }},
         step(d) {
-            const v = Math.round((Number(this.$wire.bet || 3) + d) / 3) * 3;
-            this.$wire.bet = Math.min(this.maxBet, Math.max(3, v));
+            const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
+            this.$wire.bet = Math.min(this.maxBet, Math.max(6, v));
         },
         async go() {
             if (this.busy) return;
@@ -107,6 +113,7 @@
         .slot-landed,.slot-strip{height:100%;display:grid;grid-template-rows:repeat(3,1fr)}.slot-landed{will-change:transform;transform:translateZ(0)}.slot-strip{position:absolute;inset:0;display:grid;grid-template-rows:repeat(16,1fr);animation:slotReel .52s linear infinite;will-change:transform;transform:translate3d(0,0,0);backface-visibility:hidden}.slot-cell{position:relative;display:grid;place-items:center;min-height:7rem;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1;filter:drop-shadow(0 7px 8px rgba(0,0,0,.35));transition:transform .2s,filter .2s}.slot-strip .slot-cell{font-size:clamp(2rem,5vw,3.4rem);opacity:.72}
         .slot-cell--win{z-index:5;border-radius:.9rem;background:radial-gradient(circle,rgba(242,193,78,.25),transparent 65%);box-shadow:0 0 28px rgba(242,193,78,.35),inset 0 0 0 1px rgba(242,193,78,.28);animation:slotWinPulse .7s ease-in-out infinite alternate;filter:drop-shadow(0 0 12px rgba(242,193,78,.45))}
         .slot-marker{position:absolute;left:-.15rem;z-index:10;width:1.8rem;height:1.8rem;border-radius:50%;display:grid;place-items:center;background:#121918;border:1px solid rgba(255,255,255,.08);font-size:.58rem;font-weight:1000;color:#68756f}.slot-marker--win{background:var(--gold);color:#382600;box-shadow:0 0 18px rgba(242,193,78,.45)}
+        .slot-payline-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:.5rem .9rem;margin:.75rem .2rem 0;color:#7f8b85;font-size:.58rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase}.slot-payline-legend span{padding:.35rem .55rem;border:1px solid rgba(242,193,78,.1);border-radius:999px;background:rgba(242,193,78,.025)}
         .slot-payline{position:absolute;left:1.2%;right:1.2%;top:calc((var(--row) + .5) * 33.333%);height:3px;z-index:7;background:linear-gradient(90deg,transparent,var(--gold),#fff,var(--gold),transparent);box-shadow:0 0 12px rgba(242,193,78,.85);pointer-events:none;animation:slotLine .8s ease-in-out infinite alternate}.slot-payline--vertical{top:1%;bottom:1%;left:calc((var(--column) + .5) * 33.333%);right:auto;width:3px;height:auto;background:linear-gradient(180deg,transparent,var(--gold),#fff,var(--gold),transparent)}
         .slot-deck{position:relative;z-index:2;display:grid;grid-template-columns:minmax(13rem,1fr) auto minmax(10rem,1fr);align-items:center;gap:1rem;padding:1.1rem 1.25rem 1.3rem}.slot-label{display:block;font-size:.58rem;font-weight:950;letter-spacing:.18em;color:#77837e}.slot-stepper{display:grid;grid-template-columns:2.4rem minmax(5rem,1fr) 2.4rem;margin-top:.4rem;border:1px solid var(--line);border-radius:.8rem;overflow:hidden;background:#080d0c}.slot-stepper button{border:0;background:rgba(255,255,255,.025);color:#d8dfdc;font-size:1.05rem;cursor:pointer}.slot-stepper button:hover:not(:disabled){background:rgba(242,193,78,.1)}.slot-bet-input{width:100%;border:0;border-inline:1px solid var(--line);background:transparent;text-align:center;color:#fff;font-weight:950;outline:0}.slot-hint{display:block;margin-top:.3rem;color:#65716c;font-size:.58rem}.slot-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.35rem}.slot-chips button{padding:.45rem .6rem;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.025);color:#aeb8b3;font-size:.6rem;font-weight:900;cursor:pointer;transition:.16s}.slot-chips button:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(242,193,78,.4);color:var(--gold)}
         .slot-spin{min-height:3.5rem;border:1px solid rgba(242,193,78,.55);border-radius:1rem;background:linear-gradient(135deg,#ffe39a,#e4ae39 48%,#9c6610);color:#2b1c05;font-size:.9rem;font-weight:1000;letter-spacing:.1em;box-shadow:0 14px 32px rgba(177,116,20,.22),inset 0 1px rgba(255,255,255,.5);cursor:pointer;transition:.18s}.slot-spin:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.05)}.slot-spin:active:not(:disabled){transform:translateY(1px)}.slot-spin small{display:block;margin-top:.15rem;font-size:.5rem;letter-spacing:.04em;opacity:.65}.slot-spin:disabled{opacity:.6;cursor:not-allowed}
@@ -130,7 +137,7 @@
 
             <div class="slot-header">
                 <span class="slot-title">ALLINBET <em class="casino-shimmer-text">SLOTS</em></span>
-                <span class="slot-badge">3 LINHAS · 3×3</span>
+                <span class="slot-badge">6 LINHAS · 3×3</span>
             </div>
 
             <div class="slot-window">
@@ -165,28 +172,38 @@
                     @foreach ($horizontalWins as $r)
                         <i class="slot-payline" style="--row: {{ $r }}" aria-label="Linha horizontal vencedora"></i>
                     @endforeach
+
+                    @foreach ($verticalWins as $column)
+                        <i class="slot-payline slot-payline--vertical" style="--column: {{ $column }}" aria-label="Linha vertical vencedora"></i>
+                    @endforeach
                 </div>
+            </div>
+
+            <div class="slot-payline-legend" aria-label="Linhas de pagamento">
+                <span>↔ 3 horizontais</span>
+                <span>↕ 3 verticais</span>
+                <span>3 símbolos iguais = prémio</span>
             </div>
 
             <div class="slot-deck">
                 <div class="slot-bet">
                     <span class="slot-label">APOSTA TOTAL</span>
                     <div class="slot-stepper">
-                        <button type="button" x-on:click="step(-3)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
-                        <input type="number" min="3" step="3" max="{{ $maxBet }}" wire:model="bet"
+                        <button type="button" x-on:click="step(-6)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
+                        <input type="number" min="6" step="6" max="{{ $maxBet }}" wire:model="bet"
                                :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
-                        <button type="button" x-on:click="step(3)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
+                        <button type="button" x-on:click="step(6)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 3)"></b> · 3 linhas</small>
+                    <small class="slot-hint">por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 6)"></b> · 6 linhas</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
-                    @foreach ([3, 6, 15, 30, 75] as $chip)
+                    @foreach ([6, 12, 30, 60, 120] as $chip)
                         @if ($chip <= $maxBet)
                             <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || @js($locked)">{{ $chip }}</button>
                         @endif
                     @endforeach
-                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 3) * 3" :disabled="busy || @js($locked)">MAX</button>
+                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 6) * 6" :disabled="busy || @js($locked)">MAX</button>
                 </div>
 
                 <button type="button" class="slot-spin" x-on:click="go()" :disabled="busy">
@@ -215,14 +232,14 @@
                         </p>
                     @else
                         <p class="slot-payout">Sem prémio</p>
-                        <p class="text-sm text-zinc-400">Só 3 símbolos iguais na mesma linha horizontal dão prémio.</p>
+                        <p class="text-sm text-zinc-400">Só 3 símbolos iguais na mesma linha horizontal ou vertical dão prémio.</p>
                     @endif
 
                     @if ($roundPhase === 'completed' && $roundId)
                         <button type="button" class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-400">3 linhas de prémio: superior, central e inferior.</p>
+                    <p class="text-sm text-zinc-400">6 linhas de prémio: 3 horizontais e 3 verticais.</p>
                 @endif
             </div>
         </div>
@@ -234,8 +251,9 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">Linha superior</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">Linha central</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">Linha inferior</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
             </div>
-            <p class="mt-3 text-xs leading-5 text-zinc-500">Podem existir até 3 linhas vencedoras no mesmo giro e os prémios acumulam.</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 6 linhas: 3 horizontais e 3 verticais. Podem existir várias linhas vencedoras no mesmo giro e os prémios acumulam.</p>
         </div>
 
         <details class="casino-card slot-fair">
