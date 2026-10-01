@@ -204,8 +204,7 @@
                     @endif
 
                     @if ($roundPhase === 'completed' && $roundId)
-                        <a href="{{ route('fairness.verify', $roundId) }}" wire:navigate
-                           class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4">Verificar esta ronda ↗</a>
+                        <button type="button" class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                     @endif
                 @else
                     <p class="text-sm text-zinc-400">6 linhas de prémio: 3 horizontais + 3 verticais.</p>
