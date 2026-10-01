@@ -65,6 +65,7 @@ class Coinflip extends CasinoGameComponent
             $outcome = $result['outcome'] ?? null;
 
             if (in_array($outcome, ['heads', 'tails'], true) === false) {
+
                 continue;
             }
 
