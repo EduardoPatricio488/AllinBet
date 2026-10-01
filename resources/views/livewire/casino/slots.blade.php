@@ -66,7 +66,7 @@
 <div class="casino-game-play slot-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
      x-data="{
         st: ['idle', 'idle', 'idle'],
-        selectedSlot: new URLSearchParams(window.location.search).get('slot') || 'classic',
+        selectedSlot: ['classic', 'neon', 'gems', 'candy', 'space', 'wild'].includes(new URLSearchParams(window.location.search).get('slot')) ? new URLSearchParams(window.location.search).get('slot') : 'classic',
         busy: false,
         done: true,
         overlay: false,
