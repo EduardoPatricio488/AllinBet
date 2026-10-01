@@ -548,3 +548,119 @@ body.casino-auth-body::before {
 }
 
 [x-cloak] { display: none !important; }
+
+
+/* Tema claro do dashboard */
+html:not(.dark) .casino-app-body {
+    --casino-night: #f4f6f2;
+    --casino-ink: #ffffff;
+    --casino-panel: #ffffff;
+    --casino-panel-raised: #eef3ed;
+    --casino-copy: #17251c;
+    --casino-muted: #5d6b61;
+    --casino-line: rgb(44 75 52 / 18%);
+    --casino-glass: rgb(255 255 255 / 92%);
+    background-color: var(--casino-night);
+    color: var(--casino-copy);
+}
+
+html:not(.dark) .casino-app-body [data-flux-sidebar] {
+    background: #ffffff;
+    border-color: rgb(44 75 52 / 14%);
+}
+
+html:not(.dark) .casino-app-body [data-flux-header] {
+    background: rgb(255 255 255 / 94%);
+    border-color: rgb(44 75 52 / 14%);
+}
+
+html:not(.dark) .casino-app-body [data-flux-main],
+html:not(.dark) .casino-settings,
+html:not(.dark) .casino-section-heading h2 {
+    color: var(--casino-copy);
+}
+
+html:not(.dark) .casino-wordmark {
+    color: #1f3828;
+}
+
+html:not(.dark) .casino-sound-toggle {
+    border-color: rgb(44 75 52 / 20%);
+    background: rgb(44 75 52 / 5%);
+    color: #3f5547;
+}
+
+html:not(.dark) .casino-card {
+    border-color: rgb(44 75 52 / 15%);
+    background: linear-gradient(150deg, #ffffff, #f0f4ef);
+    box-shadow: 0 12px 35px rgb(31 56 40 / 9%);
+}
+
+html:not(.dark) .casino-lobby-hero {
+    background-color: #e6efe5;
+    background-image:
+        repeating-linear-gradient(0deg, rgb(23 70 44 / 2%) 0 1px, transparent 1px 6px),
+        radial-gradient(ellipse at 72% 50%, rgb(33 99 67 / 18%), transparent 45%),
+        linear-gradient(120deg, #f5f8f3, #dfece0 68%, #edf3eb);
+}
+
+html:not(.dark) .casino-lobby-hero h1 {
+    color: #183324;
+}
+
+html:not(.dark) .casino-lobby-hero__copy > p:not(.casino-eyebrow) {
+    color: #526257;
+}
+
+html:not(.dark) .casino-game-card {
+    border-color: rgb(44 75 52 / 15%);
+    background: linear-gradient(155deg, #ffffff, #edf3ed 76%);
+    color: #17251c;
+    box-shadow: 0 10px 24px rgb(31 56 40 / 10%);
+}
+
+html:not(.dark) .casino-game-card__copy h3 {
+    color: #183324;
+}
+
+html:not(.dark) .casino-game-card__copy p,
+html:not(.dark) .casino-live-status,
+html:not(.dark) .casino-section-count {
+    color: #5d6b61;
+}
+
+html:not(.dark) .casino-win-ticker {
+    background: linear-gradient(100deg, #ffffff, #edf5ed 48%, #ffffff);
+    border-color: rgb(44 75 52 / 15%);
+}
+
+html:not(.dark) .casino-win-item {
+    background: rgb(44 75 52 / 4%);
+    border-color: rgb(44 75 52 / 10%);
+}
+
+html:not(.dark) .casino-win-item__copy strong {
+    color: #20362a;
+}
+
+html:not(.dark) .casino-win-item__copy small {
+    color: #68766c;
+}
+
+html:not(.dark) .casino-bonus-card {
+    background: radial-gradient(ellipse at 15% 50%, rgb(230 200 121 / 13%), transparent 45%), linear-gradient(135deg, #ffffff, #e9f1e8);
+}
+
+html:not(.dark) .casino-bonus-card__copy h2,
+html:not(.dark) .casino-daily-bonus__body h3 {
+    color: #183324;
+}
+
+html:not(.dark) .casino-bonus-card__copy > p:not(.casino-eyebrow),
+html:not(.dark) .casino-daily-bonus__body > p:not(.casino-eyebrow) {
+    color: #5d6b61;
+}
+
+html:not(.dark) .casino-virtual-note {
+    color: #68766c;
+}
