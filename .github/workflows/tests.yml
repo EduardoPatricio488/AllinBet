@@ -46,5 +46,10 @@ jobs:
           php artisan view:cache
           php artisan test tests/Unit/JetXGameTest.php
 
+      - name: Validate Sports Betting
+        run: |
+          php artisan view:cache
+          php artisan test tests/Feature/SportsBettingTest.php
+
       - name: Run CI Checks
         run: composer ci:check
