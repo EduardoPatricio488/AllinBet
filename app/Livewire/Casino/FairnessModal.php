@@ -90,8 +90,8 @@ class FairnessModal extends Component
 
         $lines = [
             "A ronda #{$round->id} foi preparada com uma aposta de {$bet} créditos virtuais.",
-            "Antes de revelar o resultado, o servidor fixou o compromisso através de SHA-256 do seed secreto. O hash publicado não permite obter o seed original, mas permite verificar mais tarde se o servidor mudou esse seed.",
-            "O seed do cliente "{$round->client_seed}" e o nonce {$round->nonce} fazem parte da entrada usada para derivar o resultado. O nonce identifica a posição desta ronda na sequência do mesmo jogo para esse utilizador.",
+            'Antes de revelar o resultado, o servidor fixou o compromisso através de SHA-256 do seed secreto. O hash publicado não permite obter o seed original, mas permite verificar mais tarde se o servidor mudou esse seed.',
+            "O seed do cliente \"{$round->client_seed}\" e o nonce {$round->nonce} fazem parte da entrada usada para derivar o resultado. O nonce identifica a posição desta ronda na sequência do mesmo jogo para esse utilizador.",
         ];
 
         if ($game === 'slots') {
