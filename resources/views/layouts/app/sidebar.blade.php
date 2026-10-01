@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
@@ -41,6 +41,7 @@
                     x-data
                     x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'"
                     class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    aria-label="Alternar tema"
                 >
                     <span x-show="$flux.appearance === 'dark'" class="flex items-center gap-3">
                         <flux:icon name="sun" class="size-5" />
