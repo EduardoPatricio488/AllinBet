@@ -35,6 +35,8 @@
      x-data="{
         reels: [false, false, false],
         busy: false,
+        prizeVisible: false,
+        prizeAmount: 0,
         maxBet: {{ $maxBet }},
         step(d) {
             const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
@@ -68,6 +70,11 @@
 
             const payout = Number(w.roundPayout || 0);
             if (spun && w.roundPhase === 'completed' && payout > 0) {
+                this.prizeAmount = payout;
+                this.prizeVisible = true;
+                window.setTimeout(() => { this.prizeVisible = false; }, 3200);
+            }
+            if (spun && w.roundPhase === 'completed' && payout > 0) {
                 this.$dispatch('casino-toast', {
                     title: 'Vitória!',
                     message: '+' + payout + ' créditos virtuais'
@@ -81,8 +88,25 @@
      }"
      x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">
 
-    <section class="slot-machine" :class="{ 'is-busy': busy }">
+    <style>
+        .slot-prize-overlay{position:absolute;inset:0;z-index:30;display:grid;place-items:center;pointer-events:none;background:radial-gradient(circle,rgba(0,0,0,.2),rgba(0,0,0,.58));backdrop-filter:blur(2px)}
+        .slot-prize-card{min-width:min(88%,28rem);padding:1.4rem 2rem;border:2px solid rgba(242,193,78,.8);border-radius:1.25rem;background:linear-gradient(145deg,rgba(15,18,22,.97),rgba(38,29,10,.96));box-shadow:0 0 45px rgba(242,193,78,.35),0 24px 60px rgba(0,0,0,.55);text-align:center;animation:slotPrizeIn .45s cubic-bezier(.2,.9,.25,1.2)}
+        .slot-prize-label{margin:0;color:#f2c14e;font-size:.7rem;font-weight:900;letter-spacing:.2em;text-transform:uppercase}.slot-prize-amount{margin:.2rem 0 0;color:#fff;font-size:clamp(2.4rem,7vw,4.5rem);font-weight:950;line-height:1;text-shadow:0 0 22px rgba(242,193,78,.45)}.slot-prize-sub{margin:.55rem 0 0;color:#b8f7d8;font-size:.85rem;font-weight:800}
+        @keyframes slotPrizeIn{0%{opacity:0;transform:scale(.65) translateY(1rem)}60%{transform:scale(1.06)}100%{opacity:1;transform:scale(1) translateY(0)}}
+        @keyframes slotPrizePulse{50%{transform:scale(1.03);box-shadow:0 0 65px rgba(242,193,78,.55),0 24px 60px rgba(0,0,0,.55)}}
+        .slot-prize-card{animation:slotPrizeIn .45s cubic-bezier(.2,.9,.25,1.2),slotPrizePulse 1.1s ease-in-out .45s 2}
+        @media(prefers-reduced-motion:reduce){.slot-prize-card{animation:none}}
+    </style>
+
+    <section class="slot-machine relative" :class="{ 'is-busy': busy }">
         <div class="slot-cabinet">
+            <div x-show="prizeVisible" x-cloak x-transition.opacity class="slot-prize-overlay" role="status" aria-live="assertive">
+                <div class="slot-prize-card">
+                    <p class="slot-prize-label">🎉 Prémio ganho</p>
+                    <p class="slot-prize-amount">+<span x-text="Number(prizeAmount).toLocaleString('pt-PT')"></span></p>
+                    <p class="slot-prize-sub">créditos virtuais</p>
+                </div>
+            </div>
             <span class="casino-bulbs" aria-hidden="true"></span>
 
             <div class="slot-header">
