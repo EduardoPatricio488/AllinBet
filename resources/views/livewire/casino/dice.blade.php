@@ -41,7 +41,7 @@
             <p class="mt-2 text-3xl font-semibold tabular-nums">{{ intdiv($roundResult['roll'], 100) }}.{{ str_pad((string) ($roundResult['roll'] % 100), 2, '0', STR_PAD_LEFT) }}</p>
             <p class="mt-1 text-sm {{ ($roundResult['won'] ?? false) ? 'text-emerald-300' : 'text-rose-300' }}">{{ ($roundResult['won'] ?? false) ? 'Ganhou' : 'Não ganhou' }} · {{ $roundPayout }} créditos</p>
             @if ($roundPhase === 'completed' && $roundId)
-                <a href="{{ route('fairness.verify', $roundId) }}" class="mt-4 inline-block text-sm text-emerald-300 underline underline-offset-4" wire:navigate>Verificar ronda</a>
+                <button type="button" class="mt-4 text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
             @endif
         @elseif ($roundPhase === 'ready')
             <p class="text-sm text-zinc-500">Defina abaixo/acima e o limite antes de preparar a ronda.</p>
