@@ -35,6 +35,7 @@
      x-data="{
         reels: [false, false, false],
         busy: false,
+        resultVisible: true,
         prizeVisible: false,
         prizeAmount: 0,
         maxBet: {{ $maxBet }},
@@ -45,6 +46,8 @@
         async go() {
             if (this.busy) return;
             const w = this.$wire;
+            this.resultVisible = false;
+            this.prizeVisible = false;
             let spun = false;
             this.busy = true;
             this.reels = [true, true, true];
@@ -66,6 +69,7 @@
                 if (!calm) await new Promise(r => setTimeout(r, 320));
             }
 
+            this.resultVisible = true;
             this.busy = false;
 
             const payout = Number(w.roundPayout || 0);
@@ -189,9 +193,9 @@
     <aside class="space-y-4">
         <div class="casino-card" aria-live="polite">
             <p class="casino-eyebrow">ÚLTIMA RONDA</p>
-            <p x-show="busy" x-cloak class="mt-2 text-sm text-zinc-400">Os rolos estão a girar…</p>
+            <p x-show="!resultVisible" class="mt-2 text-sm text-zinc-400">Os rolos estão a girar…</p>
 
-            <div x-show="!busy" class="mt-2">
+            <div x-show="resultVisible" x-cloak class="mt-2">
                 @if ($roundResult !== [])
                     @if ((int) $roundPayout > 0)
                         <p class="slot-payout slot-payout--win">+{{ number_format((int) $roundPayout) }}</p>
