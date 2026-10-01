@@ -40,6 +40,27 @@ final class SportsBettingTest extends TestCase
             ->assertSee('Créditos virtuais');
     }
 
+    public function test_max_stake_uses_the_entire_wallet_balance(): void
+    {
+        $user = User::factory()->create();
+        $wallet = app(WalletService::class)->initialize($user, 1250);
+        $this->actingAs($user);
+
+        Livewire::test(Sports::class)
+            ->call('select', 'slb-fcp', 'home')
+            ->call('setMaxStake')
+            ->assertSet('stake', 1250)
+            ->call('placeBet')
+            ->assertSet('slip', []);
+
+        $bet = SportsBet::query()->where('user_id', $user->getKey())->latest('id')->first();
+
+        self::assertNotNull($bet);
+        self::assertSame(1250, $bet->stake);
+        self::assertSame(0, $wallet->fresh()->balance);
+        self::assertSame(2400, $bet->potential_payout);
+    }
+
     public function test_user_can_select_an_outcome_and_register_a_virtual_bet(): void
     {
         $user = User::factory()->create();
