@@ -50,16 +50,13 @@ class SlotsGame implements Game
         $paytable = config('casino.games.slots.paytable', []);
         $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
 
-        // A 3x3 board has six valid ways to win:
-        // three horizontal lines + three vertical lines.
+        // A 3x3 board has exactly three fixed paylines:
+        // top, middle and bottom horizontal rows.
         // A win is ONLY awarded when all three positions on a line match.
         $paylines = [
             ['direction' => 'horizontal', 'index' => 0],
             ['direction' => 'horizontal', 'index' => 1],
             ['direction' => 'horizontal', 'index' => 2],
-            ['direction' => 'vertical', 'index' => 0],
-            ['direction' => 'vertical', 'index' => 1],
-            ['direction' => 'vertical', 'index' => 2],
         ];
 
         $lineCount = count($paylines);
