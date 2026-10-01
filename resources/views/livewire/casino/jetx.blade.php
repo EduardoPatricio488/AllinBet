@@ -10,6 +10,8 @@
         multiplierTimeConstant: @js((int) config('casino.games.jetx.multiplier_time_constant_ms', 6500)),
         multiplierMaximum: @js((float) config('casino.games.jetx.max_multiplier', 2500)),
         flightStartedAt: 0,
+        flightSeconds: 0,
+        estimatedPayout: 0,
         lastServerSyncAt: 0,
         finalMultiplier: 0,
         payout: 0,
@@ -68,6 +70,32 @@
             );
         },
 
+        progressPercent() {
+            if (!this.flying) return this.displayMultiplier > 1 ? 100 : 0;
+
+            return Math.min(
+                100,
+                Math.max(
+                    0,
+                    (Math.log(Math.max(1, this.displayMultiplier)) / Math.log(this.multiplierMaximum)) * 100
+                )
+            );
+        },
+
+        elapsedSeconds() {
+            if (!this.flightStartedAt) return 0;
+
+            return Math.max(0, (Date.now() - Number(this.flightStartedAt)) / 1000);
+        },
+
+        updateTelemetry() {
+            this.flightSeconds = this.elapsedSeconds();
+            this.estimatedPayout = Math.max(
+                0,
+                Math.floor(Number(this.$wire.bet || 0) * Number(this.displayMultiplier || 1))
+            );
+        },
+
         animate() {
             if (!this.flying || !this.flightStartedAt) return;
 
@@ -77,6 +105,7 @@
 
             this.displayMultiplier = Math.max(1, Math.min(this.multiplierMaximum, nextMultiplier));
             this.multiplier = this.displayMultiplier;
+            this.updateTelemetry();
 
             this.raf = requestAnimationFrame(() => this.animate());
         },
@@ -140,6 +169,8 @@
             this.resultOpen = false;
             this.resultLabel = '';
             this.payout = 0;
+            this.flightSeconds = 0;
+            this.estimatedPayout = Number(w.bet || 0);
             this.tone('launch');
             this.animate();
 
@@ -258,6 +289,7 @@
             this.serverMultiplier = this.finalMultiplier;
             this.displayMultiplier = this.finalMultiplier;
             this.multiplier = this.finalMultiplier;
+            this.estimatedPayout = this.payout;
 
             if (completedStatus === 'cashed_out') {
                 this.status = 'cashed_out';
@@ -308,6 +340,8 @@
                 displayMultiplier = 1;
                 finalMultiplier = 0;
                 payout = 0;
+                flightSeconds = 0;
+                estimatedPayout = 0;
                 resultOpen = false;
                 resultLabel = '';
             }
@@ -344,6 +378,9 @@
         @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket__flame,.jetx-result{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
     
         @keyframes jetx-stars-far{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-130px,85px,0) scale(1.03)}}@keyframes jetx-stars-near{from{transform:translate3d(0,0,0)}to{transform:translate3d(-260px,165px,0)}}@keyframes jetx-speed{from{transform:translate3d(-30vw,0,0) rotate(-19deg);opacity:0}18%{opacity:.9}100%{transform:translate3d(150vw,0,0) rotate(-19deg);opacity:0}}@keyframes jetx-orbit{0%,100%{transform:translate(-50%,-50%) rotate(-17deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(-9deg) scale(1.05)}}@keyframes jetx-orbit-rev{0%,100%{transform:translate(-50%,-50%) rotate(17deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(9deg) scale(.96)}}@keyframes jetx-boost{from{transform:translateX(-6px) scale(.96);opacity:.4}to{transform:translateX(28px) scale(1.05);opacity:.8}}@keyframes jetx-launch-stage{0%{transform:scale(.985);filter:brightness(.9)}45%{transform:scale(1.012);filter:brightness(1.14)}100%{transform:scale(1);filter:brightness(1)}}@keyframes jetx-multiplier-pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.025)}}@keyframes jetx-crash-shake{0%,100%{transform:translate3d(0,0,0)}18%{transform:translate3d(-9px,4px,0) rotate(-.25deg)}36%{transform:translate3d(8px,-3px,0) rotate(.25deg)}54%{transform:translate3d(-6px,2px,0)}72%{transform:translate3d(4px,-1px,0)}90%{transform:translate3d(-2px,0,0)}}@keyframes jetx-result-pulse{0%{transform:translateX(-50%) scale(.92);opacity:.7}70%{transform:translateX(-50%) scale(1.04)}100%{transform:translateX(-50%) scale(1)}}@keyframes jetx-result-card{from{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}@keyframes jetx-shockwave{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2)}70%{opacity:.25;transform:translate(-50%,-50%) scale(1.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.55)}}@keyframes jetx-particle-one{0%{transform:translate(0,-1px) scale(.4);opacity:0}25%{opacity:.9}100%{transform:translate(-42px,-14px) scale(1.1);opacity:0}}@keyframes jetx-particle-two{0%{transform:translate(0,2px) scale(.4);opacity:0}25%{opacity:.8}100%{transform:translate(-50px,8px) scale(.8);opacity:0}}@keyframes jetx-particle-three{0%{transform:translate(0,0) scale(.3);opacity:0}30%{opacity:.8}100%{transform:translate(-62px,18px) scale(.7);opacity:0}}
+
+        .jetx-flight-hud{position:absolute;top:1rem;right:1rem;z-index:8;display:flex;gap:.45rem}.jetx-hud-pill{min-width:5.6rem;padding:.5rem .62rem;border:1px solid rgba(255,255,255,.08);border-radius:.72rem;background:rgba(3,8,13,.68);backdrop-filter:blur(14px);box-shadow:0 8px 25px rgba(0,0,0,.18)}.jetx-hud-pill span{display:block;color:#697889;font-size:.48rem;font-weight:950;letter-spacing:.16em}.jetx-hud-pill strong{display:block;margin-top:.12rem;color:#e8f5fb;font-size:.61rem;font-weight:950;letter-spacing:.04em}.jetx-hud-pill--accent{border-color:rgba(77,217,255,.16);box-shadow:0 0 22px rgba(77,217,255,.05)}.jetx-flight-readout{position:absolute;top:21%;left:50%;z-index:7;width:min(88%,38rem);transform:translateX(-50%);text-align:center;pointer-events:none}.jetx-readout-label{color:rgba(154,178,194,.72);font-size:.5rem;font-weight:950;letter-spacing:.32em}.jetx-readout-sub{display:flex;align-items:center;justify-content:center;gap:.65rem;margin-top:.5rem;color:#718394;font-size:.56rem;font-weight:700}.jetx-readout-sub strong{color:#dffbff;font-size:.68rem}.jetx-flight-scale{position:absolute;left:7%;right:7%;bottom:22%;z-index:3;display:flex;justify-content:space-between;color:rgba(116,133,148,.58);font-size:.47rem;font-weight:850;letter-spacing:.06em;pointer-events:none}.jetx-flight-map{position:absolute;left:6%;bottom:11%;width:88%;height:58%;z-index:2;overflow:visible;pointer-events:none;opacity:.9}.jetx-flight-map__line{fill:none;stroke:rgba(77,217,255,.43);stroke-width:2;vector-effect:non-scaling-stroke;stroke-dasharray:2 3}.jetx-flight-map__glow{fill:none;stroke:rgba(77,217,255,.12);stroke-width:14;vector-effect:non-scaling-stroke;filter:blur(6px)}.jetx-flight-map__dot{fill:#fff;stroke:#4dd9ff;stroke-width:3;filter:drop-shadow(0 0 9px rgba(77,217,255,.9));opacity:0}.jetx-stage.flying .jetx-flight-map__dot{opacity:1;animation:jetx-map-dot-pulse 1s ease-in-out infinite alternate}.jetx-telemetry{position:absolute;left:1rem;right:1rem;bottom:1rem;z-index:9;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}.jetx-telemetry__item{padding:.62rem .7rem;border:1px solid rgba(255,255,255,.07);border-radius:.72rem;background:rgba(3,8,13,.68);backdrop-filter:blur(12px)}.jetx-telemetry__item span{display:block;color:#657687;font-size:.47rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.jetx-telemetry__item strong{display:block;margin-top:.18rem;color:#eaf5fa;font-size:.7rem;font-weight:950}.jetx-progress-track{position:absolute;left:7%;right:7%;bottom:18.7%;z-index:8;height:3px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.06);box-shadow:0 0 12px rgba(77,217,255,.05)}.jetx-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#4dd9ff,#f5c451);box-shadow:0 0 14px rgba(77,217,255,.55);transition:width .05s linear}.jetx-multiplier-spike{position:absolute;left:50%;top:33%;width:18rem;height:18rem;z-index:3;transform:translate(-50%,-50%) scale(.5);border-radius:50%;background:radial-gradient(circle,rgba(77,217,255,.12),transparent 64%);filter:blur(9px);opacity:0;pointer-events:none}.jetx-stage.flying .jetx-multiplier-spike{opacity:1;animation:jetx-aura 2.2s ease-in-out infinite}.jetx-rocket-highlight{position:absolute;left:8%;bottom:16%;width:36%;height:22%;background:radial-gradient(ellipse,rgba(77,217,255,.14),transparent 68%);filter:blur(20px);opacity:0;pointer-events:none}.jetx-stage.flying .jetx-rocket-highlight{opacity:1;animation:jetx-highlight 1.15s ease-in-out infinite alternate}.jetx-stage.flying .jetx-grid{animation:jetx-grid-drift 2.2s linear infinite}.jetx-stage.flying .jetx-trail{animation:jetx-trail-breathe .8s ease-in-out infinite alternate}.jetx-stage.is-flying-fast .jetx-speedlines{filter:blur(.35px) saturate(1.15)}.jetx-stage.is-flying-fast .jetx-rocket{filter:drop-shadow(0 0 18px rgba(77,217,255,.24)) drop-shadow(0 18px 18px rgba(0,0,0,.42))}.jetx-stage.is-crashed .jetx-flight-map__line{stroke:rgba(255,94,103,.22)}.jetx-stage.is-crashed .jetx-flight-map__dot{fill:#ff7b82;stroke:#fff;filter:drop-shadow(0 0 14px rgba(255,94,103,.9))}
+        @keyframes jetx-map-dot-pulse{from{transform:scale(.72);opacity:.65}to{transform:scale(1.2);opacity:1}}@keyframes jetx-grid-drift{from{background-position:0 0,0 0}to{background-position:0 22px,22px 0}}@keyframes jetx-trail-breathe{from{opacity:.38;filter:brightness(.95)}to{opacity:.86;filter:brightness(1.2)}}@keyframes jetx-aura{0%,100%{transform:translate(-50%,-50%) scale(.72);opacity:.28}50%{transform:translate(-50%,-50%) scale(1.08);opacity:.62}}@keyframes jetx-highlight{from{transform:translateX(-8px) scale(.95);opacity:.35}to{transform:translateX(35px) scale(1.05);opacity:.75}}
 </style>
 
     <x-casino.loading-overlay target="prepare,launch,start,cashout" />
@@ -396,8 +433,62 @@
                 <div class="jetx-trail" aria-hidden="true"></div>
                 <div class="jetx-boost-glow" aria-hidden="true"></div>
 
+                <div class="jetx-flight-hud">
+                    <div class="jetx-hud-pill">
+                        <span>VOO</span>
+                        <strong x-text="flying ? flightSeconds.toFixed(1) + 's' : phase === 'completed' ? 'END' : '—'"></strong>
+                    </div>
+                    <div class="jetx-hud-pill jetx-hud-pill--accent">
+                        <span>FASE</span>
+                        <strong x-text="flying ? (displayMultiplier >= 2 ? 'ACELERADO' : 'ASCENSÃO') : status === 'crashed' ? 'IMPACTO' : status === 'cashed_out' ? 'RECOLHIDO' : 'STANDBY'"></strong>
+                    </div>
+                </div>
+
+                <div class="jetx-flight-readout">
+                    <div class="jetx-readout-label">MULTIPLICADOR</div>
+                    <div class="jetx-multiplier" :class="{ 'is-growing': flying, 'is-final': resultOpen }">
+                        <span x-text="Number(resultOpen ? finalMultiplier : displayMultiplier).toFixed(2) + '×'"></span>
+                    </div>
+                    <div class="jetx-readout-sub" x-show="flying" x-cloak>
+                        <span>Prémio se recolheres agora</span>
+                        <strong x-text="Number(estimatedPayout).toLocaleString('pt-PT') + ' CR'"></strong>
+                    </div>
+                </div>
+
+                <div class="jetx-flight-scale" aria-hidden="true">
+                    <span>1×</span><span>1.25×</span><span>1.5×</span><span>2×</span><span>3×</span><span>5×</span>
+                </div>
+
+                <svg class="jetx-flight-map" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="jetx-flight-map__glow" pathLength="100" d="M60 345 C190 320 255 270 360 275 S545 260 620 185 S760 120 910 55"></path>
+                    <path class="jetx-flight-map__line" pathLength="100" d="M60 345 C190 320 255 270 360 275 S545 260 620 185 S760 120 910 55"></path>
+                    <circle class="jetx-flight-map__dot" :style="'offset-distance:' + progressPercent() + '%'" cx="60" cy="345" r="7"></circle>
+                </svg>
+
+                <div class="jetx-telemetry">
+                    <div class="jetx-telemetry__item">
+                        <span>Aposta</span>
+                        <strong x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></strong>
+                    </div>
+                    <div class="jetx-telemetry__item">
+                        <span>Potencial</span>
+                        <strong x-text="Number(estimatedPayout).toLocaleString('pt-PT') + ' CR'"></strong>
+                    </div>
+                    <div class="jetx-telemetry__item">
+                        <span>Ascensão</span>
+                        <strong x-text="Math.round(progressPercent()) + '%'"></strong>
+                    </div>
+                </div>
+
+                <div class="jetx-progress-track" aria-hidden="true">
+                    <span :style="'width:' + progressPercent() + '%'"></span>
+                </div>
+
+                <div class="jetx-multiplier-spike" aria-hidden="true"></div>
+                <div class="jetx-rocket-highlight" aria-hidden="true"></div>
+
                 <div class="jetx-multiplier" :class="{ 'is-growing': flying, 'is-final': resultOpen }">
-                    <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
+                    <span x-text="Number(resultOpen ? finalMultiplier : displayMultiplier).toFixed(2) + '×'"></span>
                 </div>
 
                 <div class="jetx-rocket" :style="rocketStyle()" x-show="flying" x-cloak aria-hidden="true">
