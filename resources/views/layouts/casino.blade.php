@@ -207,6 +207,7 @@
                     ['n' => 'Histórico', 'u' => route('casino.history')],
                     ['n' => 'Carteira', 'u' => route('casino.wallet')],
                     ['n' => 'Jogo responsável', 'u' => route('casino.help')],
+                    ['n' => 'As minhas apostas', 'u' => route('casino.sports.bets')],
                 ])->values()) }},
                 get results() { return this.items.filter(i => i.n.toLowerCase().includes(this.q.toLowerCase())); }
             }"
