@@ -35,6 +35,22 @@
                 <flux:sidebar.item icon="cog-6-tooth" :href="route('profile.edit')" :current="request()->routeIs('profile.*', 'security.*', 'appearance.*')" wire:navigate>
                     Configurações
                 </flux:sidebar.item>
+
+                <button
+                    type="button"
+                    x-data
+                    x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'"
+                    class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                    <span x-show="$flux.appearance === 'dark'" class="flex items-center gap-3">
+                        <flux:icon name="sun" class="size-5" />
+                        <span>Tema claro</span>
+                    </span>
+                    <span x-show="$flux.appearance !== 'dark'" class="flex items-center gap-3">
+                        <flux:icon name="moon" class="size-5" />
+                        <span>Tema escuro</span>
+                    </span>
+                </button>
             </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
@@ -78,6 +94,17 @@
                     <flux:menu.radio.group>
                         <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
                             {{ __('Settings') }}
+                        </flux:menu.item>
+
+                        <flux:menu.item
+                            as="button"
+                            type="button"
+                            x-data
+                            x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'"
+                            icon="sun"
+                        >
+                            <span x-show="$flux.appearance === 'dark'">Tema claro</span>
+                            <span x-show="$flux.appearance !== 'dark'">Tema escuro</span>
                         </flux:menu.item>
                     </flux:menu.radio.group>
 
