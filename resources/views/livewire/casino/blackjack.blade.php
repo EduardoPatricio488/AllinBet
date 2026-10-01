@@ -45,7 +45,17 @@
                 @if ($roundResult !== [])
                     <div class="bj-cards">
                         @foreach ($roundResult['dealer_hand'] ?? [] as $card)
-                            @php $hidden = $card['hidden'] ?? false; $rank = match ($card['rank']) { 1=>'A',11=>'J',12=>'Q',13=>'K',default=>$card['rank'] }; @endphp
+                            @php
+                                $hidden = (bool) ($card['hidden'] ?? false);
+                                $rankValue = $card['rank'] ?? null;
+                                $rank = $rankValue === null ? '—' : match ($rankValue) {
+                                    1 => 'A',
+                                    11 => 'J',
+                                    12 => 'Q',
+                                    13 => 'K',
+                                    default => $rankValue,
+                                };
+                            @endphp
                             @if ($hidden)
                                 <div class="bj-card bj-hidden" aria-label="Carta escondida">?</div>
                             @else
