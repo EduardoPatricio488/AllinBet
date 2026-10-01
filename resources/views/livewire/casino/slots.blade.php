@@ -63,7 +63,7 @@
     $sym = fn (int $n, string $c = '') => '<svg class="slot-sym '.$c.'" viewBox="0 0 64 64" aria-hidden="true"><use href="#s'.($n % 8).'"/></svg>';
 @endphp
 
-<div class="casino-game-play slot-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]
+<div class="casino-game-play slot-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
      x-data="{
         st: ['idle', 'idle', 'idle'],
         selectedSlot: new URLSearchParams(window.location.search).get('slot') || 'classic',
