@@ -140,7 +140,7 @@
                 <div class="bj-section">
                     <p class="bj-paneltitle">Ronda terminada</p>
                     <p class="bj-info">Resultado: <strong>{{ $resultLabel }}</strong><br>Pagamento: <strong>{{ $roundPayout }} créditos</strong></p>
-                    <a href="{{ route('fairness.verify', $roundId) }}" class="bj-button bj-dark mt-3 inline-flex items-center justify-center" wire:navigate>Verificar ronda</a>
+                    <button type="button" class="bj-button bj-dark mt-3 inline-flex items-center justify-center" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                 </div>
             @endif
 
