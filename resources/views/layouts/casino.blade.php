@@ -222,6 +222,8 @@
                 </ul>
             </div>
         </div>
+        @livewire('casino.fairness-modal')
+
         @fluxScripts
         @livewireScripts
     </body>
