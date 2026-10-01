@@ -105,7 +105,7 @@
                             <span>Seed do cliente</span>
                             <input type="text" maxlength="128" wire:model="clientSeed" class="bj-input font-mono text-xs" placeholder="Opcional">
                         </label>
-                        <button type="submit" wire:loading.attr="disabled" class="bj-button bj-gold">Preparar mesa</button>
+                        <button type="submit" wire:loading.attr="disabled" :disabled="resultVisible" class="bj-button bj-gold">Preparar mesa</button>
                     </div>
                 </form>
             @endif
