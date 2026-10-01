@@ -166,7 +166,9 @@
             }
         }
      }"
-     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">    {{-- Símbolos SVG, definidos uma só vez --}}
+     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">
+    <div class="slot-page-main">
+        {{-- Símbolos SVG, definidos uma só vez --}}
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
             <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a86"/><stop offset="1" stop-color="#c4162a"/></linearGradient>
@@ -220,6 +222,7 @@
     <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é dividida pelas 6 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'6 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
+        .slot-page-main{min-width:0}
         .slot-collection{position:relative;margin-bottom:.15rem}
         .slot-collection__head{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:.8rem}
         .slot-collection__title{margin-top:.15rem;font-size:clamp(1.25rem,3vw,1.8rem);font-weight:950;letter-spacing:-.02em;color:#f4f6f4}
@@ -500,14 +503,15 @@
             @error('bet')<p role="alert" class="slot-error">{{ $message }}</p>@enderror
             @error('game')<p role="alert" class="slot-error">{{ $message }}</p>@enderror
         </div>
-    </section>
+        </section>
+    </div>
 
     <aside class="space-y-4">
         <div class="casino-card" aria-live="polite">
             <p class="casino-eyebrow">ÚLTIMA RONDA</p>
-            <p x-show="!resultVisible" class="mt-2 text-sm text-zinc-400">Os rolos estão a girar…</p>
+            <p x-show="!done" class="mt-2 text-sm text-zinc-400">Os rolos estão a girar…</p>
 
-            <div x-show="resultVisible" x-cloak class="mt-2">
+            <div x-show="done" x-cloak class="mt-2">
                 @if ($roundResult !== [])
                     @if ($payout > 0)
                         <p class="slot-payout slot-payout--win">+{{ number_format($payout) }}</p>
