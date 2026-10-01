@@ -31,17 +31,6 @@
                     Apostas desportivas
                 </a>
 
-                @auth
-                    <a href="#sports-bets"
-                       class="casino-rail__item"
-                       x-data
-                       x-on:click.prevent="$dispatch('casino-open-sports-bets')"
-                       aria-haspopup="dialog"
-                       aria-controls="casino-sports-bets-modal">
-                        <span class="casino-rail__glyph">🎟️</span>
-                        As minhas apostas
-                    </a>
-                @endauth
 
                 <p class="casino-rail__label">ORIGINALS</p>
                 @foreach ($casinoGames as $game)
