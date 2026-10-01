@@ -6,13 +6,29 @@
     $maxBet = (int) config('casino.bet_limits.max');
     $locked = $roundPhase === 'prepared';
 
-    $winRows = $roundPhase === 'completed'
-        ? collect($roundResult['winning_lines'] ?? [])
-            ->map(fn ($l) => is_array($l) ? ($l['line'] ?? $l['row'] ?? null) : $l)
-            ->filter(fn ($v) => is_int($v))
-            ->values()
-            ->all()
+    $winningLines = $roundPhase === 'completed'
+        ? collect($roundResult['winning_lines'] ?? [])->values()->all()
         : [];
+
+    $horizontalWins = collect($winningLines)
+        ->filter(fn ($line) => ($line['direction'] ?? '') === 'horizontal')
+        ->pluck('line')
+        ->map(fn ($line) => (int) $line)
+        ->all();
+
+    $verticalWins = collect($winningLines)
+        ->filter(fn ($line) => ($line['direction'] ?? '') === 'vertical')
+        ->pluck('line')
+        ->map(fn ($line) => (int) $line)
+        ->all();
+
+    $winningCells = collect($winningLines)->flatMap(function ($line) {
+        if (($line['direction'] ?? '') === 'horizontal') {
+            return collect(range(0, 2))->map(fn ($column) => ($line['line'] * 3) + $column);
+        }
+
+        return collect(range(0, 2))->map(fn ($row) => ($row * 3) + $line['line']);
+    })->unique()->values()->all();
 @endphp
 
 <div class="casino-game-play grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
@@ -21,8 +37,8 @@
         busy: false,
         maxBet: {{ $maxBet }},
         step(d) {
-            const v = Math.round((Number(this.$wire.bet || 3) + d) / 3) * 3;
-            this.$wire.bet = Math.min(this.maxBet, Math.max(3, v));
+            const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
+            this.$wire.bet = Math.min(this.maxBet, Math.max(6, v));
         },
         async go() {
             if (this.busy) return;
@@ -38,9 +54,7 @@
                     await w.spin();
                     spun = true;
                 }
-            } catch (e) {
-                // O Livewire continua a ser a autoridade do resultado.
-            }
+            } catch (e) {}
 
             const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             await new Promise(r => setTimeout(r, calm ? 0 : Math.max(0, 1000 - (Date.now() - t0))));
@@ -73,13 +87,13 @@
 
             <div class="slot-header">
                 <span class="slot-title">ALLINBET <em class="casino-shimmer-text">SLOTS</em></span>
-                <span class="slot-badge">3 LINHAS · 3 ROLOS</span>
+                <span class="slot-badge">6 LINHAS · 3×3</span>
             </div>
 
             <div class="slot-window">
                 <div class="slot-markers" aria-hidden="true">
                     @foreach ([0, 1, 2] as $r)
-                        <span class="slot-marker {{ in_array($r, $winRows, true) ? 'slot-marker--win' : '' }}">{{ $r + 1 }}</span>
+                        <span class="slot-marker {{ in_array($r, $horizontalWins, true) ? 'slot-marker--win' : '' }}">{{ $r + 1 }}</span>
                     @endforeach
                 </div>
 
@@ -96,14 +110,21 @@
 
                             <div class="slot-landed" x-show="!reels[{{ $col }}]">
                                 @foreach ($grid as $rowIndex => $row)
-                                    <span class="slot-cell {{ in_array($rowIndex, $winRows, true) ? 'slot-cell--win' : '' }}">{{ $glyph((int) ($row[$col] ?? 0)) }}</span>
+                                    @php $cellIndex = ($rowIndex * 3) + $col; @endphp
+                                    <span class="slot-cell {{ in_array($cellIndex, $winningCells, true) ? 'slot-cell--win' : '' }}">
+                                        {{ $glyph((int) ($row[$col] ?? 0)) }}
+                                    </span>
                                 @endforeach
                             </div>
                         </div>
                     @endforeach
 
-                    @foreach ($winRows as $r)
-                        <i class="slot-payline" style="--row: {{ $r }}" aria-hidden="true"></i>
+                    @foreach ($horizontalWins as $r)
+                        <i class="slot-payline" style="--row: {{ $r }}" aria-label="Linha horizontal vencedora"></i>
+                    @endforeach
+
+                    @foreach ($verticalWins as $c)
+                        <i class="slot-payline slot-payline--vertical" style="--column: {{ $c }}" aria-label="Linha vertical vencedora"></i>
                     @endforeach
                 </div>
             </div>
@@ -112,21 +133,21 @@
                 <div class="slot-bet">
                     <span class="slot-label">APOSTA TOTAL</span>
                     <div class="slot-stepper">
-                        <button type="button" x-on:click="step(-3)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
-                        <input type="number" min="3" step="3" max="{{ $maxBet }}" wire:model="bet"
+                        <button type="button" x-on:click="step(-6)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
+                        <input type="number" min="6" step="6" max="{{ $maxBet }}" wire:model="bet"
                                :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
-                        <button type="button" x-on:click="step(3)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
+                        <button type="button" x-on:click="step(6)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 3)"></b> · múltiplos de 3</small>
+                    <small class="slot-hint">por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 6)"></b> · 6 linhas</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
-                    @foreach ([3, 15, 30, 60, 150] as $chip)
+                    @foreach ([6, 12, 30, 60, 150] as $chip)
                         @if ($chip <= $maxBet)
                             <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || @js($locked)">{{ $chip }}</button>
                         @endif
                     @endforeach
-                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 3) * 3" :disabled="busy || @js($locked)">MAX</button>
+                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 6) * 6" :disabled="busy || @js($locked)">MAX</button>
                 </div>
 
                 <button type="button" class="slot-spin" x-on:click="go()" :disabled="busy">
@@ -150,10 +171,12 @@
                 @if ($roundResult !== [])
                     @if ((int) $roundPayout > 0)
                         <p class="slot-payout slot-payout--win">+{{ number_format((int) $roundPayout) }}</p>
-                        <p class="text-sm text-zinc-400">{{ count($roundResult['winning_lines'] ?? []) }} linha(s) vencedora(s) · créditos virtuais</p>
+                        <p class="text-sm text-zinc-400">
+                            {{ count($winningLines) }} linha(s) vencedora(s) · apenas triplos pagam
+                        </p>
                     @else
                         <p class="slot-payout">Sem prémio</p>
-                        <p class="text-sm text-zinc-400">Cada ronda é independente das anteriores.</p>
+                        <p class="text-sm text-zinc-400">Só 3 símbolos iguais na horizontal ou vertical dão prémio.</p>
                     @endif
 
                     @if ($roundPhase === 'completed' && $roundId)
@@ -161,14 +184,25 @@
                            class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4">Verificar esta ronda ↗</a>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-400">Três linhas horizontais. Prémios pagos em créditos inteiros.</p>
+                    <p class="text-sm text-zinc-400">6 linhas de prémio: 3 horizontais + 3 verticais.</p>
                 @endif
             </div>
         </div>
 
+        <div class="casino-card">
+            <p class="casino-eyebrow">COMBINAÇÕES QUE PAGAM</p>
+            <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-300">
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">→ 3 iguais</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">↓ 3 iguais</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 horizontais</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
+            </div>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Podem existir várias linhas vencedoras no mesmo giro e os prémios acumulam.</p>
+        </div>
+
         <details class="casino-card slot-fair">
             <summary>🔐 Jogo transparente</summary>
-            <p class="mt-3 text-xs text-zinc-400">O hash do servidor é fixado antes do resultado. Pode alterar a sua seed para influenciar o sorteio.</p>
+            <p class="mt-3 text-xs text-zinc-400">O hash do servidor é fixado antes do resultado e a ronda pode ser verificada.</p>
 
             @if ($serverSeedHash)
                 <p class="mt-3 text-[0.65rem] uppercase text-zinc-500">Hash do servidor</p>
