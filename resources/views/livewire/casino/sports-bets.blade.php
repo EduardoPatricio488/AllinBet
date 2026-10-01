@@ -83,7 +83,7 @@
                     </div>
                     <div class="sports-bet-card__preview">
                         <span class="sports-bet-card__preview-text">{{ $firstSelection['home'] ?? '' }} · {{ $firstSelection['away'] ?? '' }} — {{ $firstSelection['selection'] ?? 'Seleção' }}</span>
-                        <span class="sports-bet-card__odd">{{ number_format((float) $bet->combined_odd, 2, ',', '.') }}×</span>
+                        <span class="sports-bet-card__odd">{{ number_format((float) $bet->combined_odd, 2, ',', '.') }}× · +{{ number_format((int) $bet->potential_payout, 0, ',', '.') }} CR</span>
                     </div>
                 </button>
 
