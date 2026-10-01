@@ -20,7 +20,8 @@ class SlotsGame implements Game
 
     public function play(GameRound $round, array $input): GameResult
     {
-        $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
+        $variant = $this->variantFor($round);
+        $symbolCount = count($variant['symbols'] ?? []);
         $rows = (int) config('casino.games.slots.rows', 3);
         $columns = (int) config('casino.games.slots.columns', 3);
         $grid = [];
@@ -39,7 +40,23 @@ class SlotsGame implements Game
             }
         }
 
-        return $this->settle($grid, $round->bet);
+        return $this->settle($grid, $round->bet, $variant);
+    }
+
+    
+    /** @return array<string, mixed> */
+    private function variantFor(GameRound $round): array
+    {
+        $key = (string) ($round->privateGameState()['slot_variant'] ?? 'classic');
+        $variant = config("casino.games.slots.variants.{$key}");
+
+        if (! is_array($variant) || ! isset($variant['symbols'], $variant['paytable'])) {
+            throw new InvalidArgumentException('The selected slots variant is invalid.');
+        }
+
+        $variant['key'] = $key;
+
+        return $variant;
     }
 
     /** @param array<int, array<int, int>> $grid */
@@ -133,6 +150,7 @@ class SlotsGame implements Game
             'winning_lines' => $winningLines,
             'wager' => $bet,
             'payline_count' => $lineCount,
+            'slot_variant' => (string) ($variant['key'] ?? 'classic'),
         ]);
     }
 }
