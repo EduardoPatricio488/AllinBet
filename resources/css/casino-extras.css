@@ -371,3 +371,40 @@
 @keyframes casino-chip-float{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-9px) rotate(4deg)}}
 @media(max-width:640px){.casino-game-chrome{padding:.78rem}.casino-game-chrome__head{align-items:flex-start}.casino-game-chrome__title{display:grid;gap:.1rem}.casino-game-chrome__meta .casino-game-chrome__live{display:none}.casino-game-chrome__switch a{font-size:.56rem;padding-inline:.58rem}}
 @media(prefers-reduced-motion:reduce){.casino-main::before,.casino-game-chrome::before,.casino-game-chrome__live i,.casino-game-chrome__ambient span{animation:none!important}}
+
+
+/* Lembrete de pausa: cartão responsável, elegante e atualizado em tempo real. */
+.casino-pause-modal{background:rgb(3 6 10 / 82%);backdrop-filter:blur(14px);padding:1.25rem}
+.casino-pause-card{position:relative;width:min(35rem,100%);overflow:hidden;border:1px solid rgb(245 215 120 / 20%);border-radius:1.35rem;background:linear-gradient(145deg,#111a25 0%,#0b121b 58%,#101b16 100%);box-shadow:0 35px 100px rgb(0 0 0 / 55%),0 0 70px rgb(230 200 121 / 7%);padding:1.35rem}
+.casino-pause-card::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 0,rgb(245 215 120 / 12%),transparent 35%),radial-gradient(circle at 92% 100%,rgb(73 224 165 / 8%),transparent 33%)}
+.casino-pause-glow{position:absolute;top:-8rem;right:-7rem;width:15rem;height:15rem;border-radius:50%;border:1px solid rgb(245 215 120 / 7%);box-shadow:0 0 0 1.4rem rgb(245 215 120 / 2%),0 0 0 3rem rgb(245 215 120 / 1%);animation:casino-pause-orbit 7s linear infinite;pointer-events:none}
+.casino-pause-top{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.8rem}
+.casino-pause-icon{display:grid;width:2.9rem;height:2.9rem;place-items:center;border-radius:1rem;border:1px solid rgb(245 215 120 / 20%);background:linear-gradient(145deg,rgb(245 215 120 / 14%),rgb(245 215 120 / 4%));box-shadow:inset 0 1px 0 rgb(255 255 255 / 6%),0 8px 24px rgb(0 0 0 / 18%);font-size:1.3rem}
+.casino-pause-live{display:inline-flex;align-items:center;gap:.35rem;margin-top:.3rem;color:#81deb6;font-size:.5rem;font-weight:900;letter-spacing:.11em}
+.casino-pause-live i{width:.34rem;height:.34rem;border-radius:50%;background:#72e5b1;box-shadow:0 0 9px rgb(114 229 177 / 80%);animation:casino-pause-pulse .85s ease-in-out infinite alternate}
+.casino-pause-close{display:grid;width:2rem;height:2rem;place-items:center;border:1px solid rgb(255 255 255 / 8%);border-radius:.65rem;background:rgb(255 255 255 / 3%);color:#8e9aa8;font-size:1.2rem;cursor:pointer;transition:background .15s,color .15s,transform .15s}
+.casino-pause-close:hover{background:rgb(255 255 255 / 7%);color:#fff;transform:scale(1.04)}
+.casino-pause-heading{position:relative;margin-top:1.35rem}
+.casino-pause-heading h2{font-size:clamp(1.45rem,4vw,1.95rem);font-weight:900;letter-spacing:-.035em;color:#f7f5ea}
+.casino-pause-heading p{max-width:31rem;margin-top:.5rem;color:#acb6c1;font-size:.78rem;line-height:1.65}
+.casino-pause-stats{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-top:1.1rem}
+.casino-pause-stats>div{padding:.85rem .9rem;border:1px solid rgb(255 255 255 / 7%);border-radius:.9rem;background:rgb(0 0 0 / 14%);box-shadow:inset 0 1px 0 rgb(255 255 255 / 3%)}
+.casino-pause-stats span{display:block;color:#6f7c8b;font-size:.48rem;font-weight:900;letter-spacing:.13em}
+.casino-pause-stats strong{display:block;margin-top:.25rem;color:#f5d778;font-size:1rem;font-weight:950;font-variant-numeric:tabular-nums}
+.casino-pause-progress{position:relative;height:.4rem;margin-top:1rem;overflow:hidden;border-radius:999px;background:rgb(255 255 255 / 7%)}
+.casino-pause-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b8892b,#ffe39a,#72dcae);box-shadow:0 0 15px rgb(245 215 120 / 24%);transition:width 1s linear}
+.casino-pause-caption{position:relative;margin-top:.5rem;color:#667382;font-size:.54rem}
+.casino-pause-actions{position:relative;display:grid;grid-template-columns:1.1fr 1fr;gap:.65rem;margin-top:1.15rem}
+.casino-pause-actions .casino-button{justify-content:center;text-align:center}
+.casino-pause-footer{position:relative;display:flex;gap:.5rem;align-items:flex-start;margin-top:1rem;padding-top:.85rem;border-top:1px solid rgb(255 255 255 / 7%);color:#707d8c;font-size:.56rem;line-height:1.5}
+.casino-pause-footer>span:first-child{color:#f5d778;font-size:.75rem}
+.casino-pause-enter{transition:opacity .25s ease,transform .25s ease}
+.casino-pause-enter-start{opacity:0;transform:scale(.96) translateY(10px)}
+.casino-pause-enter-end{opacity:1;transform:scale(1) translateY(0)}
+.casino-pause-leave{transition:opacity .18s ease,transform .18s ease}
+.casino-pause-leave-start{opacity:1;transform:scale(1)}
+.casino-pause-leave-end{opacity:0;transform:scale(.98)}
+@keyframes casino-pause-pulse{from{transform:scale(.75);opacity:.5}to{transform:scale(1.15);opacity:1}}
+@keyframes casino-pause-orbit{to{transform:rotate(360deg)}}
+@media(max-width:520px){.casino-pause-modal{padding:.75rem}.casino-pause-card{padding:1rem;border-radius:1.1rem}.casino-pause-stats,.casino-pause-actions{grid-template-columns:1fr}.casino-pause-actions .casino-button{width:100%}}
+@media(prefers-reduced-motion:reduce){.casino-pause-glow,.casino-pause-live i{animation:none!important}.casino-pause-progress span{transition:none!important}}
