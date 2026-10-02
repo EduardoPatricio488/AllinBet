@@ -190,12 +190,12 @@
             aria-labelledby="rc-title"
         >
             <div class="casino-modal__panel casino-card">
-                <p class="casino-eyebrow">PAUSA</p>
-                <h2 id="rc-title">Já joga há <span x-text="minutes"></span> minutos</h2>
-                <p>Que tal esticar as pernas? Pode continuar quando quiser.</p>
-                <div class="flex gap-3">
-                    <button type="button" class="casino-button casino-button--secondary" x-on:click="open = false">Continuar a jogar</button>
-                    <a class="casino-button casino-button--secondary" href="{{ route('casino.help') }}" wire:navigate>Fazer uma pausa</a>
+                <p class="casino-eyebrow">LEMBRETE DE PAUSA</p>
+                <h2 id="rc-title">Que tal fazer uma pausa?</h2>
+                <p>Já está a jogar há <strong><span x-text="minutes"></span> <span x-text="minutes === 1 ? 'minuto' : 'minutos'"></span></strong>. Levante-se, estique as pernas e volte quando se sentir pronto.</p>
+                <div class="flex flex-wrap gap-3">
+                    <button type="button" class="casino-button casino-button--secondary" x-on:click="open = false">Continuar</button>
+                    <a class="casino-button casino-button--secondary" href="{{ route('casino.help') }}" wire:navigate>Ver jogo responsável</a>
                 </div>
             </div>
         </div>
