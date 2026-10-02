@@ -152,6 +152,14 @@ return [
                 ],
             ],
             'target_rtp_basis_points' => 9520,
+            'bonus_buy' => [
+                'enabled' => true,
+                'options' => [
+                    ['multiplier' => 10, 'spins' => 10, 'label' => 'Mini Bónus'],
+                    ['multiplier' => 25, 'spins' => 20, 'label' => 'Mega Bónus'],
+                    ['multiplier' => 50, 'spins' => 35, 'label' => 'Ultra Bónus'],
+                ],
+            ],
         ],
     ],
 ];
