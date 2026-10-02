@@ -1,6 +1,6 @@
 @php
-    $rows = (int) config('casino.games.slots.rows', 5);
-    $columns = (int) config('casino.games.slots.columns', 5);
+    $rows = (int) config('casino.games.slots.rows', 3);
+    $columns = (int) config('casino.games.slots.columns', 3);
     $grid = $roundResult['grid'] ?? array_fill(0, $rows, array_fill(0, $columns, 0));
     $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
     $locked = in_array($roundPhase, ['prepared', 'in_progress'], true);
@@ -16,7 +16,7 @@
 
 <div class="casino-game-play casino-game-screen slot-page" data-casino-game="slots"
      x-data="{
-        st: [0, 0, 0, 0, 0].map(() => 'idle'),
+        st: [0, 0, 0].map(() => 'idle'),
         selectedSlot: @js($selectedSlot),
         busy: false,
         done: true,
@@ -27,7 +27,7 @@
         grid: @js($grid),
         winningLines: @js($winningLines),
         symbols: @js($symbols),
-        tracks: [[], [], [], [], []],
+        tracks: [[], [], []],
         reelPrefix: 72,
         spinCycle: 0,
         bonusRunning: false,
@@ -55,7 +55,7 @@
             ];
             const count = this.symbols.length || 1;
 
-            for (let column = 0; column < 5; column++) {
+            for (let column = 0; column < 3; column++) {
                 const track = [];
                 const order = orders[column];
 
@@ -64,7 +64,7 @@
                     track.push(this.symbols[index % count]);
                 }
 
-                for (let row = 0; row < 5; row++) {
+                for (let row = 0; row < 3; row++) {
                     const value = Number(this.grid?.[row]?.[column] ?? 0);
                     track.push(this.symbols[Math.abs(value) % count]);
                 }
@@ -126,10 +126,10 @@
 
             if (!reel || !spinner) return;
 
-            const cell = Math.max(1, reel.getBoundingClientRect().height / 5);
+            const cell = Math.max(1, reel.getBoundingClientRect().height / 3);
             const currentY = this.readTransformY(spinner);
             const targetY = -(this.reelPrefix * cell);
-            const durations = [590, 680, 770, 860, 950];
+            const durations = [590, 700, 810];
             const duration = durations[index] || 770;
 
             spinner.style.animation = 'none';
@@ -157,10 +157,10 @@
         async finishSpin() {
             this.syncServerResult();
 
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 3; i++) {
                 this.st[i] = 'settle';
                 await this.settleReel(i);
-                if (i < 4) await this.wait(115);
+                if (i < 2) await this.wait(115);
             }
 
             this.done = true;
@@ -195,7 +195,7 @@
             this.done = false;
             this.overlay = false;
             this.settled = 0;
-            this.st = [0, 0, 0, 0, 0].map(() => 'spin');
+            this.st = [0, 0, 0].map(() => 'spin');
             this.resetReels();
             this.startSpinning();
             this.sfx('spin');
@@ -239,7 +239,7 @@
             window.clearInterval(progressTimer);
 
             if (!ok) {
-                this.st = [0, 0, 0, 0, 0].map(() => 'idle');
+                this.st = [0, 0, 0].map(() => 'idle');
                 this.bonusRunning = false;
                 this.bonusDone = false;
                 this.bonusProgress = 0;
@@ -405,7 +405,7 @@
         </div>
     </section>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 5×5 com 10 linhas de pagamento: 5 horizontais e 5 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos cinco níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 5 linhas horizontais e 5 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 5×5 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos cinco níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 5 linhas horizontais e 5 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-page-main{min-width:0}
@@ -550,7 +550,7 @@
         .slot-reels {
             position: relative;
             display: grid;
-            grid-template-columns: repeat(5,minmax(0,1fr));
+            grid-template-columns: repeat(3,minmax(0,1fr));
             gap: .4rem;
             min-width: 0;
         }
@@ -829,9 +829,7 @@
         .slot-reel.is-spin:nth-child(1) .slot-spinner { --spin-speed-0: .42s; }
         .slot-reel.is-spin:nth-child(2) .slot-spinner { --spin-speed-1: .48s; }
         .slot-reel.is-spin:nth-child(3) .slot-spinner { --spin-speed-2: .54s; }
-        .slot-reel.is-spin:nth-child(4) .slot-spinner { --spin-speed-3: .60s; }
-        .slot-reel.is-spin:nth-child(5) .slot-spinner { --spin-speed-4: .66s; }
-
+        .slot-reel.is-spin:
         .slot-payout { font-size: 1.9rem; font-weight: 800; line-height: 1.1; }
         .slot-payout--win { color: var(--gold); text-shadow: 0 0 18px rgba(242, 193, 78, .5); }
 
@@ -891,7 +889,7 @@
                 <div class="slot-header__status" :class="{ 'is-spinning': busy, 'is-ready': !busy }">
                     <i></i>
                     <span x-show="!busy">PRONTO</span>
-                    <span x-show="busy" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/5'"></span>
+                    <span x-show="busy" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/3'"></span>
                 </div>
 
                 <span class="slot-badge" x-text="@js($slotVariants)[selectedSlot].tag"></span>
@@ -904,12 +902,12 @@
                     'is-spinning': busy
                  }">
                 <div class="slot-markers" aria-hidden="true">
-                    @foreach ([0, 1, 2, 3, 4] as $r)
+                    @foreach ([0, 1, 2] as $r)
                         <span>{{ $r + 1 }}</span>
                     @endforeach
                 </div>
 
-                <div class="slot-reels" wire:ignore role="img" aria-label="Cinco rolos com cinco linhas visíveis">
+                <div class="slot-reels" wire:ignore role="img" aria-label="Três rolos com três linhas visíveis">
                     <template x-for="column in [0, 1, 2, 3, 4]" :key="'reel-' + column">
                         <div class="slot-reel" :class="'is-' + st[column]">
                             <div class="slot-spinner">
@@ -952,7 +950,7 @@
                         <input type="number" min="1" step="1" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
                         <button type="button" x-on:click="step(1)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">Aposta total · 10 linhas de pagamento</small>
+                    <small class="slot-hint">Aposta total · 6 linhas de pagamento</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
