@@ -6,6 +6,7 @@ namespace App\Livewire\Casino;
 
 use App\Enums\GameType;
 use App\Enums\RoundStatus;
+use App\Models\GameRound;
 use App\Models\User;
 use App\Services\BetService;
 use DomainException;
@@ -48,7 +49,51 @@ abstract class CasinoGameComponent extends Component
         $this->clientSeed = bin2hex(random_bytes(12));
         $this->requestKey = bin2hex(random_bytes(16));
         $this->actionKey = bin2hex(random_bytes(16));
+
+        $this->restoreActiveRound($this->casinoGame());
     }
+
+    protected function restoreActiveRound(GameType $game): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User || $this->roundId !== null) {
+            return;
+        }
+
+        $round = GameRound::query()
+            ->where('user_id', $user->getKey())
+            ->where('game', $game)
+            ->whereIn('status', [RoundStatus::Prepared, RoundStatus::InProgress])
+            ->latest('id')
+            ->first();
+
+        if ($round === null) {
+            return;
+        }
+
+        $this->roundId = $round->id;
+        $this->roundPhase = $round->status->value;
+        $this->serverSeedHash = $round->server_seed_hash;
+        $this->clientSeed = $round->client_seed;
+        $this->roundResult = $round->publicResult();
+        $this->roundPayout = 0;
+        $this->bet = (int) $round->bet;
+
+        $state = $round->privateGameState();
+
+        if ($round->status === RoundStatus::InProgress && array_key_exists('_pending_payout', $state)) {
+            $nowMs = (int) round(microtime(true) * 1000);
+
+            $this->dispatch(
+                'casino-settlement-pending',
+                roundId: $round->id,
+                afterMs: max(0, (int) ($state['_settle_after_ms'] ?? $nowMs) - $nowMs),
+            );
+        }
+    }
+
+    abstract protected function casinoGame(): GameType;
 
     protected function prepareGame(GameType $game, array $metadata = [], ?int $betOverride = null): void
     {
