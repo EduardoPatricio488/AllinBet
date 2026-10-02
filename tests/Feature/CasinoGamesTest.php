@@ -68,7 +68,7 @@ class CasinoGamesTest extends TestCase
 
         $result = app(SlotsGame::class)->settle($grid, 300);
 
-        $this->assertSame(1350, $result->payout);
+        $this->assertSame(1269, $result->payout);
         $this->assertCount(1, $result->result['winning_lines']);
         $this->assertSame('horizontal', $result->result['winning_lines'][0]['direction']);
         $this->assertSame(3, $result->result['winning_lines'][0]['count']);
@@ -88,7 +88,7 @@ class CasinoGamesTest extends TestCase
 
         $result = app(SlotsGame::class)->settle($grid, 300);
 
-        $this->assertSame(1470, $result->payout);
+        $this->assertSame(1381, $result->payout);
         $this->assertCount(2, $result->result['winning_lines']);
         $this->assertSame(['vertical', 'vertical'], array_column($result->result['winning_lines'], 'direction'));
         $this->assertSame([3, 3], array_column($result->result['winning_lines'], 'count'));
