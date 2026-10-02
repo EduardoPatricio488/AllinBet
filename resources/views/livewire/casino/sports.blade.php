@@ -1392,7 +1392,7 @@
             <section class="sports-slip {{ $slip ? 'sports-slip--active' : '' }}">
                 <div class="sports-slip__head">
                     <div class="sports-slip__title">
-                        🎟️ Boletim
+                        🎟️ Boletim de apostas
                         <span class="sports-slip__count"
                               x-bind:class="{ 'sports-slip__count--pulse': slipPulse }">
                             {{ count($slip) }}
