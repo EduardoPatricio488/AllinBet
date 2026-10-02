@@ -2,7 +2,7 @@
     $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
 @endphp
 
-<div class="blackjack-page relative" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, playSound(type) { this.$dispatch('casino-sfx', { name: type === 'win' ? 'win' : 'lose' }); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
+<div class="blackjack-page relative casino-game-screen" data-casino-game="blackjack" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, playSound(type) { this.$dispatch('casino-sfx', { name: type === 'win' ? 'win' : 'lose' }); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
     <style>
 .blackjack-page { --gold: #f2c14e; --cw: clamp(3.6rem, 11vw, 5.2rem); }
 .bj-hero { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
