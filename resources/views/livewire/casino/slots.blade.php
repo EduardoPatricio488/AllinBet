@@ -234,6 +234,8 @@
             const startedAt = Date.now();
 
             this.busy = true;
+            this.bonusRunning = false;
+            this.bonusDone = false;
             this.done = false;
             this.revealed = false;
             this.overlay = false;
@@ -622,12 +624,130 @@
         .slot-prize__card small, .slot-prize-sub { color: #aef5d2; font-weight: 700; }
         @keyframes slot-prize-in { from { opacity: 0; transform: scale(.65) translateY(1rem); } to { opacity: 1; transform: none; } }
 
+        .slot-bonus-buy {
+            position: relative;
+            margin-top: .8rem;
+            padding: .9rem;
+            border: 1px solid rgba(242,193,78,.17);
+            border-radius: 1rem;
+            background: linear-gradient(145deg, rgba(242,193,78,.045), rgba(255,255,255,.018));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+        }
+        .slot-bonus-buy__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .8rem;
+        }
+        .slot-bonus-buy__head>div { display: grid; gap: .12rem; }
+        .slot-bonus-buy__head>div>strong { color: #e7dfc8; font-size: .76rem; font-weight: 900; }
+        .slot-bonus-buy__head>div>small { color: #748078; font-size: .56rem; line-height: 1.45; }
+        .slot-bonus-buy__status {
+            flex: none;
+            padding: .35rem .55rem;
+            border: 1px solid rgba(242,193,78,.14);
+            border-radius: 9999px;
+            color: #a59568;
+            font-size: .46rem;
+            font-weight: 950;
+            letter-spacing: .12em;
+        }
+        .slot-bonus-buy__status.is-running {
+            border-color: rgba(242,193,78,.34);
+            color: #f2c14e;
+            box-shadow: 0 0 20px rgba(242,193,78,.06);
+            animation: slot-bonus-status 1s ease-in-out infinite alternate;
+        }
+        .slot-bonus-buy__meter {
+            position: relative;
+            height: .24rem;
+            margin-top: .8rem;
+            overflow: hidden;
+            border-radius: 9999px;
+            background: rgba(255,255,255,.06);
+        }
+        .slot-bonus-buy__meter span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #a87516, #f2c14e, #ffe39a);
+            box-shadow: 0 0 12px rgba(242,193,78,.45);
+            transition: width .12s linear;
+        }
+        .slot-bonus-buy__options {
+            display: grid;
+            grid-template-columns: repeat(3,minmax(0,1fr));
+            gap: .5rem;
+            margin-top: .7rem;
+        }
+        .slot-bonus-option {
+            display: grid;
+            gap: .5rem;
+            min-width: 0;
+            padding: .72rem;
+            text-align: left;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: .8rem;
+            background: rgba(255,255,255,.025);
+            color: #dce3df;
+            cursor: pointer;
+            transition: transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease;
+        }
+        .slot-bonus-option:hover:not(:disabled) {
+            transform: translateY(-2px);
+            border-color: rgba(242,193,78,.42);
+            background: rgba(242,193,78,.06);
+            box-shadow: 0 10px 22px rgba(0,0,0,.18);
+        }
+        .slot-bonus-option:disabled { opacity: .42; cursor: not-allowed; }
+        .slot-bonus-option>span { display: grid; gap: .16rem; min-width: 0; }
+        .slot-bonus-option b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .65rem; font-weight: 900; color: #ece7d8; }
+        .slot-bonus-option span small { color: #738078; font-size: .52rem; }
+        .slot-bonus-option>strong { display: flex; align-items: baseline; justify-content: space-between; gap: .35rem; color: #f2c14e; font-size: .78rem; font-weight: 950; }
+        .slot-bonus-option>strong small { color: #88784e; font-size: .45rem; font-weight: 800; }
+        .slot-bonus-result { width: min(92%, 30rem); }
+        .slot-bonus-result>strong { color: #ffe39a; }
+        .slot-bonus-result__stats {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: .45rem;
+            margin-top: .9rem;
+        }
+        .slot-bonus-result__stats>span {
+            display: grid;
+            gap: .15rem;
+            padding: .55rem;
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: .65rem;
+            background: rgba(255,255,255,.025);
+        }
+        .slot-bonus-result__stats b { color: #e9eee9; font-size: .72rem; font-variant-numeric: tabular-nums; }
+        .slot-bonus-result__stats small { color: #77827c; font-size: .48rem; }
+        .slot-bonus-result__close {
+            margin-top: .9rem;
+            min-height: 2.25rem;
+            padding: .45rem 1rem;
+            border: 1px solid rgba(242,193,78,.36);
+            border-radius: .7rem;
+            background: rgba(242,193,78,.07);
+            color: #f5d778;
+            font-size: .62rem;
+            font-weight: 850;
+            cursor: pointer;
+        }
+        .slot-bonus-result__close:hover { background: rgba(242,193,78,.12); }
+        @keyframes slot-bonus-status { from { opacity:.55; transform:scale(.97); } to { opacity:1; transform:scale(1.02); } }
+
         .slot-payout { font-size: 1.9rem; font-weight: 800; line-height: 1.1; }
         .slot-payout--win { color: var(--gold); text-shadow: 0 0 18px rgba(242, 193, 78, .5); }
 
         @media (max-width: 900px) { .slot-deck { grid-template-columns: 1fr 1fr; } .slot-spin { grid-column: 1 / -1; } .slot-chips { justify-content: flex-start; } }
         @media (max-width: 560px) {
             .slot-header__status { order: 3; width: 100%; justify-content: center; }
+            .slot-bonus-buy__head { align-items: flex-start; flex-direction: column; }
+            .slot-bonus-buy__status { align-self: flex-start; }
+            .slot-bonus-buy__options { grid-template-columns: 1fr; }
+            .slot-bonus-result__stats { grid-template-columns: 1fr 1fr; }
             .slot-deck { grid-template-columns: 1fr; } .slot-spin { grid-column: auto; }
             .slot-markers span { width: 1.2rem; height: 1.2rem; font-size: .6rem; }
             .slot-window { padding: .55rem; }
