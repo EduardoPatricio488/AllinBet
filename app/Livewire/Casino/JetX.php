@@ -52,8 +52,11 @@ final class JetX extends CasinoGameComponent
 
     public function launch(): void
     {
-        $this->playGame(GameType::Jetx, ['action' => 'launch']);
+        if ($this->roundPhase !== RoundStatus::Prepared->value) {
+            return;
+        }
 
+        $this->playGame(GameType::Jetx, ['action' => 'launch']);
         $this->dispatchFlightStarted();
     }
 
@@ -63,11 +66,9 @@ final class JetX extends CasinoGameComponent
             $this->prepareGame(GameType::Jetx);
         }
 
-        if ($this->roundPhase !== RoundStatus::Prepared->value) {
-            return;
+        if ($this->roundPhase === RoundStatus::Prepared->value) {
+            $this->launch();
         }
-
-        $this->launch();
     }
 
     private function dispatchFlightStarted(): void
