@@ -85,101 +85,223 @@ const casinoNoise = (duration = 0.04, volume = 0.012, delay = 0, filterFrequency
 
 const casinoAmbientProfiles = {
 	coinflip: {
-		drone: 82,
-		shimmer: 164,
-		motif: [659.25, 783.99, 987.77, 783.99, 880, 1046.5, 783.99, 659.25],
-		stepMs: 900,
-		wave: 'sine',
+		bpm: 82,
+		progression: [[220, 277.18, 329.63], [196, 246.94, 293.66], [174.61, 220, 261.63], [196, 246.94, 293.66]],
+		arp: [659.25, 783.99, 987.77, 783.99, 739.99, 880, 1046.5, 880],
+		bass: 110,
+		padWave: 'sine',
+		arpWave: 'triangle',
+		accent: 1.0,
 	},
 	dice: {
-		drone: 92,
-		shimmer: 184,
-		motif: [392, 523.25, 587.33, 659.25, 523.25, 783.99, 659.25, 523.25],
-		stepMs: 760,
-		wave: 'triangle',
+		bpm: 94,
+		progression: [[196, 246.94, 293.66], [220, 261.63, 329.63], [164.81, 207.65, 246.94], [196, 246.94, 293.66]],
+		arp: [392, 493.88, 587.33, 659.25, 587.33, 493.88, 783.99, 659.25],
+		bass: 98,
+		padWave: 'triangle',
+		arpWave: 'sine',
+		accent: 0.9,
 	},
 	roulette: {
-		drone: 74,
-		shimmer: 148,
-		motif: [329.63, 392, 493.88, 587.33, 659.25, 493.88, 392, 329.63],
-		stepMs: 680,
-		wave: 'triangle',
+		bpm: 72,
+		progression: [[164.81, 196, 246.94], [146.83, 174.61, 220], [130.81, 164.81, 196], [146.83, 174.61, 220]],
+		arp: [329.63, 392, 493.88, 587.33, 493.88, 392, 659.25, 493.88],
+		bass: 82.41,
+		padWave: 'sine',
+		arpWave: 'triangle',
+		accent: 0.75,
 	},
 	blackjack: {
-		drone: 70,
-		shimmer: 140,
-		motif: [261.63, 329.63, 392, 493.88, 392, 329.63, 293.66, 349.23],
-		stepMs: 1100,
-		wave: 'sine',
+		bpm: 66,
+		progression: [[130.81, 164.81, 196], [146.83, 174.61, 220], [110, 146.83, 174.61], [123.47, 164.81, 196]],
+		arp: [261.63, 329.63, 392, 493.88, 392, 329.63, 440, 349.23],
+		bass: 65.41,
+		padWave: 'sine',
+		arpWave: 'sine',
+		accent: 0.62,
 	},
 	slots: {
-		drone: 96,
-		shimmer: 192,
-		motif: [523.25, 659.25, 783.99, 1046.5, 783.99, 1318.5, 1046.5, 659.25],
-		stepMs: 520,
-		wave: 'square',
+		bpm: 104,
+		progression: [[261.63, 329.63, 392], [293.66, 349.23, 440], [220, 277.18, 329.63], [246.94, 293.66, 369.99]],
+		arp: [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 987.77, 783.99],
+		bass: 130.81,
+		padWave: 'triangle',
+		arpWave: 'triangle',
+		accent: 1.08,
 	},
 	jetx: {
-		drone: 60,
-		shimmer: 120,
-		motif: [220, 277.18, 329.63, 415.3, 493.88, 622.25, 739.99, 880],
-		stepMs: 610,
-		wave: 'sawtooth',
+		bpm: 76,
+		progression: [[110, 138.59, 164.81], [123.47, 155.56, 185], [130.81, 164.81, 196], [146.83, 185, 220]],
+		arp: [220, 277.18, 329.63, 369.99, 440, 369.99, 493.88, 440],
+		bass: 55,
+		padWave: 'sine',
+		arpWave: 'sawtooth',
+		accent: 0.78,
 	},
 };
 
 const currentCasinoGame = () => document.querySelector('[data-casino-game]')?.dataset.casinoGame || 'coinflip';
 
+const createCasinoAmbientVoice = (context, output, {
+	frequency,
+	wave = 'sine',
+	gainValue = 0.01,
+	attack = 0.8,
+	release = 1.4,
+	filterFrequency = 1400,
+} = {}) => {
+	const oscillator = context.createOscillator();
+	const filter = context.createBiquadFilter();
+	const gain = context.createGain();
+
+	oscillator.type = wave;
+	oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+	filter.type = 'lowpass';
+	filter.frequency.setValueAtTime(filterFrequency, context.currentTime);
+	filter.Q.setValueAtTime(0.35, context.currentTime);
+	gain.gain.setValueAtTime(0.0001, context.currentTime);
+	gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainValue), context.currentTime + attack);
+
+	oscillator.connect(filter);
+	filter.connect(gain);
+	gain.connect(output);
+	oscillator.start();
+
+	return { oscillator, gain, release };
+};
+
+const playCasinoAmbientNote = (context, output, frequency, duration, volume, wave = 'triangle') => {
+	const startAt = context.currentTime;
+	const oscillator = context.createOscillator();
+	const filter = context.createBiquadFilter();
+	const gain = context.createGain();
+
+	oscillator.type = wave;
+	oscillator.frequency.setValueAtTime(frequency, startAt);
+	filter.type = 'lowpass';
+	filter.frequency.setValueAtTime(Math.min(3600, frequency * 5), startAt);
+	filter.Q.setValueAtTime(0.4, startAt);
+	gain.gain.setValueAtTime(0.0001, startAt);
+	gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), startAt + 0.025);
+	gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+	oscillator.connect(filter);
+	filter.connect(gain);
+	gain.connect(output);
+	oscillator.start(startAt);
+	oscillator.stop(startAt + duration + 0.04);
+};
+
 const startCasinoAmbient = () => {
 	const context = getCasinoAudioContext();
 	if (! context) return;
 
-	const profile = casinoAmbientProfiles[currentCasinoGame()] || casinoAmbientProfiles.coinflip;
+	const game = currentCasinoGame();
+	const profile = casinoAmbientProfiles[game] || casinoAmbientProfiles.coinflip;
 
-	if (casinoAmbient && casinoAmbient.profile === currentCasinoGame()) return;
+	if (casinoAmbient && casinoAmbient.profile === game) return;
 	if (casinoAmbient) stopCasinoAmbient();
 
 	const master = context.createGain();
+	const compressor = context.createDynamicsCompressor();
 	const lowpass = context.createBiquadFilter();
-	const drone = context.createOscillator();
-	const shimmer = context.createOscillator();
 
 	master.gain.setValueAtTime(0.0001, context.currentTime);
-	master.gain.exponentialRampToValueAtTime(0.024, context.currentTime + 1.2);
+	master.gain.exponentialRampToValueAtTime(0.034, context.currentTime + 1.8);
+
+	compressor.threshold.setValueAtTime(-24, context.currentTime);
+	compressor.knee.setValueAtTime(18, context.currentTime);
+	compressor.ratio.setValueAtTime(8, context.currentTime);
+	compressor.attack.setValueAtTime(0.012, context.currentTime);
+	compressor.release.setValueAtTime(0.35, context.currentTime);
+
 	lowpass.type = 'lowpass';
-	lowpass.frequency.setValueAtTime(1150, context.currentTime);
-	lowpass.Q.setValueAtTime(0.6, context.currentTime);
+	lowpass.frequency.setValueAtTime(5200, context.currentTime);
+	lowpass.Q.setValueAtTime(0.25, context.currentTime);
 
-	drone.type = 'sine';
-	drone.frequency.setValueAtTime(profile.drone, context.currentTime);
-	shimmer.type = 'triangle';
-	shimmer.frequency.setValueAtTime(profile.shimmer, context.currentTime);
+	master.connect(compressor);
+	compressor.connect(lowpass);
+	lowpass.connect(context.destination);
 
-	drone.connect(lowpass);
-	shimmer.connect(lowpass);
-	lowpass.connect(master);
-	master.connect(context.destination);
-	drone.start();
-	shimmer.start();
+	const voices = [];
+	const bass = createCasinoAmbientVoice(context, master, {
+		frequency: profile.bass,
+		wave: 'sine',
+		gainValue: 0.018,
+		attack: 1.4,
+		filterFrequency: 260,
+	});
+	voices.push(bass);
 
-	let cursor = 0;
-	const scheduleMotif = () => {
+	const pad = [
+		createCasinoAmbientVoice(context, master, {
+			frequency: profile.progression[0][0],
+			wave: profile.padWave,
+			gainValue: 0.010,
+			attack: 1.8,
+			filterFrequency: 1200,
+		}),
+		createCasinoAmbientVoice(context, master, {
+			frequency: profile.progression[0][1],
+			wave: profile.padWave,
+			gainValue: 0.008,
+			attack: 1.9,
+			filterFrequency: 1500,
+		}),
+		createCasinoAmbientVoice(context, master, {
+			frequency: profile.progression[0][2],
+			wave: 'sine',
+			gainValue: 0.006,
+			attack: 2.0,
+			filterFrequency: 2000,
+		}),
+	];
+	voices.push(...pad);
+
+	const chordDurationMs = Math.round((60000 / profile.bpm) * 4);
+	let chordIndex = 0;
+	let arpIndex = 0;
+
+	const advanceChord = () => {
 		if (!casinoAmbient || !casinoSoundEnabled() || document.hidden) return;
-		const frequency = profile.motif[cursor % profile.motif.length];
-		casinoTone(frequency, 0.18, profile.wave, 0.008, 0);
-		casinoTone(frequency * 1.5, 0.06, 'sine', 0.0035, 0.045);
-		cursor += 1;
-		casinoAmbient.timer = window.setTimeout(scheduleMotif, profile.stepMs);
+
+		chordIndex = (chordIndex + 1) % profile.progression.length;
+		const chord = profile.progression[chordIndex];
+
+		bass.oscillator.frequency.cancelScheduledValues(context.currentTime);
+		bass.oscillator.frequency.exponentialRampToValueAtTime(chord[0] / 2, context.currentTime + 0.9);
+
+		pad.forEach((voice, index) => {
+			voice.oscillator.frequency.cancelScheduledValues(context.currentTime);
+			voice.oscillator.frequency.exponentialRampToValueAtTime(chord[index], context.currentTime + 1.1);
+		});
+
+		casinoAmbient.chordTimer = window.setTimeout(advanceChord, chordDurationMs);
+	};
+
+	const scheduleArpeggio = () => {
+		if (!casinoAmbient || !casinoSoundEnabled() || document.hidden) return;
+
+		const frequency = profile.arp[arpIndex % profile.arp.length];
+		const volume = 0.0048 * profile.accent;
+		playCasinoAmbientNote(context, master, frequency, 0.42, volume, profile.arpWave);
+		if (arpIndex % 4 === 0) {
+			playCasinoAmbientNote(context, master, frequency / 2, 0.32, volume * 0.34, 'sine');
+		}
+		arpIndex += 1;
+		casinoAmbient.arpTimer = window.setTimeout(scheduleArpeggio, Math.round(60000 / profile.bpm / 2));
 	};
 
 	casinoAmbient = {
-		profile: currentCasinoGame(),
+		profile: game,
 		master,
-		drone,
-		shimmer,
-		timer: null,
+		voices,
+		chordTimer: null,
+		arpTimer: null,
 	};
-	scheduleMotif();
+
+	advanceChord();
+	scheduleArpeggio();
 };
 
 const stopCasinoAmbient = () => {
@@ -187,15 +309,20 @@ const stopCasinoAmbient = () => {
 
 	const ambient = casinoAmbient;
 	const now = casinoAudioContext.currentTime;
+
 	ambient.master.gain.cancelScheduledValues(now);
 	ambient.master.gain.setValueAtTime(Math.max(0.0001, ambient.master.gain.value), now);
-	ambient.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+	ambient.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
 
-	window.clearTimeout(ambient.timer);
+	window.clearTimeout(ambient.chordTimer);
+	window.clearTimeout(ambient.arpTimer);
+
 	window.setTimeout(() => {
-		try { ambient.drone.stop(); } catch {}
-		try { ambient.shimmer.stop(); } catch {}
-	}, 260);
+		ambient.voices.forEach(({ oscillator }) => {
+			try { oscillator.stop(); } catch {}
+		});
+	}, 650);
+
 	casinoAmbient = null;
 };
 
