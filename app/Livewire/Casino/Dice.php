@@ -25,6 +25,14 @@ class Dice extends CasinoGameComponent
             'threshold' => ['required', 'integer', 'between:1,99'],
         ]);
 
+        if (in_array($this->roundPhase, ['ready', 'completed'], true)) {
+            $this->prepare();
+        }
+
+        if ($this->roundPhase !== 'prepared') {
+            return;
+        }
+
         $this->playGame(GameType::Dice, [
             'direction' => $validated['direction'],
             'threshold' => (int) $validated['threshold'],
