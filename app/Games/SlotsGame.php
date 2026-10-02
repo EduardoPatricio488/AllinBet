@@ -11,9 +11,12 @@ use InvalidArgumentException;
 
 class SlotsGame implements Game
 {
-    public function __construct(
-        private readonly ProvablyFairService $provablyFair,
-    ) {}
+    private readonly ProvablyFairService $provablyFair;
+
+    public function __construct(ProvablyFairService $provablyFair)
+    {
+        $this->provablyFair = $provablyFair;
+    }
 
     public function type(): GameType
     {
@@ -73,7 +76,7 @@ class SlotsGame implements Game
         $bonusMultiplier = (int) ($state['bonus_multiplier'] ?? 0);
 
         if (
-            ! (bool) ($state['bonus_buy'] ?? false)
+            !($state['bonus_buy'] ?? false)
             || $baseBet < 1
             || $spinCount < 1
             || $bonusMultiplier < 1
