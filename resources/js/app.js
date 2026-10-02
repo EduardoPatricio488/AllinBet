@@ -89,6 +89,21 @@ const casinoSound = {
 		casinoTone(660, 0.07, 'triangle', 0.035);
 		casinoTone(880, 0.11, 'triangle', 0.035, 0.09);
 	},
+	chip() {
+		casinoTone(720, 0.045, 'triangle', 0.028);
+		casinoTone(980, 0.06, 'triangle', 0.022, 0.045);
+	},
+	toss() {
+		casinoTone(250, 0.07, 'triangle', 0.022);
+		casinoTone(340, 0.07, 'triangle', 0.025, 0.07);
+		casinoTone(460, 0.07, 'triangle', 0.028, 0.14);
+		casinoTone(620, 0.09, 'triangle', 0.03, 0.21);
+		casinoTone(820, 0.12, 'sine', 0.022, 0.31);
+	},
+	land() {
+		casinoTone(180, 0.08, 'sine', 0.038);
+		casinoTone(260, 0.08, 'triangle', 0.03, 0.06);
+	},
 };
 
 document.addEventListener('click', (event) => {
@@ -125,6 +140,13 @@ document.addEventListener('click', (event) => {
 	if (text.includes('adicionar') || text.includes('resgatar')) return casinoSound.credit();
 
 	casinoSound.click();
+});
+
+window.addEventListener('casino-sfx', (event) => {
+	if (! casinoSoundEnabled()) return;
+
+	const name = String(event.detail?.name || '');
+	if (typeof casinoSound[name] === 'function') casinoSound[name]();
 });
 
 window.addEventListener('casino-toast', (event) => {
