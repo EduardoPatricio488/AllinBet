@@ -94,6 +94,12 @@ return [
             'rows' => 5,
             'columns' => 5,
             'symbol_count' => 8,
+            'minimum_match' => 3,
+            'match_multipliers' => [
+                3 => 1,
+                4 => 2,
+                5 => 4,
+            ],
             'paylines' => [
                 ['direction' => 'horizontal', 'index' => 0],
                 ['direction' => 'horizontal', 'index' => 1],
