@@ -11,7 +11,7 @@
 
 <div class="casino-game-play coinflip-page cf"
      x-data="{
-        busy: false, charge: false, tossing: false, landed: false, burst: false, resultVisible: {{ $has ? 'true' : 'false' }},
+        busy: false, charge: false, tossing: false, landed: false, burst: false, revealFace: {{ $has ? 'true' : 'false' }}, resultVisible: {{ $has ? 'true' : 'false' }},
         rot: {{ $initOutcome === 'tails' ? 180 : 0 }}, dur: 0, outcome: @js($initOutcome), won: {{ ($roundResult['won'] ?? false) ? 'true' : 'false' }},
         payout: {{ (int) $roundPayout }}, shown: {{ (int) $roundPayout }}, maxBet: {{ $maxBet }}, mult: {{ $multiplier }},
         get off() { return this.busy || this.$wire.roundPhase === 'prepared'; },
@@ -25,7 +25,7 @@
         async play() {
             if (this.busy) return;
             const w = this.$wire, calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            this.busy = true; this.charge = true; this.resultVisible = false; this.burst = false;
+            this.busy = true; this.charge = true; this.resultVisible = false; this.burst = false; this.revealFace = false;
             try {
                 if (w.roundPhase !== 'prepared') await w.prepare();
                 if (w.roundPhase !== 'prepared') { this.busy = false; this.charge = false; return; }
@@ -34,9 +34,13 @@
             if (w.roundPhase !== 'completed') { this.busy = false; this.charge = false; return; }
             const out = w.roundResult?.outcome === 'tails' ? 'tails' : 'heads', target = out === 'tails' ? 180 : 0, mod = (a) => ((a % 360) + 360) % 360;
             this.outcome = out; this.won = !!w.roundResult?.won; this.payout = Number(w.roundPayout || 0); this.shown = 0;
-            this.charge = false; this.dur = calm ? 0 : 1900; this.rot += 1800 + mod(target - this.rot); this.tossing = !calm; this.sfx('toss');
+            this.charge = false; this.dur = calm ? 0 : 1900; this.tossing = !calm; this.sfx('toss');
             if (!calm) await this.wait(1950);
-            this.tossing = false; this.landed = true; this.sfx('land'); setTimeout(() => { this.landed = false; }, 600);
+            this.tossing = false;
+            this.rot += 1800 + mod(target - this.rot);
+            await this.wait(calm ? 0 : 90);
+            this.revealFace = true;
+            this.landed = true; this.sfx('land'); setTimeout(() => { this.landed = false; }, 600);
             this.resultVisible = true; this.busy = false;
             if (this.won && this.payout > 0) {
                 this.burst = true; this.count(this.payout); this.sfx('win'); setTimeout(() => { this.burst = false; }, 1400);
@@ -50,8 +54,16 @@
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
             <path id="cfArc" d="M50 50m-37 0a37 37 0 1 1 74 0a37 37 0 1 1-74 0"/>
-            <symbol id="cfH" viewBox="0 0 100 100"><path d="M20 66 14 34l22 16 14-24 14 24 22-16-6 32Z"/><rect x="20" y="70" width="60" height="9" rx="3"/><circle cx="14" cy="32" r="4"/><circle cx="50" cy="23" r="4"/><circle cx="86" cy="32" r="4"/></symbol>
-            <symbol id="cfT" viewBox="0 0 100 100"><path d="m50 18 8.8 18 19.8 2.9-14.3 14 3.4 19.8L50 63.300l-17.700 9.400 3.400-19.800-14.300-14L41.200 36Z"/></symbol>
+            <symbol id="cfH" viewBox="0 0 100 100">
+                <path d="M31 73c5-12 12-18 17-21-5-4-8-10-8-17 0-11 8-20 19-20 10 0 18 8 18 18 0 7-4 13-9 17 6 4 12 12 16 23Z"/>
+                <circle cx="56" cy="16" r="2.4"/><path d="M56 25c-7 0-12 6-12 14 0 6 3 11 8 14l-4 4h13l-4-4c5-3 8-8 8-14 0-8-4-14-9-14Z"/>
+            </symbol>
+            <symbol id="cfT" viewBox="0 0 100 100">
+                <path d="M25 34h50l-5 15c-1 3-4 5-8 5H38c-4 0-7-2-8-5Z"/>
+                <path d="M30 54h40l-4 9H34Z"/>
+                <path d="M34 66h32v13H34Z"/>
+                <path d="M29 31 35 20l8 11 7-12 7 12 8-11 6 11Z"/>
+            </symbol>
         </defs>
     </svg>
 
@@ -78,7 +90,16 @@
         .cf-toss.is-charge{animation:cfCharge .5s ease-in-out infinite alternate}
         .cf-toss.is-idle{animation:cfIdle 4.4s ease-in-out infinite}
         .cf-toss.is-land{animation:cfLand .52s cubic-bezier(.2,.9,.3,1)}
-        .cf-coin{position:relative;width:10.6rem;height:10.6rem;transform-style:preserve-3d;transition:transform .15s ease;filter:drop-shadow(0 26px 24px rgba(0,0,0,.42));will-change:transform}
+        .cf-coin{position:relative;width:10.6rem;height:10.6rem;transform-style:preserve-3d;transform:rotateY(var(--rot));transition:transform .38s cubic-bezier(.2,.85,.25,1);filter:drop-shadow(0 26px 24px rgba(0,0,0,.42));will-change:transform}
+        .cf-coin.is-tossing{animation:cfCoinSpin var(--dur,1900ms) cubic-bezier(.13,.78,.2,1) both}
+        .cf-unknown{position:absolute;inset:.38rem;z-index:3;display:grid;place-items:center;border-radius:50%;border:2px solid rgba(255,242,180,.38);background:radial-gradient(circle at 35% 28%,#e9c66b,#b97617 58%,#724308);color:rgba(255,243,190,.86);font-size:4rem;font-weight:1000;text-shadow:0 2px 10px rgba(84,43,4,.4);box-shadow:inset 0 0 0 .18rem rgba(255,255,255,.18),inset 0 -1rem 1.2rem rgba(84,43,4,.28);backface-visibility:hidden;transform:translateZ(.2rem);transition:opacity .15s ease,transform .25s ease}
+        .cf-unknown.is-hidden{opacity:0;transform:translateZ(.2rem) scale(.96)}
+        .cf-coin.is-tossing .cf-face{opacity:0;visibility:hidden}
+        .cf-coin.is-revealed .cf-face{opacity:1;visibility:visible}
+        .cf-coin.is-tossing .cf-unknown{opacity:1;visibility:visible}
+        .cf-coin.is-revealed .cf-unknown{opacity:0;visibility:hidden}
+        .cf-coin.is-tossing .cf-slice{opacity:.78}
+        .cf-face{transition:opacity .16s ease,visibility .16s ease}
         .cf-coin::after{content:"";position:absolute;inset:-.7rem;border-radius:50%;border:1px solid rgba(244,196,95,.11);box-shadow:0 0 38px rgba(244,196,95,.1);transform:translateZ(-1px)}
         .cf-slice{position:absolute;inset:.05rem;border-radius:50%;border:1px solid rgba(151,95,17,.38);background:linear-gradient(180deg,#7c4b0b,#e0a43d 32%,#8f5b12 66%,#d99930);backface-visibility:hidden;transform-style:preserve-3d}
         .cf-face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;display:grid;place-items:center;border:.38rem solid #b87718;background:radial-gradient(circle at 34% 28%,#fff3bd 0,#f4cd6d 12%,#d99a2e 38%,#ae6d11 70%,#6f4108 100%);box-shadow:inset 0 0 0 .14rem rgba(255,255,255,.34),inset 0 -1rem 1.4rem rgba(86,44,2,.3),0 0 0 2px rgba(255,255,255,.06)}
@@ -108,10 +129,11 @@
         .cf-streak{display:flex;align-items:center;gap:.65rem;margin-top:.72rem;padding:.66rem .7rem;border:1px solid rgba(255,255,255,.06);border-radius:.78rem;background:rgba(255,255,255,.018)}.cf-orb{width:2rem;height:2rem;display:grid;place-items:center;flex:none;border-radius:50%;background:radial-gradient(circle at 30% 28%,#fff4c5,#eabb57 38%,#9d6115 100%);color:#6b4109;font-weight:1000;box-shadow:0 0 18px rgba(244,196,95,.12)}.cf-streak b{display:block;font-size:.67rem;color:#e4e9ef}.cf-streak>span:nth-child(2) small{display:block;margin-top:.08rem;font-size:.56rem;color:#6f7986}.cf-streak>small{font-size:.56rem;color:#687382}
         .cf-history{display:flex;flex-wrap:wrap;gap:.38rem;margin-top:.72rem}.cf-dot{width:1.9rem;height:1.9rem;display:grid;place-items:center;border-radius:50%;font-size:.63rem;font-weight:1000;border:1px solid rgba(255,255,255,.08);transition:transform .18s ease}.cf-dot:hover{transform:translateY(-2px)}.cf-dot.is-h{background:rgba(244,196,95,.1);color:#f2ca6c;border-color:rgba(244,196,95,.25)}.cf-dot.is-t{background:rgba(231,113,121,.1);color:#ef858d;border-color:rgba(231,113,121,.22)}
         .cf-panel>summary{list-style:none;cursor:pointer}.cf-panel>summary::-webkit-details-marker{display:none}.cf-panel>summary::after{content:"+";float:right;color:#727d8b;font-size:.95rem}.cf-panel[open]>summary::after{content:"−"}.cf-seed{width:100%;margin-top:.55rem;padding:.62rem .68rem;border:1px solid rgba(255,255,255,.08);border-radius:.72rem;background:#0b0f14;color:#dce2e8;font:600 .66rem ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
+        @keyframes cfCoinSpin{0%{transform:rotateY(0deg) rotateX(0deg) rotateZ(-2deg)}14%{transform:rotateY(360deg) rotateX(12deg) rotateZ(5deg)}34%{transform:rotateY(920deg) rotateX(-16deg) rotateZ(-7deg)}54%{transform:rotateY(1450deg) rotateX(13deg) rotateZ(6deg)}72%{transform:rotateY(1980deg) rotateX(-9deg) rotateZ(-4deg)}88%{transform:rotateY(2350deg) rotateX(5deg) rotateZ(2deg)}100%{transform:rotateY(2520deg) rotateX(0deg) rotateZ(0deg)}}
         @keyframes cfSweep{to{transform:rotate(360deg)}}@keyframes cfBlink{from{opacity:.55;transform:scale(.75)}to{opacity:1;transform:scale(1.12)}}@keyframes cfAura{0%,100%{transform:scale(.95);opacity:.7}50%{transform:scale(1.06);opacity:1}}@keyframes cfIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes cfCharge{from{transform:translateY(0) scale(.99)}to{transform:translateY(-2px) scale(1.015)}}@keyframes cfLand{0%{transform:translateY(-.15rem) scale(.98)}45%{transform:translateY(.38rem) scale(1.035)}100%{transform:translateY(0) scale(1)}}@keyframes cfLandShadow{0%{opacity:.55;transform:scaleX(.65)}100%{opacity:1;transform:scaleX(1.28)}}@keyframes cfSpark{0%{opacity:0;transform:rotate(calc(var(--i)*25.7deg)) translateY(0) scale(.3)}12%{opacity:1}100%{opacity:0;transform:rotate(calc(var(--i)*25.7deg)) translateY(150px) scale(.08)}}@keyframes cfFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}18%{opacity:1;transform:translate(-50%,0) scale(1.05)}100%{opacity:0;transform:translate(-50%,-62px) scale(.9)}}@keyframes cfShine{0%,55%,100%{transform:translateX(-180%) skewX(-18deg)}72%{transform:translateX(350%) skewX(-18deg)}}
         @media(max-width:1024px){.cf-layout{grid-template-columns:1fr}.cf-stage{min-height:33rem}}
         @media(max-width:640px){.cf-top{align-items:flex-start}.cf-status{max-width:45%;white-space:normal;text-align:right}.cf-stage{min-height:30rem;border-radius:1.25rem}.cf-scene{min-height:23rem}.cf-toss{width:12rem;height:12rem}.cf-coin{width:9.3rem;height:9.3rem}.cf-sides{grid-template-columns:1fr}.cf-result{min-width:12.5rem}.cf-aura{width:18rem;height:18rem}.cf-floor{width:14rem}.cf-shadow{width:8rem}.cf-payout{align-items:flex-start}}
-        @media(prefers-reduced-motion:reduce){.cf-stage::before,.cf-status i,.cf-aura,.cf-toss,.cf-spark.is-on,.cf-float,.cf-play::after{animation:none!important}.cf-coin{transition:none}.cf-shadow.is-land{animation:none}}
+        @media(prefers-reduced-motion:reduce){.cf-stage::before,.cf-status i,.cf-aura,.cf-toss,.cf-spark.is-on,.cf-float,.cf-play::after,.cf-coin.is-tossing{animation:none!important}.cf-coin{transition:none}.cf-shadow.is-land{animation:none}}
     </style>
 
     <div class="cf-layout">
@@ -127,8 +149,9 @@
                 <div class="cf-shadow" :class="{ 'is-toss': tossing, 'is-land': landed }" aria-hidden="true"></div>
 
                 <div class="cf-toss" :class="{ 'is-toss': tossing, 'is-idle': !tossing && !busy, 'is-charge': charge, 'is-land': landed }">
-                    <div class="cf-coin" :style="'--dur:' + dur + 'ms; transform: rotateY(' + rot + 'deg)'" role="img" :aria-label="outcome === 'heads' ? 'Moeda: Cara' : 'Moeda: Coroa'">
+                    <div class="cf-coin" :class="{ 'is-tossing': tossing, 'is-revealed': revealFace }" :style="'--dur:' + dur + 'ms; --rot:' + rot + 'deg'" role="img" :aria-label="tossing ? 'Moeda a rodar' : (outcome === 'heads' ? 'Moeda: Cara' : 'Moeda: Coroa')">
                         @for ($z = -5; $z <= 5; $z++)<i class="cf-slice" style="transform: translateZ({{ $z }}px)"></i>@endfor
+                        <div class="cf-unknown" :class="{ 'is-hidden': revealFace }" aria-hidden="true">?</div>
                         <div class="cf-face cf-face--h">
                             <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" class="cf-ring"/><circle cx="50" cy="50" r="31" class="cf-ring"/><text class="cf-arc"><textPath href="#cfArc">ALLINBET · CARA · ALLINBET · CARA ·</textPath></text><use href="#cfH" x="25" y="27" width="50" height="50" class="cf-emblem"/></svg>
                         </div>
