@@ -237,6 +237,7 @@
 
     <x-casino.how-it-works game-key="coinflip" title="Como funciona o Coinflip?" description="Escolhe Cara ou Coroa e lança a moeda. Se o resultado coincidir com a tua escolha, recebes o pagamento da ronda." :rules="[['title'=>'Escolhe o lado','text'=>'Seleciona Cara ou Coroa (teclas C e T).'], ['title'=>'Define a aposta','text'=>'Escolhe quantos créditos virtuais queres colocar na ronda.'], ['title'=>'Lança a moeda','text'=>'Carrega em Lançar (ou na barra de espaço) para revelar o resultado.'], ['title'=>'Ganha se acertares','text'=>'Se a moeda cair no teu lado, recebes os créditos correspondentes.']]" />
 
+    <x-casino.loading-overlay target="prepare,flip" />
     <style>
         .cf{--cf-gold:#f4c45f;--cf-gold-soft:#dca33c;--cf-gold-dark:#7f4d09;--cf-green:#49e0a5;--cf-red:#f46d77}
         .cf-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(18rem,.72fr);gap:1.35rem;align-items:start}
