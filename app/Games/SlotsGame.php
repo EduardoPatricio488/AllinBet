@@ -80,8 +80,8 @@ class SlotsGame implements Game
 
         $lineCount = count($paylines);
 
-        if ($bet <= 0 || $lineCount === 0 || $bet % $lineCount !== 0) {
-            throw new InvalidArgumentException('The slots wager must be positive and divisible by the number of active paylines.');
+        if ($bet <= 0 || $lineCount === 0) {
+            throw new InvalidArgumentException('The slots wager must be a positive number of virtual credits.');
         }
 
         if (count($grid) !== $rows) {
@@ -100,7 +100,6 @@ class SlotsGame implements Game
             }
         }
 
-        $lineBet = intdiv($bet, $lineCount);
         $winningLines = [];
         $payout = 0;
 
@@ -135,7 +134,7 @@ class SlotsGame implements Game
                 continue;
             }
 
-            $payout += $lineBet * $multiplier;
+            $payout += intdiv($bet * $multiplier, $lineCount);
             $winningLines[] = [
                 'direction' => $direction,
                 'line' => $index,
