@@ -718,6 +718,35 @@ document.addEventListener('click', (event) => {
 	resetCasinoAudioSettings();
 });
 
+let casinoSettlementTimer = null;
+
+const dispatchCasinoSettlement = () => {
+	if (window.Livewire && typeof window.Livewire.dispatch === 'function') {
+		window.Livewire.dispatch('casino-settle-payout');
+	}
+};
+
+const scheduleCasinoSettlement = (afterMs = 0) => {
+	window.clearTimeout(casinoSettlementTimer);
+	casinoSettlementTimer = window.setTimeout(
+		dispatchCasinoSettlement,
+		Math.max(80, Number(afterMs) + 80),
+	);
+};
+
+document.addEventListener('casino-settlement-pending', (event) => {
+	scheduleCasinoSettlement(event.detail?.afterMs ?? 0);
+});
+
+document.addEventListener('casino-settlement-retry', () => {
+	scheduleCasinoSettlement(250);
+});
+
+document.addEventListener('livewire:navigated', () => {
+	window.clearTimeout(casinoSettlementTimer);
+	casinoSettlementTimer = null;
+});
+
 document.addEventListener('DOMContentLoaded', updateCasinoSoundControls);
 document.addEventListener('DOMContentLoaded', setupCasinoSlotSounds);
 document.addEventListener('DOMContentLoaded', syncCasinoAmbient);
