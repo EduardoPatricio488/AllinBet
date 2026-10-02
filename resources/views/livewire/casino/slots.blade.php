@@ -325,38 +325,7 @@
         }
         .slot-header__status.is-ready i { background: #65d6a3; }
 
-        .slot-result-veil {
-            position: absolute;
-            inset: 0;
-            z-index: 6;
-            display: grid;
-            place-items: center;
-            align-content: center;
-            gap: .28rem;
-            background: linear-gradient(180deg, rgba(3,7,6,.08), rgba(3,7,6,.42));
-            pointer-events: none;
-        }
-        .slot-result-veil__dot {
-            width: .65rem;
-            height: .65rem;
-            border-radius: 50%;
-            border: 2px solid rgba(242,193,78,.26);
-            border-top-color: #f2c14e;
-            animation: slot-veil-spin .8s linear infinite;
-        }
-        .slot-result-veil b {
-            color: #d4c993;
-            font-size: .52rem;
-            font-weight: 950;
-            letter-spacing: .16em;
-        }
-        .slot-result-veil small {
-            color: #6f7b75;
-            font-size: .5rem;
-        }
-
         @keyframes slot-status-pulse { from { transform: scale(.75); opacity: .55; } to { transform: scale(1.15); opacity: 1; } }
-        @keyframes slot-veil-spin { to { transform: rotate(360deg); } }
 
         .slot-machine { --cell: clamp(4.2rem, 16vw, 6.6rem); --gold: #f2c14e; --gold-hi: #ffe39a; }
         .allin-slots { --green: #23d99a; --line: rgba(255,255,255,.08); }
@@ -393,7 +362,7 @@
         }
         .slot-reel::after {
             content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
-            background: linear-gradient(180deg, rgba(0, 0, 0, .7), transparent 28%, transparent 72%, rgba(0, 0, 0, .7));
+            background: linear-gradient(180deg, rgba(0, 0, 0, .52), transparent 28%, transparent 72%, rgba(0, 0, 0, .58));
         }
         .slot-sym { display: grid; place-items: center; width: 100%; height: var(--cell); font-size: clamp(2.3rem, 5.8vw, 4rem); line-height: 1; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); user-select: none; }
         .slot-spinner {
@@ -401,6 +370,37 @@
             grid-template-columns: 1fr;
             width: 100%;
             will-change: transform;
+        }
+        .slot-reels::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(var(--cell) * 1);
+            height: var(--cell);
+            z-index: 5;
+            pointer-events: none;
+            border-top: 1px solid rgba(242, 193, 78, .12);
+            border-bottom: 1px solid rgba(242, 193, 78, .12);
+            background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(242,193,78,.045) 50%, rgba(255,255,255,.025));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.025), inset 0 -1px 0 rgba(255,255,255,.025);
+        }
+        .slot-reels::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 4;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(0,0,0,.34), transparent 24%, transparent 76%, rgba(0,0,0,.4));
+        }
+        .slot-reel.is-spin .slot-spinner {
+            filter: blur(1.8px);
+        }
+        .slot-reel.is-settle .slot-spinner {
+            filter: blur(.55px);
         }
         .slot-landing {
             display: grid;
@@ -524,7 +524,7 @@
         @media (prefers-reduced-motion: reduce) {
             .slot-reel.is-spin .slot-spinner, .slot-reel.is-settle .slot-spinner, .slot-reel.is-land .slot-landing,
             .slot-window.is-done .slot-payline, .slot-window.is-done .slot-sym.is-win, .slot-prize__card, .slot-prize-card,
-            .slot-header__status.is-spinning i, .slot-result-veil__dot { animation: none; }
+            .slot-header__status.is-spinning i { animation: none; }
             .slot-reel.is-spin .slot-spinner { filter: none; }
         }
     </style>
@@ -569,11 +569,6 @@
                 </div>
 
                 <div class="slot-reels" role="img" aria-label="Rolos com 9 posições, 3 colunas e 3 linhas">
-                    <div class="slot-result-veil" x-show="busy || !revealed" x-cloak aria-hidden="true">
-                        <span class="slot-result-veil__dot"></span>
-                        <b x-text="settled < 3 ? 'RESULTADO OCULTO' : 'A REVELAR'"></b>
-                        <small x-text="settled + '/3 rolos'"></small>
-                    </div>
                     @foreach ([0, 1, 2] as $c)
                         <div class="slot-reel" :class="'is-' + st[{{ $c }}]">
                             <div class="slot-spinner" aria-hidden="true">
