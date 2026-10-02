@@ -81,6 +81,12 @@
     position: relative;
     isolation: isolate;
 }
+.casino-game-card__link{position:relative;display:block;height:100%;text-decoration:none;color:inherit}
+.casino-game-card__favorite{position:absolute;top:.55rem;right:.55rem;z-index:8;display:grid;place-items:center;width:2rem;height:2rem;border:1px solid rgb(255 255 255 / 8%);border-radius:999px;background:rgb(5 9 8 / 72%);color:#7f8a85;font-size:.78rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);transition:transform .16s ease,color .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}
+.casino-game-card__favorite:hover{transform:scale(1.08);color:#f5d778;border-color:rgb(242 193 78 / 30%);background:rgb(242 193 78 / 8%)}
+.casino-game-card__favorite.is-active{color:#f5d778;border-color:rgb(242 193 78 / 45%);background:rgb(242 193 78 / 10%);box-shadow:0 0 16px rgb(242 193 78 / 10%)}
+.casino-game-card__favorite:focus-visible{outline:2px solid #ffe39a;outline-offset:2px}
+
 
 .casino-game-card__aura {
     position: absolute;
