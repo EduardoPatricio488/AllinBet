@@ -39,6 +39,14 @@ class Roulette extends CasinoGameComponent
             ? (int) $validated['selection']
             : $validated['selection'];
 
+        if (in_array($this->roundPhase, ['ready', 'completed'], true)) {
+            $this->prepare();
+        }
+
+        if ($this->roundPhase !== 'prepared') {
+            return;
+        }
+
         $this->playGame(GameType::Roulette, [
             'bet_type' => $validated['betType'],
             'selection' => $selection,
