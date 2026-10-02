@@ -158,8 +158,9 @@
                 <main class="casino-main mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-8 lg:px-8">
                     @if ($isCasinoGameRoute && $currentCasinoGame)
                         <div class="casino-game-chrome" data-casino-game-chrome
-                             x-data="{ state: 'ready', labels: { ready: 'APOSTA ABERTA', prepared: 'APOSTA PREPARADA', in_progress: 'EM JOGO', completed: 'RESULTADO', cancelled: 'CANCELADA' } }"
+                             x-data="{ state: 'ready', labels: { ready: 'APOSTA ABERTA', prepared: 'APOSTA BLOQUEADA', in_progress: 'EM JOGO', payout: 'PAYOUT A CONFIRMAR', completed: 'RESULTADO', cancelled: 'CANCELADA' } }"
                              x-on:casino-round-state.window="state = $event.detail?.phase || 'ready'"
+                             x-on:casino-settlement-pending.window="state = 'payout'"
                              x-on:casino-round-result.window="state = 'completed'">
                             <div class="casino-game-chrome__head">
                                 <div>
@@ -203,12 +204,13 @@
                                     { key: 'ready', label: 'APOSTA' },
                                     { key: 'prepared', label: 'BLOQUEADA' },
                                     { key: 'in_progress', label: 'EM JOGO' },
+                                    { key: 'payout', label: 'PAYOUT' },
                                     { key: 'completed', label: 'RESULTADO' }
                                 ]" :key="item.key">
                                     <span class="casino-game-flow__step"
                                           :class="{
                                               'is-current': state === item.key,
-                                              'is-done': ['prepared','in_progress','completed'].indexOf(state) > ['ready','prepared','in_progress','completed'].indexOf(item.key)
+                                              'is-done': ['prepared','in_progress','payout','completed'].indexOf(state) > ['ready','prepared','in_progress','payout','completed'].indexOf(item.key)
                                           }">
                                         <i></i><b x-text="item.label"></b>
                                     </span>
