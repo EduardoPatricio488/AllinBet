@@ -214,34 +214,102 @@
                 open: false,
                 started: Number(sessionStorage.getItem('casino-start') || Date.now()),
                 timer: null,
+                now: Date.now(),
+                nextBreak: Number(sessionStorage.getItem('casino-next') || 0),
                 init() {
                     sessionStorage.setItem('casino-start', this.started);
+                    this.nextBreak = this.nextBreak || (this.started + 1800000);
+                    sessionStorage.setItem('casino-next', String(this.nextBreak));
+
                     this.timer = window.setInterval(() => {
-                        const next = Number(sessionStorage.getItem('casino-next') || (this.started + 1800000));
-                        if (Date.now() >= next) {
+                        this.now = Date.now();
+
+                        if (this.now >= this.nextBreak) {
                             this.open = true;
-                            sessionStorage.setItem('casino-next', String(Date.now() + 1800000));
+                            this.nextBreak = this.now + 1800000;
+                            sessionStorage.setItem('casino-next', String(this.nextBreak));
                         }
-                    }, 15000);
+                    }, 1000);
                 },
                 destroy() { window.clearInterval(this.timer); },
-                get minutes() { return Math.floor((Date.now() - this.started) / 60000); }
+                dismiss() { this.open = false; this.now = Date.now(); },
+                get minutes() { return Math.max(0, Math.floor((this.now - this.started) / 60000)); },
+                get elapsedLabel() {
+                    const h = Math.floor(this.minutes / 60);
+                    const m = this.minutes % 60;
+                    return h > 0 ? h + 'h ' + String(m).padStart(2, '0') + 'min' : m + 'min';
+                },
+                get nextBreakMinutes() { return Math.max(0, Math.ceil((this.nextBreak - this.now) / 60000)); },
+                get progress() {
+                    const cycle = 1800000;
+                    const sinceLast = Math.max(0, this.now - (this.nextBreak - cycle));
+                    return Math.min(100, (sinceLast / cycle) * 100);
+                },
+                get message() {
+                    if (this.minutes >= 120) return 'Já passou bastante tempo. Uma pausa mais longa pode ser uma boa altura para desligar por uns minutos.';
+                    if (this.minutes >= 60) return 'Uma hora de jogo já passou. Faz uma pausa, bebe água e decide com calma se queres continuar.';
+                    return 'Estás há algum tempo no jogo. Levanta-te, estica as pernas e decide com calma se queres continuar.';
+                }
             }"
             x-cloak
             x-show="open"
-            x-transition.opacity
-            class="casino-modal"
+            x-transition:enter="casino-pause-enter"
+            x-transition:enter-start="casino-pause-enter-start"
+            x-transition:enter-end="casino-pause-enter-end"
+            x-transition:leave="casino-pause-leave"
+            x-transition:leave-start="casino-pause-leave-start"
+            x-transition:leave-end="casino-pause-leave-end"
+            class="casino-modal casino-pause-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="rc-title"
+            x-on:keydown.escape.window="dismiss()"
         >
-            <div class="casino-modal__panel casino-card">
-                <p class="casino-eyebrow">LEMBRETE DE PAUSA</p>
-                <h2 id="rc-title">Que tal fazer uma pausa?</h2>
-                <p>Já está a jogar há <strong><span x-text="minutes"></span> <span x-text="minutes === 1 ? 'minuto' : 'minutos'"></span></strong>. Levante-se, estique as pernas e volte quando se sentir pronto.</p>
-                <div class="flex flex-wrap gap-3">
-                    <button type="button" class="casino-button casino-button--secondary" x-on:click="open = false">Continuar</button>
-                    <a class="casino-button casino-button--secondary" href="{{ route('casino.help') }}" wire:navigate>Ver jogo responsável</a>
+            <div class="casino-pause-card" @click.stop>
+                <div class="casino-pause-glow" aria-hidden="true"></div>
+
+                <div class="casino-pause-top">
+                    <div class="casino-pause-icon" aria-hidden="true">☕</div>
+                    <div>
+                        <p class="casino-eyebrow">LEMBRETE DE PAUSA</p>
+                        <span class="casino-pause-live"><i></i> JOGA COM CALMA</span>
+                    </div>
+                    <button type="button" class="casino-pause-close" aria-label="Fechar lembrete" x-on:click="dismiss()">×</button>
+                </div>
+
+                <div class="casino-pause-heading">
+                    <h2 id="rc-title">Está na hora de fazer uma pausa?</h2>
+                    <p x-text="message"></p>
+                </div>
+
+                <div class="casino-pause-stats">
+                    <div>
+                        <span>TEMPO DE JOGO</span>
+                        <strong x-text="elapsedLabel"></strong>
+                    </div>
+                    <div>
+                        <span>PRÓXIMO LEMBRETE</span>
+                        <strong x-text="nextBreakMinutes > 0 ? nextBreakMinutes + ' min' : 'agora'"></strong>
+                    </div>
+                </div>
+
+                <div class="casino-pause-progress" aria-hidden="true">
+                    <span :style="'width:' + progress + '%'"></span>
+                </div>
+                <p class="casino-pause-caption">O tempo é contado nesta sessão e serve apenas como lembrete.</p>
+
+                <div class="casino-pause-actions">
+                    <a class="casino-button casino-button--primary" href="{{ route('casino.help') }}" wire:navigate>
+                        Ver jogo responsável
+                    </a>
+                    <button type="button" class="casino-button casino-button--secondary" x-on:click="dismiss()">
+                        Fechar por agora
+                    </button>
+                </div>
+
+                <div class="casino-pause-footer">
+                    <span>◷</span>
+                    <span>Fazer pausas regulares pode ajudar a manter o jogo sob controlo.</span>
                 </div>
             </div>
         </div>
