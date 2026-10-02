@@ -38,6 +38,7 @@
         bonusCost: 0,
         bonusPayout: 0,
         bonusProfit: 0,
+        bonusConfirmation: null,
         bonusOptions: @js(config('casino.games.slots.bonus_buy.options', [])),
         maxBet: {{ $maxBet }},
         wait: (ms) => new Promise((r) => setTimeout(r, ms)),
@@ -165,6 +166,15 @@
 
             this.done = true;
         },
+        async confirmBonusPurchase() {
+            const multiplier = Number(this.bonusConfirmation?.multiplier || 0);
+            this.bonusConfirmation = null;
+
+            if (multiplier > 0) {
+                await this.buyBonus(multiplier);
+            }
+        },
+
         async buyBonus(multiplier) {
             if (this.busy || this.bonusRunning) return;
 
@@ -705,6 +715,34 @@
         .slot-prize__card small, .slot-prize-sub { color: #aef5d2; font-weight: 700; }
         @keyframes slot-prize-in { from { opacity: 0; transform: scale(.65) translateY(1rem); } to { opacity: 1; transform: none; } }
 
+        .slot-bonus-confirm-backdrop{
+            position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:1rem;
+            background:rgba(1,4,3,.74);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+        }
+        .slot-bonus-confirm{
+            width:min(100%,29rem);padding:1.35rem;border:1px solid rgba(242,193,78,.34);
+            border-radius:1.35rem;background:linear-gradient(145deg,#121a17,#090f0d);
+            box-shadow:0 30px 90px rgba(0,0,0,.62),0 0 50px rgba(242,193,78,.08);
+        }
+        .slot-bonus-confirm__icon{
+            display:grid;place-items:center;width:2.35rem;height:2.35rem;border-radius:.75rem;
+            border:1px solid rgba(242,193,78,.25);background:rgba(242,193,78,.07);
+            color:#f5d778;font-size:1.05rem;
+        }
+        .slot-bonus-confirm h2{margin-top:.5rem;font-size:1.2rem;font-weight:950;color:#f3f6f4}
+        .slot-bonus-confirm__copy{margin-top:.45rem;font-size:.72rem;line-height:1.55;color:#89968f}
+        .slot-bonus-confirm__copy strong{color:#f4d17b}
+        .slot-bonus-confirm__summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin-top:1rem}
+        .slot-bonus-confirm__summary span{padding:.65rem .55rem;border:1px solid rgba(255,255,255,.07);border-radius:.75rem;background:rgba(255,255,255,.025)}
+        .slot-bonus-confirm__summary small{display:block;color:#6f7c75;font-size:.5rem;text-transform:uppercase;letter-spacing:.08em}
+        .slot-bonus-confirm__summary b{display:block;margin-top:.18rem;color:#e8eee9;font-size:.74rem;font-weight:900}
+        .slot-bonus-confirm__actions{display:grid;grid-template-columns:1fr 1.2fr;gap:.55rem;margin-top:1rem}
+        .slot-bonus-confirm__cancel,.slot-bonus-confirm__accept{min-height:2.8rem;border-radius:.85rem;font-size:.72rem;font-weight:950;cursor:pointer}
+        .slot-bonus-confirm__cancel{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.025);color:#a7b0ab}
+        .slot-bonus-confirm__accept{border:1px solid rgba(242,193,78,.55);background:linear-gradient(180deg,#ffe9aa,#dcae3c);color:#261b07;box-shadow:0 8px 20px rgba(211,164,48,.18)}
+        .slot-bonus-confirm__note{display:block;margin-top:.75rem;color:#68756e;font-size:.53rem;line-height:1.45}
+        @media(max-width:520px){.slot-bonus-confirm__summary{grid-template-columns:1fr}.slot-bonus-confirm__actions{grid-template-columns:1fr}}
+        
         .slot-bonus-buy {
             position: relative;
             margin-top: .8rem;
@@ -974,7 +1012,7 @@
                         <button type="button"
                                 class="slot-bonus-option"
                                 :disabled="busy || bonusRunning || (Number($wire.bet || 0) * {{ (int) $option['multiplier'] }}) > maxBet || Number($wire.bet || 0) < 1"
-                                x-on:click="buyBonus({{ (int) $option['multiplier'] }})">
+                                x-on:click="bonusConfirmation = bonusOption({{ (int) $option['multiplier'] }})">
                             <span>
                                 <b>{{ $option['label'] }}</b>
                                 <small>{{ (int) $option['spins'] }} giros automáticos</small>
@@ -994,6 +1032,35 @@
         </section>
     </div>
 
+    <div x-cloak x-show="bonusConfirmation" x-transition.opacity class="slot-bonus-confirm-backdrop"
+         x-on:click.self="bonusConfirmation = null"
+         x-on:keydown.escape.window="bonusConfirmation = null"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="slot-bonus-confirm-title">
+        <div class="slot-bonus-confirm" x-show="bonusConfirmation" x-transition.scale.95>
+            <div class="slot-bonus-confirm__icon" aria-hidden="true">✦</div>
+            <p class="slot-label">CONFIRMAR COMPRA</p>
+            <h2 id="slot-bonus-confirm-title">Comprar <span x-text="bonusConfirmation?.label || 'Bónus'"></span>?</h2>
+            <p class="slot-bonus-confirm__copy">
+                Vais gastar <strong x-text="Number(($wire.bet || 0) * Number(bonusConfirmation?.multiplier || 0)).toLocaleString('pt-PT')"></strong>
+                créditos virtuais para <strong x-text="bonusConfirmation?.spins || 0"></strong> giros automáticos.
+            </p>
+
+            <div class="slot-bonus-confirm__summary">
+                <span><small>Aposta base</small><b x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></b></span>
+                <span><small>Preço</small><b x-text="Number(($wire.bet || 0) * Number(bonusConfirmation?.multiplier || 0)).toLocaleString('pt-PT') + ' CR'"></b></span>
+                <span><small>Giros</small><b x-text="bonusConfirmation?.spins || 0"></b></span>
+            </div>
+
+            <div class="slot-bonus-confirm__actions">
+                <button type="button" class="slot-bonus-confirm__cancel" x-on:click="bonusConfirmation = null">Cancelar</button>
+                <button type="button" class="slot-bonus-confirm__accept" x-on:click="confirmBonusPurchase()">Confirmar compra</button>
+            </div>
+            <small class="slot-bonus-confirm__note">A cobrança acontece uma única vez e o resultado dos giros é gerado no servidor.</small>
+        </div>
+    </div>
+
     <aside class="space-y-4">
         <div class="casino-card" aria-live="polite">
             <p class="casino-eyebrow">ÚLTIMA RONDA</p>
@@ -1004,11 +1071,11 @@
                     @if ($payout > 0)
                         <p class="slot-payout slot-payout--win">+{{ number_format($payout) }}</p>
                         <p class="text-sm text-zinc-400">
-                            {{ count($winningLines) }} linha(s) vencedora(s) · 3 símbolos iguais
+                            {{ count($winningLines) }} linha(s) vencedora(s) · 3+ símbolos consecutivos
                         </p>
                     @else
                         <p class="slot-payout">Sem prémio</p>
-                        <p class="text-sm text-zinc-400">Só 3 símbolos iguais na mesma linha horizontal ou vertical dão prémio.</p>
+                        <p class="text-sm text-zinc-400">É necessário formar pelo menos 3 símbolos consecutivos na linha.</p>
                     @endif
 
                     @if ($roundPhase === 'completed' && $roundId)
@@ -1023,12 +1090,12 @@
         <div class="casino-card">
             <p class="casino-eyebrow">COMBINAÇÕES QUE PAGAM</p>
             <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-300">
-                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 iguais</div>
-                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 horizontais</div>
-                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 consecutivos</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">5 horizontais</div>
+                <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">5 verticais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">{{ $selectedSlotConfig['tag'] ?? 'ORIGINAL' }}</div>
             </div>
-            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 10 linhas de pagamento: 5 horizontais e 5 verticais. Cinco símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 10 linhas de pagamento: 5 horizontais e 5 verticais. 3, 4 ou 5 símbolos consecutivos podem pagar; várias linhas vencedoras acumulam.</p>
         </div>
 
         <details class="casino-card slot-fair">
