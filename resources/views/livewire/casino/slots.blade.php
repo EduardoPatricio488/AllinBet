@@ -795,7 +795,7 @@
         }
         .slot-bonus-buy__options {
             display: grid;
-            grid-template-columns: repeat(5,minmax(0,1fr));
+            grid-template-columns: repeat(3,minmax(0,1fr));
             gap: .5rem;
             margin-top: .7rem;
         }
