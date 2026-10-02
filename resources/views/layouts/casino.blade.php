@@ -16,7 +16,7 @@
 
         <div class="casino-shell">
             <aside class="casino-rail" aria-label="Jogos e secções">
-                <a href="{{ route('home') }}" class="casino-wordmark casino-rail__brand" wire:navigate>
+                <a href="{{ route('home') }}" class="casino-wordmark casino-rail__brand" >
                     <span class="casino-mark">A</span>
                     <span>ALLINBET</span>
                 </a>
@@ -62,7 +62,7 @@
             <div class="casino-shell__body">
                 <header class="casino-topbar">
                     <div class="casino-topbar__inner mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <a href="{{ route('home') }}" class="casino-wordmark lg:hidden" wire:navigate>
+                        <a href="{{ route('home') }}" class="casino-wordmark lg:hidden" >
                             <span class="casino-mark">A</span>
                             <span>ALLINBET</span>
                         </a>
@@ -155,7 +155,7 @@
 
         @auth
             <nav class="casino-bottomnav md:hidden" aria-label="Navegação rápida">
-                <a href="{{ route('home') }}" wire:navigate>🎰<span>Casino</span></a>
+                <a href="{{ route('home') }}" >🎰<span>Casino</span></a>
                 <a href="{{ route('casino.history') }}" wire:navigate>📜<span>Histórico</span></a>
                 <a href="{{ route('casino.help') }}" wire:navigate>🛟<span>Ajuda</span></a>
                 <a href="{{ route('casino.wallet') }}" wire:navigate>💳<span>Carteira</span></a>
