@@ -408,3 +408,36 @@
 @keyframes casino-pause-orbit{to{transform:rotate(360deg)}}
 @media(max-width:520px){.casino-pause-modal{padding:.75rem}.casino-pause-card{padding:1rem;border-radius:1.1rem}.casino-pause-stats,.casino-pause-actions{grid-template-columns:1fr}.casino-pause-actions .casino-button{width:100%}}
 @media(prefers-reduced-motion:reduce){.casino-pause-glow,.casino-pause-live i{animation:none!important}.casino-pause-progress span{transition:none!important}}
+
+
+/* Misturador de áudio: volumes independentes e persistentes. */
+.casino-audio-menu{position:relative;z-index:35}
+.casino-audio-trigger{display:flex;align-items:center;gap:.3rem}
+.casino-sound-toggle,.casino-audio-trigger__settings{min-height:2.2rem;border:1px solid rgb(230 200 121 / 18%);background:rgb(8 12 18 / 72%);color:#aeb7c2;cursor:pointer}
+.casino-sound-toggle{padding:.42rem .72rem;border-radius:.7rem;font:inherit;font-size:.72rem;font-weight:750;transition:border-color .18s ease,color .18s ease,background .18s ease}
+.casino-sound-toggle:hover,.casino-sound-toggle[aria-pressed="true"]{border-color:rgb(245 215 120 / 42%);color:#ffe39a;background:rgb(245 215 120 / 6%)}
+.casino-audio-trigger__settings{display:grid;place-items:center;width:2.2rem;padding:0;border-radius:.7rem;font-size:.88rem;transition:border-color .18s ease,color .18s ease,transform .18s ease}
+.casino-audio-trigger__settings:hover,.casino-audio-trigger__settings[aria-expanded="true"]{border-color:rgb(245 215 120 / 40%);color:#ffe39a;transform:rotate(12deg)}
+.casino-audio-panel{position:absolute;top:calc(100% + .55rem);right:0;width:min(19rem,calc(100vw - 2rem));padding:1rem;border:1px solid rgb(245 215 120 / 20%);border-radius:1rem;background:linear-gradient(145deg,rgb(14 21 30 / 97%),rgb(7 12 18 / 98%));box-shadow:0 24px 70px rgb(0 0 0 / 42%),inset 0 1px 0 rgb(255 255 255 / 4%);backdrop-filter:blur(18px)}
+.casino-audio-panel::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 0 0,rgb(245 215 120 / 9%),transparent 42%)}
+.casino-audio-panel__head{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.9rem}
+.casino-audio-panel__head strong{display:block;color:#f7f2df;font-size:.86rem;font-weight:900}
+.casino-audio-panel__head span{display:block;margin-top:.2rem;color:#768493;font-size:.61rem;line-height:1.45}
+.casino-audio-panel__close{display:grid;place-items:center;width:1.8rem;height:1.8rem;border:1px solid rgb(255 255 255 / 7%);border-radius:.55rem;background:rgb(255 255 255 / 3%);color:#8b97a5;cursor:pointer}
+.casino-audio-panel__close:hover{color:#fff;background:rgb(255 255 255 / 7%)}
+.casino-audio-control{position:relative;display:block;margin-top:.85rem}
+.casino-audio-control>span{display:flex;justify-content:space-between;gap:.75rem;margin-bottom:.4rem;color:#9ba7b3;font-size:.64rem}
+.casino-audio-control b{color:#dbe2e7;font-weight:750}
+.casino-audio-control output{color:#f5d778;font-weight:900;font-variant-numeric:tabular-nums}
+.casino-audio-control input[type="range"]{display:block;width:100%;height:1.15rem;margin:0;accent-color:#f5d778;background:transparent;cursor:pointer}
+.casino-audio-control input[type="range"]:focus-visible{outline:2px solid rgb(245 215 120 / 45%);outline-offset:3px;border-radius:999px}
+.casino-audio-panel__reset{position:relative;width:100%;margin-top:1rem;padding:.55rem .7rem;border:1px solid rgb(255 255 255 / 8%);border-radius:.65rem;background:rgb(255 255 255 / 3%);color:#8895a3;font-size:.62rem;font-weight:750;cursor:pointer;transition:border-color .18s ease,color .18s ease,background .18s ease}
+.casino-audio-panel__reset:hover{border-color:rgb(245 215 120 / 25%);color:#f5d778;background:rgb(245 215 120 / 5%)}
+@media(max-width:640px){
+    .casino-topbar__actions{gap:.35rem}
+    .casino-audio-panel{right:-.3rem}
+    .casino-sound-toggle{font-size:.64rem;padding-inline:.55rem}
+}
+@media(prefers-reduced-motion:reduce){
+    .casino-audio-trigger__settings{transition:none}
+}
