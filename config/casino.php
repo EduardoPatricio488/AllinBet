@@ -91,8 +91,8 @@ return [
             'instant_crash_probability_basis_points' => 300,
         ],
         'slots' => [
-            'rows' => 5,
-            'columns' => 5,
+            'rows' => 3,
+            'columns' => 3,
             'symbol_count' => 8,
             'minimum_match' => 3,
             'match_multipliers' => [
@@ -105,13 +105,9 @@ return [
                 ['direction' => 'horizontal', 'index' => 0],
                 ['direction' => 'horizontal', 'index' => 1],
                 ['direction' => 'horizontal', 'index' => 2],
-                ['direction' => 'horizontal', 'index' => 3],
-                ['direction' => 'horizontal', 'index' => 4],
                 ['direction' => 'vertical', 'index' => 0],
                 ['direction' => 'vertical', 'index' => 1],
                 ['direction' => 'vertical', 'index' => 2],
-                ['direction' => 'vertical', 'index' => 3],
-                ['direction' => 'vertical', 'index' => 4],
             ],
             'variants' => [
                 'classic' => [
