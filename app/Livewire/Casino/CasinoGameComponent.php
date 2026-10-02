@@ -98,7 +98,7 @@ abstract class CasinoGameComponent extends Component
                 $this->requestKey,
                 $metadata,
             );
-        } catch (DomainException|InvalidArgumentException $exception) {
+        } catch (DomainException|InvalidArgumentException|LogicException $exception) {
             $this->addError('bet', $exception->getMessage());
             $this->dispatch('casino-toast', type: 'error', title: 'Aposta não permitida', message: $exception->getMessage());
 
