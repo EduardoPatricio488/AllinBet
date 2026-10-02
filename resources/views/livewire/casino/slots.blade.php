@@ -208,6 +208,26 @@
             const backend = (async () => {
                 try {
                     await w.buyBonus(Number(multiplier));
+
+                    if (!['prepared', 'in_progress'].includes(w.roundPhase)) {
+                        return false;
+                    }
+
+                    for (let spin = 0; spin < spins; spin++) {
+                        await w.bonusSpin();
+
+                        if (!['in_progress', 'completed'].includes(w.roundPhase)) {
+                            return false;
+                        }
+
+                        this.bonusProgress = spin + 1;
+                        this.syncServerResult();
+
+                        if (spin < spins - 1) {
+                            await this.wait(260);
+                        }
+                    }
+
                     return w.roundPhase === 'completed';
                 } catch (e) {
                     return false;
@@ -800,6 +820,17 @@
         }
         .slot-bonus-result__close:hover { background: rgba(242,193,78,.12); }
         @keyframes slot-bonus-status { from { opacity:.55; transform:scale(.97); } to { opacity:1; transform:scale(1.02); } }
+        @keyframes slot-scroll {
+            0% { transform: translate3d(0,0,0); filter: blur(0); }
+            50% { filter: blur(1.5px); }
+            100% { transform: translate3d(0,-50%,0); filter: blur(.7px); }
+        }
+        .slot-reel.is-spin .slot-spinner { will-change: transform; }
+        .slot-reel.is-spin:nth-child(1) .slot-spinner { --spin-speed-0: .42s; }
+        .slot-reel.is-spin:nth-child(2) .slot-spinner { --spin-speed-1: .48s; }
+        .slot-reel.is-spin:nth-child(3) .slot-spinner { --spin-speed-2: .54s; }
+        .slot-reel.is-spin:nth-child(4) .slot-spinner { --spin-speed-3: .60s; }
+        .slot-reel.is-spin:nth-child(5) .slot-spinner { --spin-speed-4: .66s; }
 
         .slot-payout { font-size: 1.9rem; font-weight: 800; line-height: 1.1; }
         .slot-payout--win { color: var(--gold); text-shadow: 0 0 18px rgba(242, 193, 78, .5); }
@@ -838,7 +869,7 @@
                             <span><b x-text="Number(bonusCost).toLocaleString('pt-PT')"></b><small>custo</small></span>
                             <span><b x-text="bonusSpins"></b><small>giros</small></span>
                         </div>
-                        <button type="button" class="slot-bonus-result__close" x-on:click="overlay = false">Continuar</button>
+                        <button type="button" class="slot-bonus-result__close" x-on:click.prevent="overlay = false; bonusDone = false; bonusRunning = false">Continuar</button>
                     </div>
                 </template>
 
