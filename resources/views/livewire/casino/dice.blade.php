@@ -13,7 +13,7 @@
 @endphp
 
 <div
-    class="casino-game-play dice-page"
+    class="casino-game-play dice-page casino-game-screen" data-casino-game="dice"
     x-data="{
         busy: false,
         rolling: false,
