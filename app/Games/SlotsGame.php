@@ -22,7 +22,7 @@ class SlotsGame implements Game
     {
         $variant = $this->variantFor($round);
 
-        if (($input['action'] ?? 'spin') === 'bonus_buy') {
+        if (in_array(($input['action'] ?? 'spin'), ['bonus_buy', 'bonus_spin'], true)) {
             return $this->bonusBuy($round, $variant);
         }
 
