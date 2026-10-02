@@ -99,9 +99,15 @@ class Slots extends CasinoGameComponent
             $bonusCost,
         );
 
-        if ($this->roundPhase === RoundStatus::Prepared->value) {
-            $this->playGame(GameType::Slots, ['action' => 'bonus_buy']);
+    }
+
+    public function bonusSpin(): void
+    {
+        if (! in_array($this->roundPhase, [RoundStatus::Prepared->value, RoundStatus::InProgress->value], true)) {
+            return;
         }
+
+        $this->playGame(GameType::Slots, ['action' => 'bonus_spin']);
     }
 
     public function render(): View
