@@ -150,8 +150,8 @@ class SlotsGame implements Game
     public function settle(array $grid, int $bet, ?array $variant = null): GameResult
     {
         $variant ??= config('casino.games.slots.variants.classic', []);
-        $rows = (int) config('casino.games.slots.rows', 3);
-        $columns = (int) config('casino.games.slots.columns', 3);
+        $rows = (int) config('casino.games.slots.rows', 5);
+        $columns = (int) config('casino.games.slots.columns', 5);
         $paylines = $this->validPaylines();
         $paytable = $variant['paytable'] ?? [];
         $symbolCount = count($variant['symbols'] ?? []);
