@@ -340,7 +340,7 @@ new #[Layout('layouts.app'), Title('Definições de segurança')] class extends 
             <div class="space-y-2">
                 <flux:heading size="lg">{{ __('Remover chave de acesso') }}</flux:heading>
                 <flux:text>
-                    {{ __('Queres remover a chave de acesso ":name"? Deixarás de poder utilizá-la para iniciar sessão.'), ['name' => $deletingPasskeyName]) }}
+                    {{ __('Queres remover a chave de acesso ":name"? Deixarás de poder utilizá-la para iniciar sessão.', ['name' => $deletingPasskeyName]) }}
                 </flux:text>
             </div>
 
