@@ -18,6 +18,7 @@ const updateCasinoSoundControls = () => {
 };
 
 let casinoAudioContext = null;
+let casinoAmbient = null;
 
 const getCasinoAudioContext = () => {
 	if (! casinoSoundEnabled()) return null;
@@ -80,6 +81,78 @@ const casinoNoise = (duration = 0.04, volume = 0.012, delay = 0, filterFrequency
 	gain.connect(context.destination);
 	source.start(start);
 	source.stop(start + duration + 0.02);
+};
+
+const startCasinoAmbient = () => {
+	const context = getCasinoAudioContext();
+	if (! context || casinoAmbient) return;
+
+	const master = context.createGain();
+	const lowpass = context.createBiquadFilter();
+	const drone = context.createOscillator();
+	const shimmer = context.createOscillator();
+
+	master.gain.setValueAtTime(0.0001, context.currentTime);
+	master.gain.exponentialRampToValueAtTime(0.028, context.currentTime + 1.2);
+	lowpass.type = 'lowpass';
+	lowpass.frequency.setValueAtTime(1150, context.currentTime);
+	lowpass.Q.setValueAtTime(0.6, context.currentTime);
+
+	drone.type = 'sine';
+	drone.frequency.setValueAtTime(82, context.currentTime);
+	shimmer.type = 'triangle';
+	shimmer.frequency.setValueAtTime(164, context.currentTime);
+
+	drone.connect(lowpass);
+	shimmer.connect(lowpass);
+	lowpass.connect(master);
+	master.connect(context.destination);
+	drone.start();
+	shimmer.start();
+
+	const motif = [659.25, 783.99, 987.77, 783.99, 880, 1046.5, 783.99, 659.25];
+	let cursor = 0;
+	const scheduleMotif = () => {
+		if (!casinoAmbient || !casinoSoundEnabled() || document.hidden) return;
+		const frequency = motif[cursor % motif.length];
+		casinoTone(frequency, 0.22, 'sine', 0.009, 0);
+		casinoTone(frequency * 1.5, 0.08, 'triangle', 0.004, 0.05);
+		cursor += 1;
+		casinoAmbient.timer = window.setTimeout(scheduleMotif, 900);
+	};
+
+	casinoAmbient = {
+		master,
+		drone,
+		shimmer,
+		timer: null,
+	};
+	scheduleMotif();
+};
+
+const stopCasinoAmbient = () => {
+	if (!casinoAmbient || !casinoAudioContext) return;
+
+	const ambient = casinoAmbient;
+	const now = casinoAudioContext.currentTime;
+	ambient.master.gain.cancelScheduledValues(now);
+	ambient.master.gain.setValueAtTime(Math.max(0.0001, ambient.master.gain.value), now);
+	ambient.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+	window.clearTimeout(ambient.timer);
+	window.setTimeout(() => {
+		try { ambient.drone.stop(); } catch {}
+		try { ambient.shimmer.stop(); } catch {}
+	}, 260);
+	casinoAmbient = null;
+};
+
+const syncCasinoAmbient = () => {
+	if (casinoSoundEnabled() && ! document.hidden) {
+		startCasinoAmbient();
+	} else {
+		stopCasinoAmbient();
+	}
 };
 
 const casinoSound = {
@@ -220,6 +293,9 @@ document.addEventListener('click', (event) => {
 		casinoAudioContext = null;
 		getCasinoAudioContext();
 		casinoTone(660, 0.08, 'triangle', 0.03);
+		startCasinoAmbient();
+	} else {
+		stopCasinoAmbient();
 	}
 
 	updateCasinoSoundControls();
@@ -228,6 +304,8 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('click', (event) => {
 	if (! casinoSoundEnabled()) return;
+
+	startCasinoAmbient();
 
 	const target = event.target.closest('button, [role="button"]');
 	if (! target || target.matches('[data-casino-sound-toggle]')) return;
@@ -289,8 +367,11 @@ const setupCasinoSlotSounds = () => {
 
 document.addEventListener('DOMContentLoaded', updateCasinoSoundControls);
 document.addEventListener('DOMContentLoaded', setupCasinoSlotSounds);
+document.addEventListener('DOMContentLoaded', syncCasinoAmbient);
 document.addEventListener('livewire:navigated', updateCasinoSoundControls);
 document.addEventListener('livewire:navigated', setupCasinoSlotSounds);
+document.addEventListener('livewire:navigated', syncCasinoAmbient);
+document.addEventListener('visibilitychange', syncCasinoAmbient);
 
 const animateCasinoCounter = (element) => {
 	if (element.dataset.counted === 'true') return;
