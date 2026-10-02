@@ -463,3 +463,5 @@
 @media(prefers-reduced-motion:reduce){
     .casino-audio-trigger__settings{transition:none}
 }
+
+.casino-win-empty{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:.18rem .55rem;min-height:3.9rem;padding:.75rem 1rem;border:1px solid rgb(255 255 255 / 6%);border-radius:.85rem;background:rgb(255 255 255 / 2%);color:#87938d}.casino-win-empty>span{grid-row:1 / span 2;display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;border:1px solid rgb(245 215 120 / 15%);color:#bba567}.casino-win-empty strong{font-size:.68rem;color:#c6cec9}.casino-win-empty small{font-size:.56rem;color:#69756f}
