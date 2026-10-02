@@ -175,6 +175,8 @@
                                         <a href="{{ route('casino.wallet') }}" wire:navigate>Carteira <b>@livewire('casino.wallet-balance')</b></a>
                                     @endauth
                                     <span class="casino-game-chrome__live"
+                                      role="status"
+                                      aria-live="polite"
                                       :class="'casino-game-chrome__live--' + state">
                                         <i></i>
                                         <span x-text="labels[state] || 'APOSTA ABERTA'">APOSTA ABERTA</span>
