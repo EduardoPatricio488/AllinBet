@@ -1,5 +1,6 @@
 @php
     $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
+    $settlementPending = $roundPhase === 'in_progress' && (bool) ($roundResult['settlement_pending'] ?? false);
 @endphp
 
 <div class="blackjack-page relative casino-game-screen" data-casino-game="blackjack" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, playSound(type) { this.$dispatch('casino-sfx', { name: type === 'win' ? 'win' : 'lose' }); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
@@ -45,6 +46,8 @@
 @keyframes bj-deal { from { opacity: 0; transform: translate(35vw, -22vh) rotate(24deg) scale(.8); } to { opacity: 1; transform: none; } }
 
 /* Estado e resultado */
+.bj-settlement{display:flex;align-items:center;gap:.7rem;padding:.8rem .9rem;border:1px solid rgba(242,193,78,.25);border-radius:.85rem;background:rgba(242,193,78,.055);color:#ede4c9}.bj-settlement__dot{width:.55rem;height:.55rem;flex:none;border-radius:50%;background:#f2c14e;box-shadow:0 0 16px rgba(242,193,78,.75);animation:bj-settlement-pulse .75s ease-in-out infinite alternate}.bj-settlement strong{font-size:.74rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.bj-settlement p{margin-top:.18rem;font-size:.62rem;line-height:1.45;color:#958f7b}@keyframes bj-settlement-pulse{to{transform:scale(1.35);opacity:.55}}
+
 .bj-status { position: relative; z-index: 2; display: flex; justify-content: center; padding-top: .4rem; }
 .bj-turn { padding: .45rem 1.1rem; border-radius: 9999px; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #2b1c05; background: linear-gradient(135deg, #ffe9a8, #e4ae39); animation: bj-pulse 1.4s ease-in-out infinite; }
 @keyframes bj-pulse { 50% { box-shadow: 0 0 22px rgba(242, 193, 78, .7); } }
@@ -237,18 +240,28 @@
 
             @if ($roundPhase === 'in_progress')
                 <div class="bj-section">
-                    <p class="bj-paneltitle">A sua jogada</p>
-                    <div class="bj-actions">
-                        @if (in_array('hit', $roundResult['available_actions'] ?? [], true))
-                            <button type="button" wire:click="hit" wire:loading.attr="disabled" class="bj-button bj-green">Pedir carta</button>
-                        @endif
-                        @if (in_array('stand', $roundResult['available_actions'] ?? [], true))
-                            <button type="button" wire:click="stand" wire:loading.attr="disabled" class="bj-button bj-dark">Parar</button>
-                        @endif
-                        @if (in_array('double', $roundResult['available_actions'] ?? [], true))
-                            <button type="button" wire:click="double" wire:loading.attr="disabled" class="bj-button bj-dark">Dobrar aposta</button>
-                        @endif
-                    </div>
+                    @if ($settlementPending)
+                        <div class="bj-settlement" role="status" aria-live="polite">
+                            <span class="bj-settlement__dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Resultado confirmado</strong>
+                                <p>As cartas já terminaram. Estamos a confirmar o payout e a actualizar o saldo.</p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="bj-paneltitle">A sua jogada</p>
+                        <div class="bj-actions">
+                            @if (in_array('hit', $roundResult['available_actions'] ?? [], true))
+                                <button type="button" wire:click="hit" wire:loading.attr="disabled" class="bj-button bj-green">Pedir carta</button>
+                            @endif
+                            @if (in_array('stand', $roundResult['available_actions'] ?? [], true))
+                                <button type="button" wire:click="stand" wire:loading.attr="disabled" class="bj-button bj-dark">Parar</button>
+                            @endif
+                            @if (in_array('double', $roundResult['available_actions'] ?? [], true))
+                                <button type="button" wire:click="double" wire:loading.attr="disabled" class="bj-button bj-dark">Dobrar aposta</button>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             @endif
 
