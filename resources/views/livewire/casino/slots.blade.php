@@ -426,7 +426,7 @@
         </div>
     </section>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 5×5 com 10 linhas de pagamento: 5 horizontais e 5 verticais. Cinco símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos cinco níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 5 linhas horizontais e 5 linhas verticais.'], ['title'=>'5 iguais pagam','text'=>'Uma linha só vence quando os cinco símbolos dessa linha são iguais. Várias linhas vencedoras acumulam.']]" />
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 5×5 com 10 linhas de pagamento: 5 horizontais e 5 verticais. Três, quatro ou cinco símbolos consecutivos podem pagar." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos cinco níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 5 linhas horizontais e 5 linhas verticais.'], ['title'=>'3+ consecutivos pagam','text'=>'Uma linha pode pagar com três, quatro ou cinco símbolos consecutivos iguais. Várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-page-main{min-width:0}
