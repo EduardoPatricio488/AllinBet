@@ -200,13 +200,13 @@ const casinoAmbientProfiles = {
 		accent: 0.62,
 	},
 	slots: {
-		bpm: 138,
-		progression: [[261.63, 329.63, 392, 493.88], [293.66, 349.23, 440, 523.25], [246.94, 293.66, 369.99, 440], [329.63, 392, 493.88, 587.33]],
-		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 987.77, 880, 783.99, 659.25, 783.99, 987.77, 1174.66],
-		bass: 130.81,
-		padWave: 'triangle',
-		arpWave: 'triangle',
-		accent: 1.55,
+		bpm: 104,
+		progression: [[196, 246.94, 293.66], [174.61, 220, 261.63], [220, 277.18, 329.63], [196, 246.94, 329.63]],
+		arp: [392, 493.88, 587.33, 493.88, 440, 523.25, 659.25, 523.25],
+		bass: 98,
+		padWave: 'sine',
+		arpWave: 'sine',
+		accent: 0.72,
 	},
 	jetx: {
 		bpm: 92,
@@ -366,10 +366,10 @@ const startCasinoAmbient = () => {
 
 		const frequency = profile.arp[arpIndex % profile.arp.length];
 		const beatIndex = arpIndex % 16;
-		const volume = 0.0068 * profile.accent;
+		const volume = 0.0046 * profile.accent;
 
 		// Arpejo principal: mais rápido, brilhante e contínuo, como uma sala de casino moderna.
-		playCasinoAmbientNote(context, master, frequency, game === 'slots' ? 0.18 : 0.24, volume, profile.arpWave);
+		playCasinoAmbientNote(context, master, frequency, game === 'slots' ? 0.32 : 0.24, volume, profile.arpWave);
 
 		// Camada rítmica sintética para dar movimento constante ao fundo.
 		if (beatIndex % 4 === 0) {
@@ -396,15 +396,15 @@ const startCasinoAmbient = () => {
 		);
 
 		if (game === 'slots') {
-			const beat = arpIndex % 4;
-			if (beat === 0 || beat === 2) {
-				playCasinoAmbientNote(context, master, profile.bass / 2, 0.18, volume * 0.9, 'sine');
+			const beat = arpIndex % 8;
+			if (beat === 0 || beat === 4) {
+				playCasinoAmbientNote(context, master, profile.bass / 2, 0.34, volume * 0.72, 'sine');
 			}
-			if (beat === 1 || beat === 3) {
-				playCasinoAmbientNote(context, master, profile.bass, 0.12, volume * 0.34, 'sine');
+			if (beat === 2 || beat === 6) {
+				playCasinoAmbientNote(context, master, profile.bass, 0.22, volume * 0.22, 'sine');
 			}
 			if (arpIndex % 8 === 7) {
-				playCasinoAmbientNote(context, master, frequency * 2, 0.16, volume * 0.45, 'triangle');
+				playCasinoAmbientNote(context, master, frequency * 1.5, 0.28, volume * 0.22, 'sine');
 			}
 		} else if (arpIndex % 4 === 0) {
 			playCasinoAmbientNote(context, master, frequency / 2, 0.32, volume * 0.34, 'sine');
