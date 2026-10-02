@@ -30,7 +30,7 @@ final class CasinoExperienceTest extends TestCase
 
     public function test_slots_bonus_buy_completes_all_configured_spins_atomically(): void
     {
-        $game = new SlotsGame(new ProvablyFairService());
+        $game = new SlotsGame(new ProvablyFairService);
         $round = new GameRound([
             'bet' => 100,
             'server_seed' => hash('sha256', 'allinbet-bonus-seed'),
