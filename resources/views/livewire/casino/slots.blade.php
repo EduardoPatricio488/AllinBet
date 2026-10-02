@@ -75,7 +75,7 @@
         syncServerResult() {
             const result = this.$wire.roundResult || {};
 
-            if (Array.isArray(result.grid) && result.grid.length === 5) {
+            if (Array.isArray(result.grid) && result.grid.length === 3) {
                 this.grid = result.grid;
             }
 
@@ -405,7 +405,7 @@
         </div>
     </section>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 5×5 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos cinco níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 5 linhas horizontais e 5 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos três níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-page-main{min-width:0}
@@ -557,7 +557,7 @@
         .slot-reel {
             position: relative;
             overflow: hidden;
-            height: calc(var(--cell) * 5);
+            height: calc(var(--cell) * 3);
             min-width: 0;
             border-radius: .75rem;
             background: linear-gradient(180deg,#19221f,#0a0f0e);
