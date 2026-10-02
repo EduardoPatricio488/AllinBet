@@ -41,7 +41,6 @@ jobs:
       - name: Setup Application
         run: composer setup
 
-
       - name: Validate JetX
         run: |
           php artisan view:cache
