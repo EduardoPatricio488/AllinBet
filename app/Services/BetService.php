@@ -294,9 +294,12 @@ class BetService
                 );
             }
 
+            $publicResult = $round->publicResult();
+            unset($publicResult['settlement_pending']);
+
             $round->forceFill([
                 'payout' => $payout,
-                'result' => $round->publicResult(),
+                'result' => $publicResult,
                 'status' => RoundStatus::Completed,
             ])->save();
 
