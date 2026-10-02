@@ -234,8 +234,8 @@ class SlotsGame implements Game
     /** @return array<int, array{direction: string, index: int}> */
     private function validPaylines(): array
     {
-        $rows = (int) config('casino.games.slots.rows', 3);
-        $columns = (int) config('casino.games.slots.columns', 3);
+        $rows = (int) config('casino.games.slots.rows', 5);
+        $columns = (int) config('casino.games.slots.columns', 5);
         $paylines = config('casino.games.slots.paylines', []);
 
         return array_values(array_filter(
