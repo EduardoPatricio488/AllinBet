@@ -1,5 +1,5 @@
 @php
-    $maxBet = (int) config('casino.bet_limits.max', 10000);
+    $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
     $houseEdge = (int) config('casino.games.dice.house_edge_bps', 500);
     $threshold = (int) $threshold;
     $chance = $direction === 'under' ? $threshold : 100 - $threshold;
@@ -243,7 +243,7 @@
                                 <button type="button" class="dice-chip" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || @js($locked)">{{ $chip }}</button>
                             @endif
                         @endforeach
-                        <button type="button" class="dice-chip" x-on:click="$wire.bet = {{ $maxBet }}" :disabled="busy || @js($locked)">MAX</button>
+                        <button type="button" class="dice-chip" x-on:click="$wire.bet = {{ $maxBet }}" :disabled="busy || @js($locked) || {{ $maxBet < 1 ? 'true' : 'false' }}">ALL IN · {{ number_format($maxBet, 0, ',', ' ') }}</button>
                     </div>
                 </div>
 
