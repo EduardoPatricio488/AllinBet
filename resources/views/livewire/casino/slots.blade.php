@@ -1,6 +1,6 @@
 @php
-    $rows = (int) config('casino.games.slots.rows', 5);
-    $columns = (int) config('casino.games.slots.columns', 5);
+    $rows = (int) config('casino.games.slots.rows', 3);
+    $columns = (int) config('casino.games.slots.columns', 3);
     $grid = $roundResult['grid'] ?? array_fill(0, $rows, array_fill(0, $columns, 0));
     $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
     $locked = in_array($roundPhase, ['prepared', 'in_progress'], true);
@@ -19,7 +19,7 @@
         st: [0, 0, 0].map(() => 'idle'),
         selectedSlot: @js($selectedSlot),
         busy: false,
-        done: @js($roundResult !== []),
+        done: @js($roundPhase === 'completed'),
         shown: 0,
         prize: 0,
         tier: '',
