@@ -93,7 +93,7 @@ final class JetX extends CasinoGameComponent
 
     public function tick(): void
     {
-        if (! $this->restoreActiveRound()) {
+        if (! $this->restoreJetxRound()) {
             return;
         }
 
