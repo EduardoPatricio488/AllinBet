@@ -133,7 +133,6 @@ class CasinoUiTest extends TestCase
         }
     }
 
-
     public function test_slots_page_uses_three_by_three_reels_and_five_payment_lines(): void
     {
         $user = User::factory()->create();
