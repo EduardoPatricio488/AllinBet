@@ -42,13 +42,6 @@ jobs:
         run: composer setup
 
 
-      - name: Diagnose Pint formatting
-        if: always()
-        run: |
-          vendor/bin/pint app/Games/SlotsGame.php app/Livewire/Casino/CasinoGameComponent.php app/Livewire/Casino/Coinflip.php tests/Feature/CasinoUiTest.php tests/Unit/CasinoExperienceTest.php
-          git diff -- app/Games/SlotsGame.php app/Livewire/Casino/CasinoGameComponent.php app/Livewire/Casino/Coinflip.php tests/Feature/CasinoUiTest.php tests/Unit/CasinoExperienceTest.php
-          git checkout -- app/Games/SlotsGame.php app/Livewire/Casino/CasinoGameComponent.php app/Livewire/Casino/Coinflip.php tests/Feature/CasinoUiTest.php tests/Unit/CasinoExperienceTest.php
-
       - name: Validate JetX
         run: |
           php artisan view:cache
