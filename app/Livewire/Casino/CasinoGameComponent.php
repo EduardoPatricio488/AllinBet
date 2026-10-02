@@ -106,6 +106,7 @@ abstract class CasinoGameComponent extends Component
         $this->roundId = $round->id;
         $this->serverSeedHash = $round->server_seed_hash;
         $this->roundPhase = $round->status->value;
+        $this->dispatch('casino-round-state', phase: $this->roundPhase);
     }
 
     /** @param array<string, mixed> $input */
@@ -135,6 +136,7 @@ abstract class CasinoGameComponent extends Component
         }
 
         $this->roundPhase = $round->status->value;
+        $this->dispatch('casino-round-state', phase: $this->roundPhase);
         $this->roundResult = $round->publicResult();
         $this->roundPayout = $round->payout;
         $this->actionKey = bin2hex(random_bytes(16));
