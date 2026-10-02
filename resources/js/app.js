@@ -1,4 +1,25 @@
 const casinoSoundPreferenceKey = 'allinbet:casino:sound';
+const casinoAudioSettingsKey = 'allinbet:casino:audio-settings';
+const casinoAudioDefaults = {
+	master: 0.78,
+	ambient: 0.38,
+	effects: 0.82,
+};
+
+const readCasinoAudioSettings = () => {
+	try {
+		const parsed = JSON.parse(localStorage.getItem(casinoAudioSettingsKey) || '{}');
+		return {
+			master: Math.min(1, Math.max(0, Number(parsed.master ?? casinoAudioDefaults.master))),
+			ambient: Math.min(1, Math.max(0, Number(parsed.ambient ?? casinoAudioDefaults.ambient))),
+			effects: Math.min(1, Math.max(0, Number(parsed.effects ?? casinoAudioDefaults.effects))),
+		};
+	} catch {
+		return { ...casinoAudioDefaults };
+	}
+};
+
+const casinoAudioSettings = readCasinoAudioSettings();
 
 const casinoSoundEnabled = () => {
 	try {
@@ -8,12 +29,70 @@ const casinoSoundEnabled = () => {
 	}
 };
 
+const saveCasinoAudioSettings = () => {
+	try {
+		localStorage.setItem(casinoAudioSettingsKey, JSON.stringify(casinoAudioSettings));
+	} catch {}
+
+	window.dispatchEvent(new CustomEvent('allinbet:casino-audio-settings', {
+		detail: { ...casinoAudioSettings },
+	}));
+};
+
+const setCasinoAudioSetting = (key, value) => {
+	if (! Object.prototype.hasOwnProperty.call(casinoAudioSettings, key)) return;
+
+	casinoAudioSettings[key] = Math.min(1, Math.max(0, Number(value) / 100));
+	saveCasinoAudioSettings();
+
+	if (casinoAmbient) {
+		casinoAmbient.master.gain.setTargetAtTime(
+			0.044 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			casinoAudioContext?.currentTime ?? 0,
+			0.08,
+		);
+	}
+
+	updateCasinoSoundControls();
+};
+
+const resetCasinoAudioSettings = () => {
+	Object.assign(casinoAudioSettings, casinoAudioDefaults);
+	saveCasinoAudioSettings();
+
+	if (casinoAmbient && casinoAudioContext) {
+		casinoAmbient.master.gain.setTargetAtTime(
+			0.044 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			casinoAudioContext.currentTime,
+			0.08,
+		);
+	}
+
+	updateCasinoSoundControls();
+};
+
+const casinoEffectVolume = (volume) => volume * casinoAudioSettings.master * casinoAudioSettings.effects;
+
 const updateCasinoSoundControls = () => {
 	const enabled = casinoSoundEnabled();
 
 	document.querySelectorAll('[data-casino-sound-toggle]').forEach((button) => {
 		button.setAttribute('aria-pressed', String(enabled));
 		button.textContent = enabled ? 'Som: ligado' : 'Som: desligado';
+	});
+
+	document.querySelectorAll('[data-casino-volume]').forEach((input) => {
+		const key = input.dataset.casinoVolume;
+		if (Object.prototype.hasOwnProperty.call(casinoAudioSettings, key)) {
+			input.value = String(Math.round(casinoAudioSettings[key] * 100));
+		}
+	});
+
+	document.querySelectorAll('[data-casino-volume-value]').forEach((value) => {
+		const key = value.dataset.casinoVolumeValue;
+		if (Object.prototype.hasOwnProperty.call(casinoAudioSettings, key)) {
+			value.textContent = String(Math.round(casinoAudioSettings[key] * 100)) + '%';
+		}
 	});
 };
 
@@ -43,7 +122,7 @@ const casinoTone = (frequency, duration = 0.08, type = 'sine', volume = 0.045, d
 	oscillator.type = type;
 	oscillator.frequency.setValueAtTime(frequency, start);
 	gain.gain.setValueAtTime(0.0001, start);
-	gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+	gain.gain.exponentialRampToValueAtTime(casinoEffectVolume(volume), start + 0.012);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 	oscillator.connect(gain);
 	gain.connect(context.destination);
@@ -72,7 +151,7 @@ const casinoNoise = (duration = 0.04, volume = 0.012, delay = 0, filterFrequency
 	filter.frequency.setValueAtTime(filterFrequency, start);
 	filter.Q.setValueAtTime(1.1, start);
 	gain.gain.setValueAtTime(0.0001, start);
-	gain.gain.exponentialRampToValueAtTime(volume, start + 0.006);
+	gain.gain.exponentialRampToValueAtTime(casinoEffectVolume(volume), start + 0.006);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
 	source.buffer = buffer;
@@ -207,7 +286,10 @@ const startCasinoAmbient = () => {
 	const lowpass = context.createBiquadFilter();
 
 	master.gain.setValueAtTime(0.0001, context.currentTime);
-	master.gain.exponentialRampToValueAtTime(0.034, context.currentTime + 1.8);
+	master.gain.exponentialRampToValueAtTime(
+		0.044 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+		context.currentTime + 1.8,
+	);
 
 	compressor.threshold.setValueAtTime(-24, context.currentTime);
 	compressor.knee.setValueAtTime(18, context.currentTime);
@@ -543,6 +625,20 @@ const setupCasinoSlotSounds = () => {
 		observer.observe(machine, { subtree: true, attributes: true, attributeFilter: ['style'] });
 	});
 };
+
+document.addEventListener('input', (event) => {
+	const input = event.target.closest('[data-casino-volume]');
+	if (! input) return;
+
+	setCasinoAudioSetting(input.dataset.casinoVolume, input.value);
+});
+
+document.addEventListener('click', (event) => {
+	const reset = event.target.closest('[data-casino-audio-reset]');
+	if (! reset) return;
+
+	resetCasinoAudioSettings();
+});
 
 document.addEventListener('DOMContentLoaded', updateCasinoSoundControls);
 document.addEventListener('DOMContentLoaded', setupCasinoSlotSounds);
