@@ -13,6 +13,11 @@ class Dice extends CasinoGameComponent
 
     public int|string $threshold = 50;
 
+    protected function casinoGame(): GameType
+    {
+        return GameType::Dice;
+    }
+
     public function prepare(): void
     {
         $this->prepareGame(GameType::Dice);
