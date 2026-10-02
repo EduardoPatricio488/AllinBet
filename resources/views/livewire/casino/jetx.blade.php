@@ -1,3 +1,7 @@
+@php
+    $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
+@endphp
+
 <div class="jetx-page jx"
      x-on:casino-toast.window="if (launching) { launching = false; busy = false; status = 'ready'; phase = 'ready'; estimated = 0; }"
      x-data="{
@@ -439,7 +443,7 @@
                     @if (in_array($roundPhase, ['ready', 'completed'], true))
                         <div class="jx-fields">
                             <label class="jx-field"><span>Aposta</span>
-                                <input type="number" min="1" max="{{ config('casino.bet_limits.max') }}" wire:model="bet" class="jx-input" inputmode="numeric" :disabled="busy || launching">
+                                <input type="number" min="1" max="{{ $maxBet }}" wire:model="bet" class="jx-input" inputmode="numeric" :disabled="busy || launching">
                             </label>
                             <label class="jx-field"><span>Recolha automática (opcional)</span>
                                 <input type="number" min="1.01" step="0.01" x-model="auto" class="jx-input" placeholder="Ex.: 2.00" :disabled="busy || launching">
@@ -447,11 +451,11 @@
                         </div>
                         <div class="jx-chips" aria-label="Apostas rápidas">
                             @foreach ([5, 10, 25, 50, 100] as $chip)
-                                @if ($chip <= (int) config('casino.bet_limits.max'))
+                                @if ($chip <= $maxBet)
                                     <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || launching">{{ $chip }}</button>
                                 @endif
                             @endforeach
-                            <button type="button" x-on:click="$wire.bet = {{ (int) config('casino.bet_limits.max') }}" :disabled="busy || launching">Máx.</button>
+                            <button type="button" x-on:click="$wire.bet = {{ $maxBet }}" :disabled="busy || launching || {{ $maxBet < 1 ? 'true' : 'false' }}">ALL IN · {{ number_format($maxBet, 0, ',', ' ') }}</button>
                         </div>
                         <details class="jx-seed-box"><summary>Seed do cliente</summary>
                             <input type="text" maxlength="128" wire:model="clientSeed" class="jx-input font-mono text-xs mt-2" :disabled="busy || launching">
