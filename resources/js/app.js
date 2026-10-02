@@ -50,59 +50,162 @@ const casinoTone = (frequency, duration = 0.08, type = 'sine', volume = 0.045, d
 	oscillator.stop(start + duration + 0.02);
 };
 
+const casinoNoise = (duration = 0.04, volume = 0.012, delay = 0, filterFrequency = 3200) => {
+	const context = getCasinoAudioContext();
+	if (! context) return;
+
+	const length = Math.max(1, Math.floor(context.sampleRate * duration));
+	const buffer = context.createBuffer(1, length, context.sampleRate);
+	const data = buffer.getChannelData(0);
+
+	for (let i = 0; i < length; i += 1) {
+		data[i] = (Math.random() * 2 - 1) * (1 - (i / length));
+	}
+
+	const source = context.createBufferSource();
+	const filter = context.createBiquadFilter();
+	const gain = context.createGain();
+	const start = context.currentTime + delay;
+
+	filter.type = 'bandpass';
+	filter.frequency.setValueAtTime(filterFrequency, start);
+	filter.Q.setValueAtTime(1.1, start);
+	gain.gain.setValueAtTime(0.0001, start);
+	gain.gain.exponentialRampToValueAtTime(volume, start + 0.006);
+	gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+	source.buffer = buffer;
+	source.connect(filter);
+	filter.connect(gain);
+	gain.connect(context.destination);
+	source.start(start);
+	source.stop(start + duration + 0.02);
+};
+
 const casinoSound = {
-	click() { casinoTone(520, 0.045, 'square', 0.025); },
-	spin() {
-		casinoTone(150, 0.09, 'sawtooth', 0.025);
-		casinoTone(185, 0.09, 'sawtooth', 0.022, 0.09);
-		casinoTone(220, 0.09, 'sawtooth', 0.02, 0.18);
+	click() {
+		casinoTone(620, 0.045, 'square', 0.018);
+		casinoTone(900, 0.05, 'triangle', 0.014, 0.025);
 	},
-	stop(index = 0) { casinoTone(170 + (index * 45), 0.08, 'triangle', 0.035); },
+	charge() {
+		casinoTone(420, 0.06, 'triangle', 0.018);
+		casinoTone(560, 0.07, 'triangle', 0.02, 0.07);
+		casinoTone(720, 0.09, 'sine', 0.022, 0.15);
+		casinoTone(960, 0.1, 'sine', 0.018, 0.25);
+	},
+	spin() {
+		for (let i = 0; i < 16; i += 1) {
+			const delay = i * 0.105;
+			const frequency = 170 + (i * 24);
+			casinoTone(frequency, 0.055, 'sawtooth', 0.013 + (i * 0.0007), delay);
+			casinoNoise(0.018, 0.008, delay, 2600 + (i * 70));
+		}
+		casinoTone(560, 0.09, 'triangle', 0.028, 1.72);
+	},
+	stop(index = 0) {
+		const base = 260 + ((index % 3) * 95);
+		casinoNoise(0.03, 0.014, 0, 2100);
+		casinoTone(base, 0.07, 'triangle', 0.032);
+		casinoTone(base * 1.5, 0.09, 'triangle', 0.022, 0.055);
+	},
 	coinflip() {
-		casinoTone(740, 0.07, 'triangle', 0.035);
-		casinoTone(980, 0.07, 'triangle', 0.03, 0.09);
-		casinoTone(740, 0.09, 'triangle', 0.035, 0.18);
+		casinoTone(660, 0.06, 'triangle', 0.026);
+		casinoTone(880, 0.07, 'triangle', 0.024, 0.08);
+		casinoTone(1175, 0.1, 'sine', 0.018, 0.16);
 	},
 	dice() {
-		casinoTone(300, 0.06, 'square', 0.025);
-		casinoTone(420, 0.06, 'square', 0.025, 0.07);
-		casinoTone(560, 0.1, 'triangle', 0.035, 0.14);
+		for (let i = 0; i < 7; i += 1) {
+			const delay = i * 0.085;
+			casinoNoise(0.035, 0.014, delay, 1800 + (i * 140));
+			casinoTone(260 + (i * 45), 0.05, 'square', 0.012, delay);
+		}
+		casinoTone(690, 0.11, 'triangle', 0.035, 0.7);
 	},
 	roulette() {
-		for (let i = 0; i < 7; i += 1) casinoTone(180 + (i * 35), 0.055, 'triangle', 0.018, i * 0.075);
+		for (let i = 0; i < 16; i += 1) {
+			const delay = i * 0.07;
+			const frequency = 180 + (i * 28);
+			casinoTone(frequency, 0.045, 'triangle', 0.013, delay);
+			casinoNoise(0.018, 0.008, delay, 2300);
+		}
+		casinoTone(720, 0.12, 'sine', 0.03, 1.2);
 	},
 	blackjack() {
-		casinoTone(440, 0.07, 'triangle', 0.03);
-		casinoTone(620, 0.09, 'triangle', 0.035, 0.11);
+		casinoNoise(0.055, 0.015, 0, 1500);
+		casinoTone(392, 0.08, 'triangle', 0.024);
+		casinoTone(494, 0.08, 'triangle', 0.022, 0.075);
+		casinoTone(587, 0.11, 'triangle', 0.026, 0.15);
 	},
 	win() {
-		casinoTone(523.25, 0.1, 'triangle', 0.045);
-		casinoTone(659.25, 0.1, 'triangle', 0.045, 0.11);
-		casinoTone(783.99, 0.14, 'triangle', 0.05, 0.22);
-		casinoTone(1046.5, 0.2, 'triangle', 0.045, 0.38);
+		const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+		notes.forEach((frequency, index) => {
+			const delay = index * 0.105;
+			casinoTone(frequency, index === notes.length - 1 ? 0.34 : 0.14, 'triangle', 0.038, delay);
+			casinoTone(frequency * 2, 0.09, 'sine', 0.01, delay + 0.025);
+		});
+	},
+	bigwin() {
+		const notes = [392, 523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98];
+		notes.forEach((frequency, index) => {
+			const delay = index * 0.095;
+			casinoTone(frequency, 0.18, 'triangle', 0.045, delay);
+			casinoTone(frequency * 1.5, 0.12, 'sine', 0.012, delay + 0.035);
+		});
+		casinoTone(2093, 0.35, 'sine', 0.035, 0.72);
+		casinoTone(2637, 0.42, 'triangle', 0.028, 0.82);
 	},
 	lose() {
-		casinoTone(260, 0.12, 'sine', 0.025);
-		casinoTone(190, 0.18, 'sine', 0.02, 0.13);
+		casinoTone(330, 0.12, 'sine', 0.023);
+		casinoTone(247, 0.16, 'sine', 0.02, 0.12);
+		casinoTone(196, 0.26, 'triangle', 0.017, 0.25);
 	},
 	credit() {
-		casinoTone(660, 0.07, 'triangle', 0.035);
-		casinoTone(880, 0.11, 'triangle', 0.035, 0.09);
+		casinoTone(660, 0.08, 'triangle', 0.028);
+		casinoTone(880, 0.1, 'triangle', 0.03, 0.085);
+		casinoTone(1320, 0.16, 'sine', 0.022, 0.19);
 	},
 	chip() {
-		casinoTone(720, 0.045, 'triangle', 0.028);
-		casinoTone(980, 0.06, 'triangle', 0.022, 0.045);
+		casinoNoise(0.024, 0.014, 0, 4200);
+		casinoTone(720, 0.05, 'triangle', 0.024);
+		casinoTone(980, 0.07, 'triangle', 0.021, 0.045);
 	},
 	toss() {
-		casinoTone(250, 0.07, 'triangle', 0.022);
-		casinoTone(340, 0.07, 'triangle', 0.025, 0.07);
-		casinoTone(460, 0.07, 'triangle', 0.028, 0.14);
-		casinoTone(620, 0.09, 'triangle', 0.03, 0.21);
-		casinoTone(820, 0.12, 'sine', 0.022, 0.31);
+		for (let i = 0; i < 18; i += 1) {
+			const delay = 0.07 + (i * 0.205);
+			const frequency = 300 + (i * 34);
+			casinoNoise(0.022, 0.008 + (i * 0.0003), delay, 2400 + (i * 80));
+			casinoTone(frequency, 0.05, i % 3 === 0 ? 'sine' : 'triangle', 0.015 + (i * 0.0007), delay);
+		}
+		casinoTone(620, 0.08, 'triangle', 0.026, 3.62);
+		casinoTone(880, 0.1, 'triangle', 0.031, 3.76);
+		casinoTone(1175, 0.12, 'sine', 0.028, 3.88);
 	},
 	land() {
-		casinoTone(180, 0.08, 'sine', 0.038);
-		casinoTone(260, 0.08, 'triangle', 0.03, 0.06);
+		casinoNoise(0.055, 0.018, 0, 1700);
+		casinoTone(185, 0.1, 'sine', 0.035);
+		casinoTone(370, 0.12, 'triangle', 0.028, 0.055);
+		casinoTone(740, 0.18, 'sine', 0.024, 0.12);
+	},
+	launch() {
+		casinoTone(220, 0.09, 'sawtooth', 0.018);
+		casinoTone(330, 0.09, 'sawtooth', 0.02, 0.08);
+		casinoTone(494, 0.12, 'triangle', 0.025, 0.16);
+		casinoTone(659, 0.18, 'sine', 0.026, 0.27);
+	},
+	milestone() {
+		casinoTone(660, 0.06, 'triangle', 0.02);
+		casinoTone(990, 0.08, 'triangle', 0.024, 0.055);
+	},
+	cashout() {
+		casinoTone(523.25, 0.08, 'triangle', 0.03);
+		casinoTone(659.25, 0.1, 'triangle', 0.034, 0.08);
+		casinoTone(987.77, 0.17, 'sine', 0.03, 0.18);
+	},
+	crash() {
+		casinoNoise(0.08, 0.03, 0, 850);
+		casinoTone(430, 0.1, 'sawtooth', 0.025);
+		casinoTone(280, 0.14, 'sawtooth', 0.024, 0.1);
+		casinoTone(150, 0.3, 'triangle', 0.018, 0.22);
 	},
 };
 
@@ -132,8 +235,12 @@ document.addEventListener('click', (event) => {
 
 	const text = (target.textContent || '').trim().toLowerCase();
 
-	if (target.matches('.slot-spin') || text.includes('girar')) return casinoSound.spin();
-	if (text.includes('cara') || text.includes('coroa') || text.includes('lançar moeda')) return casinoSound.coinflip();
+	if (target.matches('.slot-spin')) return;
+	if (text.includes('cara') || text.includes('coroa')) return casinoSound.chip();
+	if (target.matches('.dice-primary') && text.includes('lançar')) return casinoSound.dice();
+	if (target.matches('.roulette-primary') && text.includes('girar')) return casinoSound.roulette();
+	if (target.classList.contains('jx-action')) return casinoSound.launch();
+	if (text.includes('girar')) return casinoSound.roulette();
 	if (text.includes('roleta') || text.includes('rodar')) return casinoSound.roulette();
 	if (text.includes('pedir') || text.includes('parar') || text.includes('dobrar')) return casinoSound.blackjack();
 	if (text.includes('dado') || text.includes('lançar')) return casinoSound.dice();
