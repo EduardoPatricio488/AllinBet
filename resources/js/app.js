@@ -83,9 +83,61 @@ const casinoNoise = (duration = 0.04, volume = 0.012, delay = 0, filterFrequency
 	source.stop(start + duration + 0.02);
 };
 
+const casinoAmbientProfiles = {
+	coinflip: {
+		drone: 82,
+		shimmer: 164,
+		motif: [659.25, 783.99, 987.77, 783.99, 880, 1046.5, 783.99, 659.25],
+		stepMs: 900,
+		wave: 'sine',
+	},
+	dice: {
+		drone: 92,
+		shimmer: 184,
+		motif: [392, 523.25, 587.33, 659.25, 523.25, 783.99, 659.25, 523.25],
+		stepMs: 760,
+		wave: 'triangle',
+	},
+	roulette: {
+		drone: 74,
+		shimmer: 148,
+		motif: [329.63, 392, 493.88, 587.33, 659.25, 493.88, 392, 329.63],
+		stepMs: 680,
+		wave: 'triangle',
+	},
+	blackjack: {
+		drone: 70,
+		shimmer: 140,
+		motif: [261.63, 329.63, 392, 493.88, 392, 329.63, 293.66, 349.23],
+		stepMs: 1100,
+		wave: 'sine',
+	},
+	slots: {
+		drone: 96,
+		shimmer: 192,
+		motif: [523.25, 659.25, 783.99, 1046.5, 783.99, 1318.5, 1046.5, 659.25],
+		stepMs: 520,
+		wave: 'square',
+	},
+	jetx: {
+		drone: 60,
+		shimmer: 120,
+		motif: [220, 277.18, 329.63, 415.3, 493.88, 622.25, 739.99, 880],
+		stepMs: 610,
+		wave: 'sawtooth',
+	},
+};
+
+const currentCasinoGame = () => document.querySelector('[data-casino-game]')?.dataset.casinoGame || 'coinflip';
+
 const startCasinoAmbient = () => {
 	const context = getCasinoAudioContext();
-	if (! context || casinoAmbient) return;
+	if (! context) return;
+
+	const profile = casinoAmbientProfiles[currentCasinoGame()] || casinoAmbientProfiles.coinflip;
+
+	if (casinoAmbient && casinoAmbient.profile === currentCasinoGame()) return;
+	if (casinoAmbient) stopCasinoAmbient();
 
 	const master = context.createGain();
 	const lowpass = context.createBiquadFilter();
@@ -93,15 +145,15 @@ const startCasinoAmbient = () => {
 	const shimmer = context.createOscillator();
 
 	master.gain.setValueAtTime(0.0001, context.currentTime);
-	master.gain.exponentialRampToValueAtTime(0.028, context.currentTime + 1.2);
+	master.gain.exponentialRampToValueAtTime(0.024, context.currentTime + 1.2);
 	lowpass.type = 'lowpass';
 	lowpass.frequency.setValueAtTime(1150, context.currentTime);
 	lowpass.Q.setValueAtTime(0.6, context.currentTime);
 
 	drone.type = 'sine';
-	drone.frequency.setValueAtTime(82, context.currentTime);
+	drone.frequency.setValueAtTime(profile.drone, context.currentTime);
 	shimmer.type = 'triangle';
-	shimmer.frequency.setValueAtTime(164, context.currentTime);
+	shimmer.frequency.setValueAtTime(profile.shimmer, context.currentTime);
 
 	drone.connect(lowpass);
 	shimmer.connect(lowpass);
@@ -110,18 +162,18 @@ const startCasinoAmbient = () => {
 	drone.start();
 	shimmer.start();
 
-	const motif = [659.25, 783.99, 987.77, 783.99, 880, 1046.5, 783.99, 659.25];
 	let cursor = 0;
 	const scheduleMotif = () => {
 		if (!casinoAmbient || !casinoSoundEnabled() || document.hidden) return;
-		const frequency = motif[cursor % motif.length];
-		casinoTone(frequency, 0.22, 'sine', 0.009, 0);
-		casinoTone(frequency * 1.5, 0.08, 'triangle', 0.004, 0.05);
+		const frequency = profile.motif[cursor % profile.motif.length];
+		casinoTone(frequency, 0.18, profile.wave, 0.008, 0);
+		casinoTone(frequency * 1.5, 0.06, 'sine', 0.0035, 0.045);
 		cursor += 1;
-		casinoAmbient.timer = window.setTimeout(scheduleMotif, 900);
+		casinoAmbient.timer = window.setTimeout(scheduleMotif, profile.stepMs);
 	};
 
 	casinoAmbient = {
+		profile: currentCasinoGame(),
 		master,
 		drone,
 		shimmer,
