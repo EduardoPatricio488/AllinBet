@@ -195,7 +195,24 @@
                             </nav>
 
                             <div class="casino-game-chrome__ambient" aria-hidden="true">
-                                <span></span><span></span><span></span><span></span><span></span>
+                                <span></span><span></span><span></span><span></span>
+                            </div>
+
+                            <div class="casino-game-flow" aria-label="Estado da ronda">
+                                <template x-for="item in [
+                                    { key: 'ready', label: 'APOSTA' },
+                                    { key: 'prepared', label: 'BLOQUEADA' },
+                                    { key: 'in_progress', label: 'EM JOGO' },
+                                    { key: 'completed', label: 'RESULTADO' }
+                                ]" :key="item.key">
+                                    <span class="casino-game-flow__step"
+                                          :class="{
+                                              'is-current': state === item.key,
+                                              'is-done': ['prepared','in_progress','completed'].indexOf(state) > ['ready','prepared','in_progress','completed'].indexOf(item.key)
+                                          }">
+                                        <i></i><b x-text="item.label"></b>
+                                    </span>
+                                </template>
                             </div>
                         </div>
                     @endif
