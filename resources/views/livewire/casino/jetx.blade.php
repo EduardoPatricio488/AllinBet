@@ -1,6 +1,7 @@
 <div class="jetx-page"
      x-data="{
         busy: false,
+        launching: false,
         flying: false,
         phase: @js($roundPhase),
         status: @js($roundPhase === 'in_progress' ? 'paused' : 'ready'),
@@ -157,6 +158,7 @@
             }
 
             this.resetFlight();
+            this.launching = false;
             this.flightStartedAt = started;
             this.lastServerSyncAt = Date.now();
             this.phase = 'in_progress';
@@ -188,10 +190,25 @@
         },
 
         startFlight() {
-            this.busy = false;
+            const betValue = Math.max(0, Number(this.$wire.bet || 0));
+
+            // Feedback imediato: a aposta fica visualmente bloqueada enquanto
+            // o servidor prepara a ronda e confirma o débito.
+            this.resetFlight();
+            this.launching = true;
+            this.flying = false;
+            this.busy = true;
+            this.phase = 'launching';
+            this.status = 'launching';
             this.resultOpen = false;
             this.resultLabel = '';
-            this.resetFlight();
+            this.multiplier = 1;
+            this.serverMultiplier = 1;
+            this.displayMultiplier = 1;
+            this.finalMultiplier = 0;
+            this.payout = 0;
+            this.flightSeconds = 0;
+            this.estimatedPayout = betValue;
         },
 
         schedulePoll() {
@@ -332,6 +349,7 @@
 
             if (value === 'ready' || value === 'prepared') {
                 resetFlight();
+                launching = false;
                 flying = false;
                 busy = false;
                 status = 'ready';
@@ -435,11 +453,11 @@
                 <div class="jetx-flight-hud">
                     <div class="jetx-hud-pill">
                         <span>VOO</span>
-                        <strong x-text="flying ? flightSeconds.toFixed(1) + 's' : phase === 'completed' ? 'END' : '—'"></strong>
+                        <strong x-text="launching ? 'A preparar' : flying ? flightSeconds.toFixed(1) + 's' : phase === 'completed' ? 'END' : '—'"></strong>
                     </div>
                     <div class="jetx-hud-pill jetx-hud-pill--accent">
                         <span>FASE</span>
-                        <strong x-text="flying ? (displayMultiplier >= 2 ? 'ACELERADO' : 'ASCENSÃO') : status === 'crashed' ? 'IMPACTO' : status === 'cashed_out' ? 'RECOLHIDO' : 'STANDBY'"></strong>
+                        <strong x-text="launching ? 'APOSTA BLOQUEADA' : flying ? (displayMultiplier >= 2 ? 'ACELERADO' : 'ASCENSÃO') : status === 'crashed' ? 'IMPACTO' : status === 'cashed_out' ? 'RECOLHIDO' : 'STANDBY'"></strong>
                     </div>
                 </div>
 
@@ -448,8 +466,8 @@
                     <div class="jetx-multiplier" :class="{ 'is-growing': flying, 'is-final': resultOpen }">
                         <span x-text="Number(resultOpen ? finalMultiplier : displayMultiplier).toFixed(2) + '×'"></span>
                     </div>
-                    <div class="jetx-readout-sub" x-show="flying" x-cloak>
-                        <span>Prémio se recolheres agora</span>
+                    <div class="jetx-readout-sub" x-show="launching || flying" x-cloak>
+                        <span x-text="launching ? 'Aposta em jogo' : 'Prémio se recolheres agora'"></span>
                         <strong x-text="Number(estimatedPayout).toLocaleString('pt-PT') + ' CR'"></strong>
                     </div>
                 </div>
@@ -559,11 +577,14 @@
                     @else
                         <button type="button"
                                 class="jetx-action"
+                                :class="{ 'is-launching': launching }"
+                                :disabled="busy"
                                 x-on:click="startFlight()"
                                 wire:click="start"
                                 wire:loading.attr="disabled"
                                 wire:target="start">
-                            🚀 INICIAR VOO
+                            <span x-show="!launching">🚀 INICIAR VOO</span>
+                            <span x-show="launching" x-cloak>🚀 A PREPARAR <strong x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></strong></span>
                         </button>
                     @endif
                 </div>
