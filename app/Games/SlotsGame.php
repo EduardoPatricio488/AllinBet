@@ -76,7 +76,7 @@ class SlotsGame implements Game
         $bonusMultiplier = (int) ($state['bonus_multiplier'] ?? 0);
 
         if (
-            !($state['bonus_buy'] ?? false)
+            ! ($state['bonus_buy'] ?? false)
             || $baseBet < 1
             || $spinCount < 1
             || $bonusMultiplier < 1
@@ -265,5 +265,4 @@ class SlotsGame implements Game
                 && $line['index'] < ($line['direction'] === 'horizontal' ? $rows : $columns),
         ));
     }
-
 }
