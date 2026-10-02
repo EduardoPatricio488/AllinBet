@@ -21,9 +21,28 @@ class SlotsGame implements Game
     public function play(GameRound $round, array $input): GameResult
     {
         $variant = $this->variantFor($round);
-        $symbolCount = count($variant['symbols'] ?? []);
+
+        if (($input['action'] ?? 'spin') === 'bonus_buy') {
+            return $this->bonusBuy($round, $variant);
+        }
+
+        $grid = $this->generateGrid($round, $variant, $round->nonce);
+
+        return $this->settle($grid, $round->bet, $variant);
+    }
+
+    /** @param array<string, mixed> $variant */
+    private function generateGrid(GameRound $round, array $variant, int $nonce): array
+    {
         $rows = (int) config('casino.games.slots.rows', 3);
         $columns = (int) config('casino.games.slots.columns', 3);
+        $symbols = $variant['symbols'] ?? [];
+        $symbolCount = count($symbols);
+
+        if ($symbolCount < 1) {
+            throw new InvalidArgumentException('The slots variant has no symbols.');
+        }
+
         $grid = [];
 
         for ($row = 0; $row < $rows; $row++) {
@@ -33,14 +52,71 @@ class SlotsGame implements Game
                 $grid[$row][$column] = $this->provablyFair->integer(
                     $round->server_seed,
                     $round->client_seed,
-                    ($round->nonce * $rows * $columns) + ($row * $columns) + $column,
+                    ($nonce * $rows * $columns) + ($row * $columns) + $column,
                     0,
                     $symbolCount - 1,
                 );
             }
         }
 
-        return $this->settle($grid, $round->bet, $variant);
+        return $grid;
+    }
+
+    /** @param array<string, mixed> $variant */
+    private function bonusBuy(GameRound $round, array $variant): GameResult
+    {
+        $state = $round->privateGameState();
+        $baseBet = (int) ($state['bonus_base_bet'] ?? 0);
+        $spinCount = (int) ($state['bonus_spin_count'] ?? 0);
+        $bonusMultiplier = (int) ($state['bonus_multiplier'] ?? 0);
+
+        if (
+            ! (bool) ($state['bonus_buy'] ?? false)
+            || $baseBet < 1
+            || $spinCount < 1
+            || $bonusMultiplier < 1
+            || $baseBet > intdiv(PHP_INT_MAX, $bonusMultiplier)
+            || $round->bet !== $baseBet * $bonusMultiplier
+        ) {
+            throw new InvalidArgumentException('The slots bonus purchase is invalid.');
+        }
+
+        $totalPayout = 0;
+        $spinResults = [];
+        $finalGrid = [];
+        $finalWinningLines = [];
+
+        for ($spin = 0; $spin < $spinCount; $spin++) {
+            $grid = $this->generateGrid($round, $variant, $round->nonce + $spin + 1);
+            $result = $this->settle($grid, $baseBet, $variant);
+            $totalPayout += $result->payout;
+
+            $spinResults[] = [
+                'spin' => $spin + 1,
+                'payout' => $result->payout,
+                'winning_lines' => $result->result['winning_lines'] ?? [],
+            ];
+
+            $finalGrid = $grid;
+            $finalWinningLines = $result->result['winning_lines'] ?? [];
+        }
+
+        return new GameResult($totalPayout, [
+            'grid' => $finalGrid,
+            'winning_lines' => $finalWinningLines,
+            'wager' => $baseBet,
+            'payline_count' => count($this->validPaylines()),
+            'slot_variant' => (string) ($variant['key'] ?? 'classic'),
+            'bonus_buy' => true,
+            'bonus_label' => (string) ($state['bonus_label'] ?? 'Bónus'),
+            'bonus_multiplier' => $bonusMultiplier,
+            'bonus_spin_count' => $spinCount,
+            'bonus_base_bet' => $baseBet,
+            'bonus_cost' => $round->bet,
+            'bonus_payout' => $totalPayout,
+            'bonus_profit' => $totalPayout - $round->bet,
+            'bonus_spin_results' => $spinResults,
+        ]);
     }
 
     /** @return array<string, mixed> */
@@ -64,20 +140,9 @@ class SlotsGame implements Game
         $variant ??= config('casino.games.slots.variants.classic', []);
         $rows = (int) config('casino.games.slots.rows', 3);
         $columns = (int) config('casino.games.slots.columns', 3);
-        $paylines = config('casino.games.slots.paylines', []);
+        $paylines = $this->validPaylines();
         $paytable = $variant['paytable'] ?? [];
         $symbolCount = count($variant['symbols'] ?? []);
-
-        $paylines = array_values(array_filter(
-            $paylines,
-            static fn ($line): bool => is_array($line)
-                && isset($line['direction'], $line['index'])
-                && in_array($line['direction'], ['horizontal', 'vertical'], true)
-                && is_int($line['index'])
-                && $line['index'] >= 0
-                && $line['index'] < ($line['direction'] === 'horizontal' ? $rows : $columns),
-        ));
-
         $lineCount = count($paylines);
 
         if ($bet <= 0 || $lineCount === 0) {
@@ -134,13 +199,15 @@ class SlotsGame implements Game
                 continue;
             }
 
-            $payout += intdiv($bet * $multiplier, $lineCount);
+            $linePayout = max(1, intdiv($bet * $multiplier, $lineCount));
+            $payout += $linePayout;
             $winningLines[] = [
                 'direction' => $direction,
                 'line' => $index,
                 'symbol' => $firstSymbol,
                 'count' => $length,
                 'multiplier' => $multiplier,
+                'payout' => $linePayout,
             ];
         }
 
@@ -151,5 +218,23 @@ class SlotsGame implements Game
             'payline_count' => $lineCount,
             'slot_variant' => (string) ($variant['key'] ?? 'classic'),
         ]);
+    }    
+    /** @return array<int, array{direction: string, index: int}> */
+    private function validPaylines(): array
+    {
+        $rows = (int) config('casino.games.slots.rows', 3);
+        $columns = (int) config('casino.games.slots.columns', 3);
+        $paylines = config('casino.games.slots.paylines', []);
+
+        return array_values(array_filter(
+            $paylines,
+            static fn ($line): bool => is_array($line)
+                && isset($line['direction'], $line['index'])
+                && in_array($line['direction'], ['horizontal', 'vertical'], true)
+                && is_int($line['index'])
+                && $line['index'] >= 0
+                && $line['index'] < ($line['direction'] === 'horizontal' ? $rows : $columns),
+        ));
     }
+
 }
