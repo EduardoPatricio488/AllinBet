@@ -239,7 +239,6 @@ document.addEventListener('click', (event) => {
 	if (text.includes('cara') || text.includes('coroa')) return casinoSound.chip();
 	if (target.matches('.dice-primary') && text.includes('lançar')) return casinoSound.dice();
 	if (target.matches('.roulette-primary') && text.includes('girar')) return casinoSound.roulette();
-	if (target.classList.contains('jx-action')) return casinoSound.launch();
 	if (text.includes('girar')) return casinoSound.roulette();
 	if (text.includes('roleta') || text.includes('rodar')) return casinoSound.roulette();
 	if (text.includes('pedir') || text.includes('parar') || text.includes('dobrar')) return casinoSound.blackjack();
