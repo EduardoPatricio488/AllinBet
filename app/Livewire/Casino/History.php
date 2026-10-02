@@ -27,14 +27,17 @@ class History extends Component
             ->limit(20)
             ->get();
 
+        $completedRounds = $rounds->filter(fn (GameRound $round): bool => $round->status->value === 'completed');
+
         $summary = [
             'rounds' => $rounds->count(),
-            'wagered' => (int) $rounds->sum(fn (GameRound $round): int => (int) ($round->publicResult()['total_wager'] ?? $round->bet)),
-            'payout' => (int) $rounds->sum('payout'),
-            'wins' => $rounds->filter(function (GameRound $round): bool {
+            'completed' => $completedRounds->count(),
+            'wagered' => (int) $completedRounds->sum(fn (GameRound $round): int => (int) ($round->publicResult()['total_wager'] ?? $round->bet)),
+            'payout' => (int) $completedRounds->sum('payout'),
+            'wins' => $completedRounds->filter(function (GameRound $round): bool {
                 $effectiveBet = (int) ($round->publicResult()['total_wager'] ?? $round->bet);
 
-                return $round->status->value === 'completed' && $round->payout > $effectiveBet;
+                return $round->payout > $effectiveBet;
             })->count(),
         ];
 
