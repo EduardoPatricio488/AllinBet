@@ -103,9 +103,9 @@
                                     <label class="casino-audio-control">
                                         <span>
                                             <b>Som de fundo</b>
-                                            <output data-casino-volume-value="ambient">38%</output>
+                                            <output data-casino-volume-value="ambient">55%</output>
                                         </span>
-                                        <input type="range" min="0" max="100" step="1" value="38" data-casino-volume="ambient" aria-label="Volume do som de fundo">
+                                        <input type="range" min="0" max="100" step="1" value="55" data-casino-volume="ambient" aria-label="Volume do som de fundo">
                                     </label>
 
                                     <label class="casino-audio-control">
