@@ -3,7 +3,5 @@
 @section('page-title', 'Blackjack')
 
 @section('content')
-    <x-casino.game-chrome slug="blackjack">
-        <livewire:casino.blackjack />
-    </x-casino.game-chrome>
+    <livewire:casino.blackjack />
 @endsection
