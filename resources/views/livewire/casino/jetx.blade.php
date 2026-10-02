@@ -16,6 +16,7 @@
         estimatedPayout: 0,
         lastServerSyncAt: 0,
         finalMultiplier: 0,
+        futureCrashMultiplier: 0,
         payout: 0,
         resultOpen: false,
         resultLabel: '',
@@ -207,6 +208,7 @@
             this.serverMultiplier = 1;
             this.displayMultiplier = 1;
             this.finalMultiplier = 0;
+            this.futureCrashMultiplier = 0;
             this.payout = 0;
             this.flightSeconds = 0;
             this.estimatedPayout = betValue;
@@ -282,6 +284,7 @@
             this.serverMultiplier = 1;
             this.displayMultiplier = 1;
             this.finalMultiplier = 0;
+            this.futureCrashMultiplier = 0;
             this.payout = 0;
             this.resultOpen = false;
             this.resultLabel = '';
@@ -303,6 +306,10 @@
                 || result.multiplier
                 || this.serverMultiplier
                 || 1
+            );
+            this.futureCrashMultiplier = Number(
+                result.crash_multiplier
+                || (completedStatus === 'crashed' ? this.finalMultiplier : 0)
             );
             this.serverMultiplier = this.finalMultiplier;
             this.displayMultiplier = this.finalMultiplier;
@@ -358,6 +365,7 @@
                 serverMultiplier = 1;
                 displayMultiplier = 1;
                 finalMultiplier = 0;
+                futureCrashMultiplier = 0;
                 payout = 0;
                 flightSeconds = 0;
                 estimatedPayout = 0;
@@ -526,6 +534,9 @@
                     <strong x-text="resultLabel"></strong>
                     <span x-text="Number(finalMultiplier).toFixed(2) + '×'"></span>
                     <small x-text="status === 'cashed_out' ? '+' + Number(payout).toLocaleString('pt-PT') + ' créditos virtuais' : 'Aposta perdida nesta ronda'"></small>
+                    <small x-show="status === 'cashed_out' && futureCrashMultiplier > 0" x-cloak>
+                        O voo teria terminado em <b x-text="Number(futureCrashMultiplier).toFixed(2) + '×'"></b>
+                    </small>
                 </div>
             </section>
 
@@ -603,6 +614,10 @@
                 <div class="mt-3">
                     <div class="jetx-stat"><span>Multiplicador</span><strong x-text="Number(displayMultiplier).toFixed(2) + '×'"></strong></div>
                     <div class="jetx-stat"><span>Prémio</span><strong x-text="Number(payout).toLocaleString('pt-PT') + ' créditos'"></strong></div>
+                    <div class="jetx-stat" x-show="status === 'cashed_out' && futureCrashMultiplier > 0" x-cloak>
+                        <span>Crash do voo</span>
+                        <strong x-text="Number(futureCrashMultiplier).toFixed(2) + '×'"></strong>
+                    </div>
                     @if ($roundId)
                         <div class="jetx-stat"><span>Ronda</span><strong>#{{ $roundId }}</strong></div>
                     @endif
