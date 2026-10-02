@@ -93,6 +93,37 @@ class CasinoGamesTest extends TestCase
         $this->assertSame([4], array_column($result->result['winning_lines'], 'symbol'));
     }
 
+    public function test_slots_bonus_buy_runs_the_configured_virtual_spins_and_returns_final_grid(): void
+    {
+        $round = $this->round(GameType::Slots, 500);
+        $round->forceFill([
+            'result' => [
+                'public' => [],
+                'private' => [
+                    'slot_variant' => 'classic',
+                    'bonus_buy' => true,
+                    'bonus_multiplier' => 10,
+                    'bonus_spin_count' => 10,
+                    'bonus_base_bet' => 500,
+                    'bonus_label' => 'Mini Bónus',
+                ],
+            ],
+        ]);
+
+        $result = app(SlotsGame::class)->play($round, ['action' => 'bonus_buy']);
+
+        $this->assertTrue($result->completed);
+        $this->assertIsInt($result->payout);
+        $this->assertArrayHasKey('grid', $result->result);
+        $this->assertCount(3, $result->result['grid']);
+        $this->assertSame(3, count($result->result['grid'][0]));
+        $this->assertSame(5, $result->result['payline_count']);
+        $this->assertTrue($result->result['bonus_buy']);
+        $this->assertSame(10, $result->result['bonus_spin_count']);
+        $this->assertCount(10, $result->result['bonus_spin_results']);
+        $this->assertSame($result->payout - 5000, $result->result['bonus_profit']);
+    }
+
     public function test_dice_and_slots_simulations_stay_within_two_percent_of_target_rtp(): void
     {
         $simulation = app(CasinoSimulationService::class);
