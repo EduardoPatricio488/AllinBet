@@ -34,13 +34,23 @@
         selectedSlot: @js($selectedSlot),
         busy: false,
         done: true,
+        revealed: true,
         overlay: false,
         shown: 0,
         prize: 0,
         tier: '',
+        settled: 0,
         maxBet: {{ $maxBet }},
         wait: (ms) => new Promise((r) => setTimeout(r, ms)),
         sfx(name) { this.$dispatch('casino-sfx', { name }); },
+        reelSpinners() { return [...this.$root.querySelectorAll('.slot-spinner')]; },
+        resetReels() {
+            this.reelSpinners().forEach((spinner) => {
+                spinner.style.animation = '';
+                spinner.style.transition = '';
+                spinner.style.transform = 'translate3d(0, 0, 0)';
+            });
+        },
         async selectSlot(key) {
             const allowed = @js(array_keys($slotVariants));
 
@@ -57,52 +67,114 @@
             await this.$wire.selectSlot(key);
         },
         step(d) {
-            const v = Math.round((Number(this.$wire.bet || 6) + d) / 6) * 6;
-            this.$wire.bet = Math.min(this.maxBet, Math.max(6, v));
+            const current = Number(this.$wire.bet || 1);
+            const next = Math.round(current + d);
+
+            this.$wire.bet = Math.min(this.maxBet, Math.max(1, next));
+        },
+        async settleReel(index) {
+            const reel = this.$root.querySelectorAll('.slot-reel')[index];
+            const spinner = this.reelSpinners()[index];
+
+            if (! reel || ! spinner) return;
+
+            const currentTransform = getComputedStyle(spinner).transform;
+            let currentY = 0;
+
+            if (currentTransform && currentTransform !== 'none') {
+                const match = currentTransform.match(/matrix3d\\(([^)]+)\\)/);
+                const matrix = match ? match[1].split(',').map(Number) : null;
+                if (matrix) {
+                    currentY = Number(matrix[13]) || 0;
+                } else {
+                    const twoD = currentTransform.match(/matrix\\(([^)]+)\\)/);
+                    if (twoD) {
+                        const values = twoD[1].split(',').map(Number);
+                        currentY = Number(values[5]) || 0;
+                    }
+                }
+            }
+
+            const cell = Math.max(1, reel.getBoundingClientRect().height / 3);
+            const extraCells = 7 + (index * 2);
+            const remainder = ((Math.abs(currentY) % cell) + cell) % cell;
+            const targetY = currentY - ((extraCells * cell) + remainder);
+
+            spinner.style.animation = 'none';
+            spinner.style.transition = 'none';
+            spinner.style.transform = 'translate3d(0, ' + currentY + 'px, 0)';
+
+            await this.wait(16);
+
+            spinner.style.transition = 'transform ' + (index === 2 ? 720 : 610) + 'ms cubic-bezier(.16,1,.3,1)';
+            spinner.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
+
+            await this.wait(index === 2 ? 735 : 625);
+
+            this.st[index] = 'idle';
+            this.settled = index + 1;
         },
         async go() {
             if (this.busy) return;
+
             const w = this.$wire;
             const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const minSpinMs = calm ? 120 : 2100;
+            const startedAt = Date.now();
+
             this.busy = true;
             this.done = false;
+            this.revealed = false;
             this.overlay = false;
+            this.settled = 0;
+            this.prize = 0;
+            this.shown = 0;
+            this.tier = '';
             this.st = ['spin', 'spin', 'spin'];
+            this.resetReels();
             this.sfx('spin');
 
-            const t0 = Date.now();
-            let ok = false;
-
-            try {
-                if (w.roundPhase !== 'prepared') await w.prepare();
-                if (w.roundPhase === 'prepared') {
+            const backend = (async () => {
+                try {
+                    if (w.roundPhase !== 'prepared') await w.prepare();
+                    if (w.roundPhase !== 'prepared') return false;
                     await w.spin();
-                    ok = true;
+                    return w.roundPhase === 'completed';
+                } catch (e) {
+                    return false;
                 }
-            } catch (e) {}
+            })();
+
+            await this.wait(Math.max(0, minSpinMs - (Date.now() - startedAt)));
+
+            const ok = await backend;
 
             if (!ok) {
                 this.st = ['idle', 'idle', 'idle'];
+                this.revealed = true;
                 this.done = true;
                 this.busy = false;
                 return;
             }
 
-            if (!calm) {
-                await this.wait(Math.max(0, 1200 - (Date.now() - t0)));
+            if (calm) {
+                this.st = ['idle', 'idle', 'idle'];
+                this.settled = 3;
+                this.revealed = true;
+                this.done = true;
+                this.busy = false;
+            } else {
+                for (let i = 0; i < 3; i++) {
+                    this.st[i] = 'settle';
+                    this.sfx('stop', i);
+                    await this.settleReel(i);
+                    if (i < 2) await this.wait(120);
+                }
+
+                this.revealed = true;
+                this.done = true;
+                this.busy = false;
             }
-
-            for (let i = 0; i < 3; i++) {
-                this.st[i] = 'land';
-                this.sfx('stop');
-                if (!calm) await this.wait(380);
-            }
-
-            if (!calm) await this.wait(520);
-
-            this.st = ['idle', 'idle', 'idle'];
-            this.done = true;
-            this.busy = false;
 
             const p = Number(w.roundPayout || 0);
 
@@ -111,7 +183,7 @@
             }
         },
         win(p, b) {
-            const m = p / b;
+            const m = b > 0 ? p / b : 0;
             this.tier = m >= 15 ? 'Mega vitória' : m >= 5 ? 'Grande vitória' : 'Vitória';
             this.prize = p;
             this.shown = 0;
@@ -222,6 +294,70 @@
         .slot-theme-wild .slot-prize__card{background:linear-gradient(145deg,rgba(8,19,13,.98),rgba(37,28,8,.98));border-color:rgba(34,197,94,.72)}
         @media (max-width:1100px){.slot-collection__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
         @media (max-width:640px){.slot-collection__head{align-items:start;flex-direction:column}.slot-collection__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-variant-card{padding:.6rem}.slot-variant-card__icon{flex-basis:2.2rem;width:2.2rem;height:2.2rem}.slot-variant-card__body em{display:block}}
+        .slot-header__status {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .38rem .65rem;
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 9999px;
+            background: rgba(255,255,255,.03);
+            color: #87928d;
+            font-size: .55rem;
+            font-weight: 950;
+            letter-spacing: .13em;
+        }
+        .slot-header__status i {
+            width: .4rem;
+            height: .4rem;
+            border-radius: 50%;
+            background: #6b7771;
+        }
+        .slot-header__status.is-spinning {
+            border-color: rgba(242,193,78,.3);
+            color: #f5d778;
+            box-shadow: 0 0 18px rgba(242,193,78,.07);
+        }
+        .slot-header__status.is-spinning i {
+            background: #f2c14e;
+            box-shadow: 0 0 10px rgba(242,193,78,.8);
+            animation: slot-status-pulse .65s ease-in-out infinite alternate;
+        }
+        .slot-header__status.is-ready i { background: #65d6a3; }
+
+        .slot-result-veil {
+            position: absolute;
+            inset: 0;
+            z-index: 6;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: .28rem;
+            background: linear-gradient(180deg, rgba(3,7,6,.08), rgba(3,7,6,.42));
+            pointer-events: none;
+        }
+        .slot-result-veil__dot {
+            width: .65rem;
+            height: .65rem;
+            border-radius: 50%;
+            border: 2px solid rgba(242,193,78,.26);
+            border-top-color: #f2c14e;
+            animation: slot-veil-spin .8s linear infinite;
+        }
+        .slot-result-veil b {
+            color: #d4c993;
+            font-size: .52rem;
+            font-weight: 950;
+            letter-spacing: .16em;
+        }
+        .slot-result-veil small {
+            color: #6f7b75;
+            font-size: .5rem;
+        }
+
+        @keyframes slot-status-pulse { from { transform: scale(.75); opacity: .55; } to { transform: scale(1.15); opacity: 1; } }
+        @keyframes slot-veil-spin { to { transform: rotate(360deg); } }
+
         .slot-machine { --cell: clamp(4.2rem, 16vw, 6.6rem); --gold: #f2c14e; --gold-hi: #ffe39a; }
         .allin-slots { --green: #23d99a; --line: rgba(255,255,255,.08); }
 
@@ -260,20 +396,57 @@
             background: linear-gradient(180deg, rgba(0, 0, 0, .7), transparent 28%, transparent 72%, rgba(0, 0, 0, .7));
         }
         .slot-sym { display: grid; place-items: center; width: 100%; height: var(--cell); font-size: clamp(2.3rem, 5.8vw, 4rem); line-height: 1; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .45)); user-select: none; }
-        .slot-spinner { display: none; }
-        .slot-landing { display: grid; grid-template-columns: 1fr; align-content: start; }
-        .slot-reel.is-spin .slot-landing { display: none; }
-        .slot-reel.is-spin .slot-spinner { display: grid; grid-template-columns: 1fr; animation: slot-loop var(--t, .5s) linear infinite; filter: blur(2.2px); }
-        .slot-reel:nth-child(2) { --t: .46s; }
-        .slot-reel:nth-child(3) { --t: .42s; }
-        .slot-reel.is-land .slot-landing { animation: slot-land .55s cubic-bezier(.22, .8, .3, 1) both; }
+        .slot-spinner {
+            display: none;
+            grid-template-columns: 1fr;
+            width: 100%;
+            will-change: transform;
+        }
+        .slot-landing {
+            display: grid;
+            grid-template-columns: 1fr;
+            align-content: start;
+        }
+        .slot-reel.is-spin .slot-landing,
+        .slot-reel.is-settle .slot-landing { visibility: hidden; }
+        .slot-reel.is-spin .slot-spinner {
+            display: grid;
+            animation: slot-scroll var(--spin-speed, .42s) linear infinite;
+            filter: blur(2.6px);
+        }
+        .slot-reel:nth-child(1) { --spin-speed: .46s; }
+        .slot-reel:nth-child(2) { --spin-speed: .40s; }
+        .slot-reel:nth-child(3) { --spin-speed: .36s; }
+        .slot-reel.is-settle .slot-spinner {
+            display: grid;
+            filter: blur(1px);
+        }
+        .slot-reel.is-settle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            pointer-events: none;
+            background: linear-gradient(180deg, transparent 28%, rgba(242,193,78,.08) 46%, rgba(255,255,255,.11) 50%, rgba(242,193,78,.08) 54%, transparent 72%);
+            animation: slot-lock-flash .56s ease-out both;
+        }
+        .slot-reel.is-spin::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255,255,255,.02), transparent 30%, transparent 70%, rgba(0,0,0,.22));
+        }
 
-        @keyframes slot-loop { from { transform: translateY(calc(var(--cell) * -8)); } to { transform: translateY(0); } }
-        @keyframes slot-land {
-            from { transform: translateY(calc(var(--cell) * -6)); }
-            65% { transform: translateY(calc(var(--cell) * .14)); }
-            82% { transform: translateY(calc(var(--cell) * -.05)); }
-            to { transform: translateY(0); }
+        @keyframes slot-scroll {
+            from { transform: translate3d(0, 0, 0); }
+            to { transform: translate3d(0, calc(var(--cell) * -32), 0); }
+        }
+        @keyframes slot-lock-flash {
+            0% { opacity: 0; transform: scaleY(.7); }
+            30% { opacity: 1; }
+            100% { opacity: 0; transform: scaleY(1); }
         }
 
         .slot-payline {
@@ -343,13 +516,15 @@
 
         @media (max-width: 900px) { .slot-deck { grid-template-columns: 1fr 1fr; } .slot-spin { grid-column: 1 / -1; } .slot-chips { justify-content: flex-start; } }
         @media (max-width: 560px) {
+            .slot-header__status { order: 3; width: 100%; justify-content: center; }
             .slot-deck { grid-template-columns: 1fr; } .slot-spin { grid-column: auto; }
             .slot-markers span { width: 1.2rem; height: 1.2rem; font-size: .6rem; }
             .slot-window { padding: .55rem; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .slot-reel.is-spin .slot-spinner, .slot-reel.is-land .slot-landing, .slot-window.is-done .slot-payline,
-            .slot-window.is-done .slot-sym.is-win, .slot-prize__card, .slot-prize-card { animation: none; }
+            .slot-reel.is-spin .slot-spinner, .slot-reel.is-settle .slot-spinner, .slot-reel.is-land .slot-landing,
+            .slot-window.is-done .slot-payline, .slot-window.is-done .slot-sym.is-win, .slot-prize__card, .slot-prize-card,
+            .slot-header__status.is-spinning i, .slot-result-veil__dot { animation: none; }
             .slot-reel.is-spin .slot-spinner { filter: none; }
         }
     </style>
@@ -371,13 +546,21 @@
                     Allinbet <em class="casino-shimmer-text">Slots</em>
                     <span class="slot-title__variant" x-text="@js($slotVariants)[selectedSlot].name"></span>
                 </h1>
+
+                <div class="slot-header__status" :class="{ 'is-spinning': busy, 'is-ready': !busy }">
+                    <i></i>
+                    <span x-show="!busy">PRONTO</span>
+                    <span x-show="busy" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/3'"></span>
+                </div>
+
                 <span class="slot-badge" x-text="@js($slotVariants)[selectedSlot].tag"></span>
             </header>
 
             <div class="slot-window"
                  :class="{
-                    'is-done': done,
-                    'has-win': done && @js(count($winningLines) > 0)
+                    'is-done': done && revealed,
+                    'has-win': done && revealed && @js(count($winningLines) > 0),
+                    'is-spinning': busy
                  }">
                 <div class="slot-markers" aria-hidden="true">
                     @foreach ([0, 1, 2] as $r)
@@ -386,6 +569,11 @@
                 </div>
 
                 <div class="slot-reels" role="img" aria-label="Rolos com 9 posições, 3 colunas e 3 linhas">
+                    <div class="slot-result-veil" x-show="busy || !revealed" x-cloak aria-hidden="true">
+                        <span class="slot-result-veil__dot"></span>
+                        <b x-text="settled < 3 ? 'RESULTADO OCULTO' : 'A REVELAR'"></b>
+                        <small x-text="settled + '/3 rolos'"></small>
+                    </div>
                     @foreach ([0, 1, 2] as $c)
                         <div class="slot-reel" :class="'is-' + st[{{ $c }}]">
                             <div class="slot-spinner" aria-hidden="true">
@@ -396,7 +584,7 @@
                                 @endfor
                             </div>
 
-                            <div class="slot-landing">
+                            <div class="slot-landing" x-show="revealed" x-cloak>
                                 @foreach ($grid as $r => $row)
                                     @php
                                         $isWin = in_array($r, $winRows, true) || in_array($c, $winCols, true);
@@ -429,15 +617,15 @@
                 <div>
                     <span class="slot-label">Aposta total</span>
                     <div class="slot-stepper">
-                        <button type="button" x-on:click="step(-6)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
-                        <input type="number" min="6" step="1" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
-                        <button type="button" x-on:click="step(6)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
+                        <button type="button" x-on:click="step(-1)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
+                        <input type="number" min="1" step="1" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
+                        <button type="button" x-on:click="step(1)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">Por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 6)"></b> créditos · 6 linhas</small>
+                    <small class="slot-hint">Aposta total · 6 linhas de pagamento</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
-                    @foreach ([6, 12, 30, 60, 120] as $chip)
+                    @foreach ([1, 5, 10, 25, 50, 100] as $chip)
                         @if ($chip <= $maxBet)
                             <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || @js($locked)">{{ $chip }}</button>
                         @endif
