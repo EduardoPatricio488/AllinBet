@@ -27,10 +27,11 @@
     class="casino-game-play roulette-page casino-game-screen" data-casino-game="roulette"
     x-data="{
         spinning: false,
-        resultVisible: {{ $roundResult !== [] ? 'true' : 'false' }},
+        resultVisible: {{ ($roundResult !== [] && $roundPhase === 'completed') ? 'true' : 'false' }},
         resultNumber: {{ $resultNumber }},
         resultColor: @js($resultColor),
         selectedIndex: {{ $resultIndex }},
+        wheelRotation: {{ (-$resultIndex * (360 / 37)) + 720 }},
         maxBet: {{ $maxBet }},
 
         pickType(type) {
@@ -64,6 +65,7 @@
             this.resultVisible = false;
 
             const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const step = 360 / 37;
 
             try {
                 await this.$wire.spin();
@@ -77,8 +79,14 @@
                 this.resultColor = color;
                 this.selectedIndex = index;
 
+                const current = Number(this.wheelRotation || 0);
+                const desired = -(index * step);
+                const remainder = ((desired - (current % 360)) + 360) % 360;
+                const extraTurns = calm ? 0 : 5;
+                this.wheelRotation = current + (extraTurns * 360) + remainder;
+
                 if (!calm) {
-                    await new Promise(resolve => setTimeout(resolve, 2200));
+                    await new Promise(resolve => setTimeout(resolve, 2300));
                 }
 
                 const settlementDeadline = Date.now() + 1600;
@@ -111,7 +119,7 @@
         .roulette-topbar{position:absolute;top:1rem;left:1rem;right:1rem;z-index:8;display:flex;justify-content:space-between;align-items:center;gap:1rem}
         .roulette-kicker{font-size:.65rem;font-weight:950;letter-spacing:.2em;color:#899596;text-transform:uppercase}.roulette-badge{display:flex;align-items:center;gap:.45rem;padding:.45rem .7rem;border:1px solid rgba(255,255,255,.07);border-radius:999px;background:rgba(5,12,10,.72);color:#c8d2ce;font-size:.66rem;font-weight:900}.roulette-dot{width:.42rem;height:.42rem;border-radius:50%;background:var(--roulette-green);box-shadow:0 0 14px rgba(24,185,120,.8)}
         .roulette-wheel-wrap{position:relative;width:23rem;height:23rem;perspective:1000px}.roulette-wheel-shadow{position:absolute;left:50%;bottom:-.7rem;width:18rem;height:2.2rem;transform:translateX(-50%);border-radius:50%;background:rgba(0,0,0,.65);filter:blur(16px)}.roulette-pointer{position:absolute;top:-.55rem;left:50%;z-index:10;transform:translateX(-50%);width:0;height:0;border-left:.65rem solid transparent;border-right:.65rem solid transparent;border-top:1.35rem solid var(--roulette-gold);filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
-        .roulette-wheel{position:absolute;inset:0;border-radius:50%;transform:rotateX(16deg);transform-style:preserve-3d;box-shadow:0 1.2rem 3rem rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.12);transition:transform 2.2s cubic-bezier(.12,.78,.13,1)}.roulette-wheel.is-spinning{animation:rouletteSpin 2.2s cubic-bezier(.1,.68,.13,1) forwards}
+        .roulette-wheel{position:absolute;inset:0;border-radius:50%;transform-style:preserve-3d;box-shadow:0 1.2rem 3rem rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.12);transition:transform 2.3s cubic-bezier(.12,.78,.13,1)}
         .roulette-rim{position:absolute;inset:.25rem;border-radius:50%;background:linear-gradient(145deg,#f1cb70,#a86f16 46%,#f6d985 70%,#7b4c0a);box-shadow:inset 0 0 0 .4rem rgba(75,38,3,.7),inset 0 0 0 .55rem rgba(255,235,159,.45)}.roulette-inner{position:absolute;inset:1.35rem;border-radius:50%;background:#0d241d;box-shadow:inset 0 0 0 .5rem #143b2d,inset 0 0 0 1.35rem #07120f}
         .roulette-number-ring{position:absolute;inset:.95rem;border-radius:50%}.roulette-pocket{position:absolute;left:50%;top:50%;width:2.45rem;height:2.45rem;margin:-1.225rem;border-radius:.42rem;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);font-size:.63rem;font-weight:1000;color:#fff;box-shadow:0 3px 7px rgba(0,0,0,.35);transform:rotate(var(--a)) translateY(-9.55rem) rotate(calc(var(--a) * -1));background:var(--pocket-bg)}.roulette-pocket--red{--pocket-bg:linear-gradient(145deg,#d75a61,#862c33)}.roulette-pocket--black{--pocket-bg:linear-gradient(145deg,#27313d,#0c1015)}.roulette-pocket--green{--pocket-bg:linear-gradient(145deg,#29d092,#08764d)}.roulette-center{position:absolute;inset:6.6rem;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#f6db89,#bd851e 37%,#76470b 72%,#3b2104);border:.35rem solid rgba(247,213,128,.8);box-shadow:inset 0 0 0 .18rem rgba(96,52,6,.48),0 0 2rem rgba(229,187,89,.16)}.roulette-center-logo{width:4.6rem;height:4.6rem;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(255,247,200,.6);background:radial-gradient(circle,#fce9a9,#d99e2b);color:#75490c;font-size:1.45rem;font-weight:1000;box-shadow:inset 0 0 0 .25rem rgba(128,73,9,.2)}
         .roulette-result-card{position:absolute;bottom:1rem;z-index:9;min-width:15rem;padding:.7rem 1rem;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(4,11,8,.8);backdrop-filter:blur(14px);text-align:center;box-shadow:0 12px 30px rgba(0,0,0,.3)}.roulette-result-label{font-size:.58rem;font-weight:950;letter-spacing:.18em;color:#80918a;text-transform:uppercase}.roulette-result-number{margin-top:.12rem;font-size:1.85rem;font-weight:1000;line-height:1}.roulette-result-sub{margin-top:.16rem;font-size:.68rem;font-weight:850}
@@ -124,7 +132,7 @@
         .roulette-stepper{display:grid;grid-template-columns:2.6rem minmax(5rem,1fr) 2.6rem;margin-top:.85rem;border:1px solid rgba(255,255,255,.08);border-radius:.85rem;overflow:hidden;background:#0b0f14}.roulette-stepper button{border:0;background:rgba(255,255,255,.02);color:#dbe3df;font-size:1.1rem;cursor:pointer}.roulette-stepper button:hover:not(:disabled){background:rgba(229,187,89,.08)}.roulette-input{width:100%;border:0;border-inline:1px solid rgba(255,255,255,.07);background:transparent;padding:.7rem .3rem;text-align:center;color:#fff;font-weight:950;outline:0}.roulette-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.55rem}.roulette-chip{padding:.4rem .62rem;border:1px solid rgba(255,255,255,.07);border-radius:999px;background:rgba(255,255,255,.02);color:#9eaaa4;font-size:.63rem;font-weight:900;cursor:pointer;transition:.18s}.roulette-chip:hover{border-color:rgba(229,187,89,.28);color:#f0d27c;transform:translateY(-1px)}
         .roulette-payout{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-top:.8rem;padding:.7rem .75rem;border:1px solid rgba(229,187,89,.1);border-radius:.75rem;background:rgba(229,187,89,.045)}.roulette-payout strong{font-size:.95rem;color:#f1d27a}.roulette-payout span{font-size:.58rem;color:#747f7a}.roulette-action{display:flex;gap:.6rem;align-items:center;margin-top:.75rem}.roulette-primary{flex:1;min-height:3.15rem;border:0;border-radius:1rem;background:linear-gradient(135deg,#efcf78,#bd8320 55%,#80500b);color:#2e1d05;font-size:.8rem;font-weight:1000;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;box-shadow:0 13px 28px rgba(174,114,20,.2);transition:.18s}.roulette-primary:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.04)}.roulette-primary:disabled{opacity:.5;cursor:not-allowed}.roulette-space{font-size:.58rem;color:#697670}
         .roulette-fairness{margin-top:.9rem;padding:1rem;border:1px solid rgba(255,255,255,.07);border-radius:1.25rem;background:rgba(7,10,14,.7)}.roulette-fairness summary{cursor:pointer;list-style:none}.roulette-fairness summary::-webkit-details-marker{display:none}.roulette-fairness summary::after{content:'+';float:right;color:#69756f}.roulette-fairness[open] summary::after{content:'−'}.roulette-seed{width:100%;margin-top:.6rem;border:1px solid rgba(255,255,255,.08);border-radius:.7rem;background:#0b0f14;padding:.6rem .7rem;color:#dae3df;font:600 .66rem ui-monospace,SFMono-Regular,Menlo,monospace}
-        @keyframes rouletteSpin{0%{transform:rotateX(16deg) rotateZ(0deg)}100%{transform:rotateX(16deg) rotateZ(1440deg)}}@keyframes rouletteWin{0%{transform:scale(.45);opacity:0}25%{opacity:1}100%{transform:scale(1.55);opacity:0}}
+        @keyframes rouletteWin{0%{transform:scale(.45);opacity:0}25%{opacity:1}100%{transform:scale(1.55);opacity:0}}
         @media(max-width:1100px){.roulette-layout{grid-template-columns:1fr}}@media(max-width:720px){.roulette-stage{min-height:25rem}.roulette-wheel-wrap{width:19rem;height:19rem}.roulette-pocket{width:2.05rem;height:2.05rem;margin:-1.025rem;font-size:.55rem;transform:rotate(var(--a)) translateY(-7.7rem) rotate(calc(var(--a) * -1))}.roulette-center{inset:5.45rem}.roulette-grid{grid-template-columns:repeat(6,minmax(2rem,1fr))}.roulette-zero{grid-template-columns:1fr}.roulette-externals{grid-template-columns:repeat(2,1fr)}.roulette-type-grid{grid-template-columns:repeat(2,1fr)}.roulette-topbar{align-items:flex-start}.roulette-result-card{min-width:13rem}}
         @media(prefers-reduced-motion:reduce){.roulette-wheel,.roulette-wheel.is-spinning,.roulette-pocket,.roulette-primary,.roulette-number,.roulette-external,.roulette-type,.roulette-chip{animation:none;transition:none}}
     </style>
@@ -151,7 +159,7 @@
                         <div class="roulette-pointer" aria-hidden="true"></div>
                         <div class="roulette-wheel-shadow" aria-hidden="true"></div>
 
-                        <div class="roulette-wheel" :class="{ 'is-spinning': spinning }" :style="!spinning ? 'transform:rotateX(16deg) rotateZ(' + ((-selectedIndex * (360 / 37)) + 720) + 'deg)' : ''">
+                        <div class="roulette-wheel" :style="'transform:rotateX(16deg) rotateZ(' + wheelRotation + 'deg)'">
                             <div class="roulette-rim"></div>
                             <div class="roulette-inner"></div>
 
