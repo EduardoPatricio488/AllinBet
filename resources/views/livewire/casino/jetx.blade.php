@@ -1,385 +1,130 @@
-<div class="jetx-page"
-     x-on:casino-toast.window="if (launching) { launching = false; busy = false; status = 'ready'; phase = 'ready'; estimatedPayout = 0; }"
+<div class="jetx-page jx"
+     x-on:casino-toast.window="if (launching) { launching = false; busy = false; status = 'ready'; phase = 'ready'; estimated = 0; }"
      x-data="{
-        busy: false,
-        launching: false,
-        flying: false,
-        phase: @js($roundPhase),
-        audioContext: null,
-        audioMaster: null,
-        lastSoundMultiplier: 1,
+        busy: false, launching: false, flying: false, phase: @js($roundPhase),
         status: @js($roundPhase === 'in_progress' ? 'paused' : 'ready'),
-        multiplier: 1,
-        serverMultiplier: 1,
-        displayMultiplier: 1,
-        multiplierTimeConstant: @js((int) config('casino.games.jetx.multiplier_time_constant_ms', 6500)),
-        multiplierMaximum: @js((float) config('casino.games.jetx.max_multiplier', 2500)),
-        flightStartedAt: 0,
-        flightSeconds: 0,
-        estimatedPayout: 0,
-        lastServerSyncAt: 0,
-        finalMultiplier: 0,
-        futureCrashMultiplier: 0,
-        payout: 0,
-        resultOpen: false,
-        resultLabel: '',
-        pollTimer: null,
-        raf: null,
+        tau: @js((int) config('casino.games.jetx.multiplier_time_constant_ms', 6500)),
+        cap: @js((float) config('casino.games.jetx.max_multiplier', 2500)),
+        started: 0, secs: 0, mult: 1, serverMult: 1, finalMult: 0, crashMult: 0, payout: 0, estimated: 0, lastMilestone: 1,
+        resultOpen: false, label: '', pollTimer: null, raf: null, auto: '', history: [],
+        line: '', area: '', pos: 'left:0%;top:100%', ang: -22, yTicks: [],
 
-        ensureAudio() {
-            const Audio = window.AudioContext || window.webkitAudioContext;
-            if (!Audio) return null;
+        sfx(name) { this.$dispatch('casino-sfx', { name }); },
+        get statusText() { return { launching: 'A preparar aposta…', flying: 'Foguete em voo', paused: 'Ronda em espera', crashed: 'Crash', cashed_out: 'Prémio recolhido', cashing_out: 'A recolher…' }[this.status] || 'Pronto'; },
+        current() { const e = Math.max(0, Date.now() - Number(this.started || Date.now())); return Math.min(this.cap, Math.round(Math.exp(e / this.tau) * 100) / 100); },
 
-            if (!this.audioContext) {
-                this.audioContext = new Audio();
-                this.audioMaster = this.audioContext.createGain();
-                this.audioMaster.gain.value = 0.16;
-                this.audioMaster.connect(this.audioContext.destination);
+        draw(t) {
+            const tau = this.tau / 1000, m = Math.min(this.cap, Math.exp(t / tau)), xMax = Math.max(6, t * 1.12), yMax = Math.max(2, m * 1.18), N = 48, pts = [];
+            for (let i = 0; i <= N; i++) {
+                const tt = (t * i) / N, mm = Math.min(this.cap, Math.exp(tt / tau));
+                pts.push([(tt / xMax) * 1000, 400 - ((mm - 1) / (yMax - 1)) * 400]);
             }
-
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume().catch(() => {});
-            }
-
-            return this.audioContext;
+            const f = (p) => p[0].toFixed(1) + ' ' + p[1].toFixed(1), last = pts[N], prev = pts[N - 1], el = this.$refs.chart;
+            const W = el ? el.clientWidth : 1000, H = el ? el.clientHeight : 400;
+            this.line = 'M' + pts.map(f).join(' L');
+            this.area = this.line + ' L' + last[0].toFixed(1) + ' 400 L0 400 Z';
+            this.pos = 'left:' + (last[0] / 10).toFixed(2) + '%;top:' + (last[1] / 4).toFixed(2) + '%';
+            this.ang = t > 0.05 ? (Math.atan2(((last[1] - prev[1]) / 400) * H, ((last[0] - prev[0]) / 1000) * W) * 180) / Math.PI : -22;
+            const raw = (yMax - 1) / 4, step = [.25, .5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].find((s) => s >= raw) || 1000;
+            this.yTicks = Array.from({ length: Math.floor((yMax - 1) / step) }, (_, k) => {
+                const v = 1 + step * (k + 1);
+                return { v: +v.toFixed(2), y: 400 - ((v - 1) / (yMax - 1)) * 400 };
+            });
         },
 
-        playTone(frequency, duration = 0.2, options = {}) {
-            const ctx = this.ensureAudio();
-            if (!ctx || !this.audioMaster) return;
-
-            const {
-                type = 'sine',
-                volume = 0.08,
-                attack = 0.008,
-                release = 0.18,
-                detune = 0,
-                start = 0,
-            } = options;
-
-            const now = ctx.currentTime + start;
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = type;
-            osc.frequency.setValueAtTime(frequency, now);
-            osc.detune.value = detune;
-
-            gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), now + attack);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(attack + 0.01, duration - release));
-
-            osc.connect(gain);
-            gain.connect(this.audioMaster);
-            osc.start(now);
-            osc.stop(now + duration);
-        },
-
-        playNoise(duration = 0.25, volume = 0.05, filterFrequency = 1800) {
-            const ctx = this.ensureAudio();
-            if (!ctx || !this.audioMaster) return;
-
-            const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
-            const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-
-            for (let i = 0; i < length; i += 1) {
-                data[i] = (Math.random() * 2 - 1) * (1 - i / length);
-            }
-
-            const source = ctx.createBufferSource();
-            const filter = ctx.createBiquadFilter();
-            const gain = ctx.createGain();
-            const now = ctx.currentTime;
-
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(filterFrequency, now);
-            filter.Q.value = 0.7;
-
-            gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.exponentialRampToValueAtTime(volume, now + 0.012);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-            source.buffer = buffer;
-            source.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.audioMaster);
-            source.start(now);
-            source.stop(now + duration);
-        },
-
-        tone(kind) {
-            const ctx = this.ensureAudio();
-            if (!ctx) return;
-
-            if (kind === 'launch') {
-                this.playTone(110, 0.72, { type: 'sine', volume: 0.11, release: 0.32 });
-                this.playTone(220, 0.58, { type: 'triangle', volume: 0.045, attack: 0.025, release: 0.25, start: 0.04 });
-                this.playTone(440, 0.44, { type: 'sine', volume: 0.025, attack: 0.025, release: 0.22, start: 0.18 });
-                this.playNoise(0.9, 0.045, 1300);
-
-                const start = ctx.currentTime;
-                const sweep = ctx.createOscillator();
-                const sweepGain = ctx.createGain();
-
-                sweep.type = 'sawtooth';
-                sweep.frequency.setValueAtTime(85, start);
-                sweep.frequency.exponentialRampToValueAtTime(520, start + 0.72);
-                sweepGain.gain.setValueAtTime(0.0001, start);
-                sweepGain.gain.exponentialRampToValueAtTime(0.045, start + 0.08);
-                sweepGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.74);
-                sweep.connect(sweepGain);
-                sweepGain.connect(this.audioMaster);
-                sweep.start(start);
-                sweep.stop(start + 0.76);
-                return;
-            }
-
-            if (kind === 'cashout') {
-                this.playTone(523.25, 0.38, { type: 'sine', volume: 0.075, release: 0.18 });
-                this.playTone(659.25, 0.42, { type: 'sine', volume: 0.07, release: 0.2, start: 0.06 });
-                this.playTone(783.99, 0.5, { type: 'triangle', volume: 0.06, release: 0.24, start: 0.13 });
-                this.playTone(1046.5, 0.34, { type: 'sine', volume: 0.035, release: 0.18, start: 0.24 });
-                this.playNoise(0.28, 0.022, 2600);
-                return;
-            }
-
-            if (kind === 'milestone') {
-                this.playTone(880, 0.16, { type: 'sine', volume: 0.028, release: 0.09 });
-                this.playTone(1174.66, 0.22, { type: 'triangle', volume: 0.022, release: 0.12, start: 0.045 });
-                return;
-            }
-
-            this.playTone(74, 0.92, { type: 'sawtooth', volume: 0.11, release: 0.58 });
-            this.playTone(148, 0.62, { type: 'triangle', volume: 0.06, release: 0.36, start: 0.02 });
-            this.playTone(294, 0.36, { type: 'sawtooth', volume: 0.025, release: 0.22, start: 0.04 });
-            this.playNoise(0.34, 0.11, 950);
-
-            const start = ctx.currentTime;
-            const drop = ctx.createOscillator();
-            const dropGain = ctx.createGain();
-
-            drop.type = 'square';
-            drop.frequency.setValueAtTime(210, start);
-            drop.frequency.exponentialRampToValueAtTime(42, start + 0.58);
-            dropGain.gain.setValueAtTime(0.0001, start);
-            dropGain.gain.exponentialRampToValueAtTime(0.055, start + 0.012);
-            dropGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.62);
-            drop.connect(dropGain);
-            dropGain.connect(this.audioMaster);
-            drop.start(start);
-            drop.stop(start + 0.65);
-        },
-
-        resetFlight() {
-            clearTimeout(this.pollTimer);
-            cancelAnimationFrame(this.raf);
-            this.pollTimer = null;
-            this.raf = null;
-        },
-
-        currentMultiplier() {
-            const elapsed = Math.max(0, Date.now() - Number(this.flightStartedAt || Date.now()));
-            return Math.min(
-                this.multiplierMaximum,
-                Math.round(Math.exp(elapsed / this.multiplierTimeConstant) * 100) / 100
-            );
-        },
-
-        progressPercent() {
-            if (!this.flying) return this.displayMultiplier > 1 ? 100 : 0;
-
-            return Math.min(
-                100,
-                Math.max(
-                    0,
-                    (Math.log(Math.max(1, this.displayMultiplier)) / Math.log(this.multiplierMaximum)) * 100
-                )
-            );
-        },
-
-        elapsedSeconds() {
-            if (!this.flightStartedAt) return 0;
-
-            return Math.max(0, (Date.now() - Number(this.flightStartedAt)) / 1000);
-        },
-
-        updateTelemetry() {
-            this.flightSeconds = this.elapsedSeconds();
-            this.estimatedPayout = Math.max(
-                0,
-                Math.floor(Number(this.$wire.bet || 0) * Number(this.displayMultiplier || 1))
-            );
-        },
+        stop() { clearTimeout(this.pollTimer); cancelAnimationFrame(this.raf); this.pollTimer = null; this.raf = null; },
 
         animate() {
-            if (!this.flying || !this.flightStartedAt) return;
-
-            // O valor visual é calculado a cada frame pelo mesmo relógio exponencial
-            // usado pelo servidor. Assim não existem saltos entre ticks do Livewire.
-            const nextMultiplier = this.currentMultiplier();
-
-            this.displayMultiplier = Math.max(1, Math.min(this.multiplierMaximum, nextMultiplier));
-            this.multiplier = this.displayMultiplier;
-            this.updateTelemetry();
-
-            const milestone = Math.floor(this.displayMultiplier);
-            const previousMilestone = Math.floor(this.lastSoundMultiplier);
-
-            if (milestone >= 2 && milestone > previousMilestone) {
-                this.lastSoundMultiplier = milestone;
-                this.tone('milestone');
-            } else {
-                this.lastSoundMultiplier = Math.max(this.lastSoundMultiplier, this.displayMultiplier);
+            if (!this.flying || !this.started) return;
+            const m = this.current();
+            this.mult = m;
+            this.secs = Math.max(0, (Date.now() - this.started) / 1000);
+            this.estimated = Math.floor(Number(this.$wire.bet || 0) * m);
+            this.draw(this.secs);
+            const ms = Math.floor(m);
+            if (ms >= 2 && ms > this.lastMilestone) {
+                this.lastMilestone = ms;
+                this.sfx('milestone');
             }
-
+            if (this.auto && !this.busy && m >= Number(this.auto)) this.cashout();
             this.raf = requestAnimationFrame(() => this.animate());
         },
 
-        rocketStyle() {
-            const progress = Math.min(
-                1,
-                Math.log(Math.max(1, this.displayMultiplier)) / Math.log(this.multiplierMaximum)
-            );
-            const x = 9 + progress * 79;
-            const y = 78 - Math.pow(progress, 1.2) * 63;
-            const tilt = -18 - (progress * 7);
-
-            return `left: ${x}%; top: ${y}%; transform: translate(-50%, -50%) rotate(${tilt}deg);`;
-        },
-
         syncServerResult() {
-            const w = this.$wire;
-            const result = w.roundResult || {};
-            const value = Number(
-                result.multiplier
-                ?? result.cashout_multiplier
-                ?? result.crash_multiplier
-                ?? 1
-            );
-
+            const w = this.$wire, r = w.roundResult || {};
+            const v = Number(r.multiplier ?? r.cashout_multiplier ?? r.crash_multiplier ?? 1);
             this.phase = w.roundPhase;
-
-            if (Number.isFinite(value) && value >= 1) {
-                this.serverMultiplier = Math.min(2500, value);
-            }
-
-            this.lastServerSyncAt = Date.now();
-
-            if (w.roundPhase === 'completed') {
-                this.finalize();
-                return false;
-            }
-
+            if (Number.isFinite(v) && v >= 1) this.serverMult = Math.min(this.cap, v);
+            if (w.roundPhase === 'completed') { this.finalize(); return false; }
             return true;
         },
 
         async beginFlight(startedAtMs = Date.now()) {
-            const w = this.$wire;
-            const started = Number(startedAtMs || Date.now());
-
-            if (this.flying && Math.abs(this.flightStartedAt - started) < 50) {
-                return;
-            }
-
-            this.resetFlight();
+            const w = this.$wire, s = Number(startedAtMs || Date.now());
+            if (this.flying && Math.abs(this.started - s) < 50) return;
+            this.stop();
             this.launching = false;
-            this.flightStartedAt = started;
-            this.lastServerSyncAt = Date.now();
+            this.started = s;
             this.phase = 'in_progress';
             this.flying = true;
             this.status = 'flying';
             this.busy = false;
-            this.serverMultiplier = Math.max(1, Number(w.roundResult?.multiplier || 1));
-            this.multiplier = 1;
-            this.displayMultiplier = 1;
+            this.serverMult = Math.max(1, Number(w.roundResult?.multiplier || 1));
+            this.mult = 1;
+            this.lastMilestone = 1;
             this.resultOpen = false;
-            this.resultLabel = '';
+            this.label = '';
             this.payout = 0;
-            this.flightSeconds = 0;
-            this.estimatedPayout = Number(w.bet || 0);
-            this.tone('launch');
+            this.secs = 0;
+            this.estimated = Number(w.bet || 0);
+            this.sfx('launch');
             this.animate();
-
-            try {
-                await w.tick();
-
-                if (!this.syncServerResult()) {
-                    return;
-                }
-            } catch (e) {
-                // The next poll retries automatically.
-            }
-
+            try { await w.tick(); if (!this.syncServerResult()) return; } catch (e) {}
             this.schedulePoll();
         },
 
         startFlight() {
-            const betValue = Math.max(0, Number(this.$wire.bet || 0));
-
-            // Feedback imediato: a aposta fica visualmente bloqueada enquanto
-            // o servidor prepara a ronda e confirma o débito.
-            this.resetFlight();
+            this.stop();
             this.launching = true;
             this.flying = false;
             this.busy = true;
             this.phase = 'launching';
             this.status = 'launching';
             this.resultOpen = false;
-            this.resultLabel = '';
-            this.lastSoundMultiplier = 1;
-            this.multiplier = 1;
-            this.serverMultiplier = 1;
-            this.displayMultiplier = 1;
-            this.finalMultiplier = 0;
-            this.futureCrashMultiplier = 0;
+            this.label = '';
+            this.lastMilestone = 1;
+            this.mult = 1;
+            this.serverMult = 1;
+            this.finalMult = 0;
+            this.crashMult = 0;
             this.payout = 0;
-            this.flightSeconds = 0;
-            this.estimatedPayout = betValue;
+            this.secs = 0;
+            this.estimated = Math.max(0, Number(this.$wire.bet || 0));
+            this.draw(0);
         },
 
         schedulePoll() {
             if (!this.flying) return;
-
             clearTimeout(this.pollTimer);
             this.pollTimer = setTimeout(() => this.poll(), 350);
         },
 
         async poll() {
             if (!this.flying) return;
-
-            const w = this.$wire;
-
-            try {
-                await w.tick();
-
-                if (!this.syncServerResult()) {
-                    return;
-                }
-            } catch (e) {
-                // Keep polling through transient request failures.
-            }
-
+            try { await this.$wire.tick(); if (!this.syncServerResult()) return; } catch (e) {}
             this.schedulePoll();
         },
 
         async cashout() {
             if (!this.flying || this.busy) return;
-
             const w = this.$wire;
             this.busy = true;
             this.flying = false;
-            this.resetFlight();
+            this.stop();
             this.status = 'cashing_out';
-
             try {
                 await w.cashout();
-
-                if (w.roundPhase === 'completed') {
-                    this.finalize();
-                    return;
-                }
-
+                if (w.roundPhase === 'completed') { this.finalize(); return; }
                 this.busy = false;
                 this.flying = true;
                 this.status = 'flying';
@@ -388,7 +133,6 @@
                 this.schedulePoll();
             } catch (e) {
                 this.busy = false;
-
                 if (w.roundPhase === 'in_progress') {
                     this.flying = true;
                     this.status = 'flying';
@@ -398,160 +142,224 @@
             }
         },
 
-        resetAfterRound() {
-            this.resetFlight();
-            this.flying = false;
-            this.busy = false;
-            this.phase = 'completed';
-            this.status = 'ready';
-            this.multiplier = 1;
-            this.serverMultiplier = 1;
-            this.displayMultiplier = 1;
-            this.finalMultiplier = 0;
-            this.futureCrashMultiplier = 0;
-            this.payout = 0;
-            this.resultOpen = false;
-            this.resultLabel = '';
-        },
-
         finalize() {
-            const w = this.$wire;
-            const result = w.roundResult || {};
-            const completedStatus = result.status || (w.roundPayout > 0 ? 'cashed_out' : 'crashed');
-
-            this.resetFlight();
+            const w = this.$wire, r = w.roundResult || {}, st = r.status || (w.roundPayout > 0 ? 'cashed_out' : 'crashed');
+            this.stop();
             this.flying = false;
             this.phase = 'completed';
             this.busy = false;
-            this.payout = Number(w.roundPayout || result.payout || 0);
-            this.finalMultiplier = Number(
-                result.cashout_multiplier
-                || result.crash_multiplier
-                || result.multiplier
-                || this.serverMultiplier
-                || 1
-            );
-            this.futureCrashMultiplier = Number(
-                result.crash_multiplier
-                || (completedStatus === 'crashed' ? this.finalMultiplier : 0)
-            );
-            this.serverMultiplier = this.finalMultiplier;
-            this.displayMultiplier = this.finalMultiplier;
-            this.multiplier = this.finalMultiplier;
-            this.estimatedPayout = this.payout;
-
-            if (completedStatus === 'cashed_out') {
-                this.status = 'cashed_out';
-                this.resultLabel = '🚀 COLETADO';
-                this.tone('cashout');
+            this.payout = Number(w.roundPayout || r.payout || 0);
+            this.finalMult = Number(r.cashout_multiplier || r.crash_multiplier || r.multiplier || this.serverMult || 1);
+            this.crashMult = Number(r.crash_multiplier || (st === 'crashed' ? this.finalMult : 0));
+            this.serverMult = this.finalMult;
+            this.mult = this.finalMult;
+            this.estimated = this.payout;
+            this.draw((this.tau / 1000) * Math.log(Math.max(1, this.finalMult)));
+            if (st === 'cashed_out' || st === 'crashed') {
+                this.status = st;
+                this.label = st === 'cashed_out' ? 'Coletado' : 'Crash';
                 this.resultOpen = true;
-            } else if (completedStatus === 'crashed') {
-                this.status = 'crashed';
-                this.resultLabel = '💥 CRASH';
-                this.tone('crash');
-                this.resultOpen = true;
+                this.history = [{ m: this.crashMult || this.finalMult, won: st === 'cashed_out' }, ...this.history].slice(0, 10);
+                this.sfx(st === 'cashed_out' ? 'cashout' : 'crash');
             } else {
                 this.status = 'ready';
                 this.resultOpen = false;
             }
         },
 
-        destroy() {
-            this.resetFlight();
-        }
+        resetIdle() {
+            this.stop();
+            this.launching = false;
+            this.flying = false;
+            this.busy = false;
+            this.status = 'ready';
+            this.mult = 1;
+            this.serverMult = 1;
+            this.finalMult = 0;
+            this.crashMult = 0;
+            this.payout = 0;
+            this.secs = 0;
+            this.estimated = 0;
+            this.resultOpen = false;
+            this.label = '';
+            this.draw(0);
+        },
+
+        destroy() { this.stop(); }
      }"
      x-init="
+        draw(0);
         $watch('$wire.roundPhase', (value) => {
             phase = value;
-
             if (value === 'in_progress') {
-                const result = $wire.roundResult || {};
-                if (!flying) {
-                    beginFlight(Number(result.started_at_ms || Date.now()));
-                }
+                if (!flying) beginFlight(Number(($wire.roundResult || {}).started_at_ms || Date.now()));
                 return;
             }
-
             if (value === 'completed') {
-                if (flying) {
-                    finalize();
-                }
+                if (flying) finalize();
                 return;
             }
-
-            if (value === 'ready' || value === 'prepared') {
-                resetFlight();
-                launching = false;
-                flying = false;
-                busy = false;
-                status = 'ready';
-                multiplier = 1;
-                serverMultiplier = 1;
-                displayMultiplier = 1;
-                finalMultiplier = 0;
-                futureCrashMultiplier = 0;
-                payout = 0;
-                flightSeconds = 0;
-                estimatedPayout = 0;
-                resultOpen = false;
-                resultLabel = '';
-            }
+            if (value === 'ready' || value === 'prepared') resetIdle();
         })
      "
-     x-on:keydown.window="if ($event.code === 'Space' && ['ready','completed','prepared'].includes(phase) && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); $wire.start(); }"
+     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { if (flying) { $event.preventDefault(); cashout(); } else if (['ready','completed'].includes(phase)) { $event.preventDefault(); startFlight(); $wire.start(); } else if (phase === 'prepared') { $event.preventDefault(); $wire.launch(); } }"
      x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
-     x-on:pagehide.window="resetFlight()">    <style>
-        .jetx-page{--jet-gold:#f5c451;--jet-gold-hi:#ffe7a1;--jet-cyan:#4dd9ff;--jet-red:#ff5e67;--jet-bg:#070b12;--jet-panel:#0b111a;--jet-text:#eff5fb;color:#e9eef4}
+     x-on:pagehide.window="stop()">
 
-        .jetx-stars{position:absolute;inset:-20%;pointer-events:none;background-repeat:repeat;opacity:.28;mix-blend-mode:screen;will-change:transform}.jetx-stars--far{background-image:radial-gradient(circle,rgba(255,255,255,.65) 0 1px,transparent 1.5px),radial-gradient(circle,rgba(77,217,255,.4) 0 1px,transparent 1.5px);background-size:145px 145px,210px 210px;background-position:20px 35px,90px 110px}.jetx-stars--near{background-image:radial-gradient(circle,rgba(255,255,255,.8) 0 1.5px,transparent 2px),radial-gradient(circle,rgba(245,196,81,.55) 0 1px,transparent 1.5px);background-size:95px 95px,175px 175px;background-position:12px 18px,65px 92px;opacity:.18}.jetx-stage.flying .jetx-stars--far{animation:jetx-stars-far 11s linear infinite}.jetx-stage.flying .jetx-stars--near{animation:jetx-stars-near 4.5s linear infinite}.jetx-speedlines{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:0}.jetx-stage.flying .jetx-speedlines{opacity:1}.jetx-speedlines span{position:absolute;left:-18%;width:34%;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),rgba(77,217,255,.72),transparent);filter:blur(.2px);transform:rotate(-19deg);animation:jetx-speed 1.15s linear infinite}.jetx-speedlines span:nth-child(1){top:18%;animation-delay:-.2s}.jetx-speedlines span:nth-child(2){top:28%;animation-delay:-.7s;width:25%}.jetx-speedlines span:nth-child(3){top:38%;animation-delay:-1s;width:40%}.jetx-speedlines span:nth-child(4){top:52%;animation-delay:-.35s;width:28%}.jetx-speedlines span:nth-child(5){top:64%;animation-delay:-.9s;width:44%}.jetx-speedlines span:nth-child(6){top:74%;animation-delay:-.1s;width:22%}.jetx-speedlines span:nth-child(7){top:13%;animation-delay:-.55s;width:19%}.jetx-speedlines span:nth-child(8){top:46%;animation-delay:-.75s;width:20%}.jetx-speedlines span:nth-child(9){top:83%;animation-delay:-.4s;width:31%}.jetx-speedlines span:nth-child(10){top:34%;animation-delay:-1.2s;width:18%}.jetx-orbit{position:absolute;left:50%;top:50%;border:1px solid rgba(77,217,255,.12);border-radius:50%;transform:translate(-50%,-50%) rotate(-17deg);pointer-events:none;opacity:0}.jetx-orbit--one{width:78%;height:38%}.jetx-orbit--two{width:62%;height:26%;border-color:rgba(245,196,81,.08)}.jetx-stage.flying .jetx-orbit--one{opacity:1;animation:jetx-orbit 7s ease-in-out infinite}.jetx-stage.flying .jetx-orbit--two{opacity:1;animation:jetx-orbit-rev 9s ease-in-out infinite}.jetx-boost-glow{position:absolute;left:6%;bottom:14%;width:34%;height:20%;background:radial-gradient(ellipse,rgba(77,217,255,.16),transparent 68%);filter:blur(18px);opacity:0;pointer-events:none}.jetx-stage.flying .jetx-boost-glow{opacity:1;animation:jetx-boost 1.1s ease-in-out infinite alternate}.jetx-stage.is-launching,.jetx-stage.launching{animation:jetx-launch-stage .65s cubic-bezier(.2,.8,.2,1)}.jetx-stage.launching .jetx-multiplier{opacity:.82}.jetx-stage.launching .jetx-multiplier-spike{opacity:.45}.jetx-stage.is-flying-fast .jetx-multiplier{animation:jetx-multiplier-pulse 1.5s ease-in-out infinite}.jetx-stage.is-crashed{animation:jetx-crash-shake .42s ease-out}.jetx-multiplier.is-growing{text-shadow:0 0 38px rgba(77,217,255,.28),0 0 70px rgba(77,217,255,.08)}.jetx-multiplier.is-final{animation:jetx-result-pulse .5s cubic-bezier(.16,1,.3,1)}.jetx-rocket{transition:filter .15s ease}.jetx-stage.flying .jetx-rocket{filter:drop-shadow(0 0 12px rgba(77,217,255,.15)) drop-shadow(0 16px 16px rgba(0,0,0,.42))}.jetx-rocket__particle{position:absolute;left:0;top:50%;width:7px;height:7px;border-radius:50%;background:#f5c451;filter:blur(1px);opacity:0;box-shadow:0 0 10px rgba(245,196,81,.55)}.jetx-rocket__particle--one{animation:jetx-particle-one .55s linear infinite}.jetx-rocket__particle--two{background:#4dd9ff;animation:jetx-particle-two .72s linear infinite -.18s}.jetx-rocket__particle--three{width:5px;height:5px;background:#ff6470;animation:jetx-particle-three .9s linear infinite -.4s}.jetx-shockwave{position:absolute;left:50%;top:48%;width:14rem;height:14rem;border:3px solid rgba(255,94,103,.55);border-radius:50%;transform:translate(-50%,-50%) scale(.2);box-shadow:0 0 70px rgba(255,94,103,.18),inset 0 0 40px rgba(255,94,103,.08);animation:jetx-shockwave .7s cubic-bezier(.15,.9,.3,1)}.jetx-result{animation:jetx-result-card .45s cubic-bezier(.16,1,.3,1)}
-        .jetx-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1rem}.jetx-hero__title{display:flex;gap:.8rem;align-items:center}.jetx-mark{display:grid;place-items:center;width:3rem;height:3rem;border:1px solid rgba(77,217,255,.25);border-radius:1rem;background:linear-gradient(145deg,rgba(77,217,255,.14),rgba(245,196,81,.07));font-size:1.45rem;box-shadow:0 0 30px rgba(77,217,255,.08)}
-        .jetx-eyebrow{margin:0;color:#748394;font-size:.62rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.jetx-title{margin:.12rem 0 0;font-size:1.6rem;font-weight:950;letter-spacing:-.02em}.jetx-hint{margin:.2rem 0 0;color:#8996a5;font-size:.78rem}
-        .jetx-layout{display:grid;grid-template-columns:minmax(0,1fr) 18rem;gap:1rem}.jetx-main{min-width:0}
-        .jetx-stage{position:relative;min-height:36rem;overflow:hidden;border:1px solid rgba(77,217,255,.16);border-radius:1.5rem;background:radial-gradient(circle at 70% 15%,rgba(77,217,255,.09),transparent 28%),radial-gradient(circle at 40% 95%,rgba(245,196,81,.07),transparent 28%),linear-gradient(160deg,#0b101a,#060a11 62%,#080c12);box-shadow:0 30px 75px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.045)}
-        .jetx-stage::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.55) 0 1px,transparent 1.5px);background-size:115px 115px;opacity:.15;animation:jetx-stars 18s linear infinite}
-        .jetx-stage::after{content:"";position:absolute;inset:auto -10% 0;height:46%;background:linear-gradient(180deg,transparent,rgba(77,217,255,.045));transform:skewY(-10deg);pointer-events:none}
-        .jetx-grid{position:absolute;inset:15% 7% 13%;opacity:.3;background:linear-gradient(rgba(77,217,255,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(77,217,255,.08) 1px,transparent 1px);background-size:12.5% 20%;mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent)}
-        .jetx-trail{position:absolute;left:8%;bottom:17%;width:78%;height:2px;background:linear-gradient(90deg,transparent,rgba(77,217,255,.45),rgba(245,196,81,.65),transparent);box-shadow:0 0 18px rgba(77,217,255,.22);transform:rotate(-23deg);transform-origin:left center;opacity:.65}
-        .jetx-trail::after{content:"";position:absolute;right:12%;top:-3px;width:24px;height:8px;border-radius:999px;background:rgba(255,255,255,.8);filter:blur(5px);animation:jetx-trail-pulse 1s ease-in-out infinite alternate}
-        .jetx-status{position:absolute;top:1rem;left:1rem;z-index:5;padding:.45rem .7rem;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(3,7,12,.72);backdrop-filter:blur(12px);font-size:.56rem;font-weight:950;letter-spacing:.14em;text-transform:uppercase;color:#9cacba}.jetx-status.flying{border-color:rgba(77,217,255,.3);color:var(--jet-cyan);box-shadow:0 0 25px rgba(77,217,255,.1)}.jetx-status.crashed{border-color:rgba(255,94,103,.35);color:#ff9a9f}.jetx-status.cashed{border-color:rgba(245,196,81,.35);color:var(--jet-gold-hi)}
-        .jetx-multiplier{position:absolute;top:17%;left:50%;z-index:4;transform:translateX(-50%);font-size:clamp(4rem,10vw,7.4rem);font-weight:1000;line-height:.9;letter-spacing:-.06em;color:#f7fbff;text-shadow:0 0 35px rgba(77,217,255,.2)}.jetx-stage.flying .jetx-multiplier{color:#c6f5ff;text-shadow:0 0 40px rgba(77,217,255,.35)}.jetx-stage.crashed .jetx-multiplier{color:#ffb0b4;text-shadow:0 0 40px rgba(255,94,103,.28)}
-        .jetx-rocket{position:absolute;left:0;top:0;z-index:6;width:76px;height:42px;will-change:left,top,transform;filter:drop-shadow(0 16px 14px rgba(0,0,0,.42))}.jetx-rocket__body{position:absolute;inset:5px 7px 5px 14px;border-radius:18px 25px 25px 18px;background:linear-gradient(180deg,#f9fbff 0%,#cfd9e3 48%,#8493a2 100%);border:1px solid rgba(255,255,255,.75);box-shadow:inset 0 2px 3px rgba(255,255,255,.55),inset 0 -5px 8px rgba(24,35,46,.28)}.jetx-rocket__nose{position:absolute;right:-12px;top:3px;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:18px solid #dbe4ec;filter:drop-shadow(2px 3px 2px rgba(0,0,0,.18))}.jetx-rocket__window{position:absolute;right:21px;top:8px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e6fbff 0 14%,#55ddff 22%,#19718e 68%,#0a2e3b 100%);border:2px solid #effcff;box-shadow:0 0 10px rgba(77,217,255,.55)}.jetx-rocket__stripe{position:absolute;left:10px;right:13px;bottom:7px;height:3px;border-radius:99px;background:linear-gradient(90deg,#ff6470,#f5c451,#4dd9ff)}.jetx-rocket__fin{position:absolute;z-index:-1;width:19px;height:16px;background:linear-gradient(160deg,#ef5f69,#8d2430);border:1px solid rgba(255,255,255,.18)}.jetx-rocket__fin--top{left:17px;top:0;clip-path:polygon(0 100%,100% 0,75% 100%)}.jetx-rocket__fin--bottom{left:17px;bottom:0;clip-path:polygon(0 0,100% 100%,75% 0)}.jetx-rocket__flame{position:absolute;left:0;top:13px;width:27px;height:16px;border-radius:100% 10% 10% 100%;background:linear-gradient(90deg,transparent,#4dd9ff 18%,#f5c451 48%,#ff7c42 72%,#ff5561 100%);filter:blur(1px);transform-origin:right center;animation:jetx-flame .09s ease-in-out infinite alternate;box-shadow:0 0 18px rgba(77,217,255,.28)}
-        .jetx-explosion{position:absolute;left:50%;top:48%;z-index:10;transform:translate(-50%,-50%);font-size:clamp(5rem,12vw,9rem);animation:jetx-boom .45s cubic-bezier(.15,.9,.3,1.15);filter:drop-shadow(0 0 35px rgba(255,94,103,.55))}
-        .jetx-result{position:absolute;left:50%;bottom:9%;z-index:12;transform:translateX(-50%);min-width:min(90%,25rem);padding:1rem 1.25rem;text-align:center;border:1px solid rgba(255,255,255,.1);border-radius:1.15rem;background:rgba(7,11,18,.86);box-shadow:0 20px 50px rgba(0,0,0,.35)}.jetx-result strong{display:block;color:#fff;font-size:.72rem;font-weight:950;letter-spacing:.18em}.jetx-result span{display:block;margin-top:.2rem;color:var(--jet-gold);font-size:1.35rem;font-weight:1000}.jetx-result small{display:block;margin-top:.2rem;color:#8593a3;font-size:.65rem}
-        .jetx-controls{display:grid;grid-template-columns:1fr auto;gap:1rem;margin-top:1rem;padding:1rem;border:1px solid rgba(255,255,255,.08);border-radius:1.1rem;background:rgba(11,17,26,.86);box-shadow:0 18px 45px rgba(0,0,0,.18)}
-        .jetx-bet{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}.jetx-field span{display:block;margin-bottom:.3rem;color:#7c8a99;font-size:.62rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.jetx-input{width:100%;min-height:2.7rem;border:1px solid rgba(255,255,255,.09);border-radius:.7rem;background:#060b12;color:#fff;padding:.65rem .75rem;outline:0}.jetx-input:focus{border-color:rgba(77,217,255,.45);box-shadow:0 0 0 3px rgba(77,217,255,.08)}
-        .jetx-action-wrap{display:flex;align-items:center;justify-content:flex-end;min-width:12rem}.jetx-action-wrap .jetx-action{width:100%}
-        .jetx-action{min-width:12rem;min-height:2.8rem;border:1px solid rgba(245,196,81,.55);border-radius:.8rem;background:linear-gradient(180deg,#ffeaa9,#e3ad37 55%,#98630e);color:#251a06;font-size:.82rem;font-weight:1000;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 4px 0 #694609,0 12px 28px rgba(177,116,20,.22);cursor:pointer;transition:transform .08s,filter .15s}.jetx-action:hover:not(:disabled){filter:brightness(1.06)}.jetx-action:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #694609,0 7px 18px rgba(177,116,20,.22)}.jetx-action.collect{border-color:rgba(77,217,255,.55);background:linear-gradient(180deg,#bff7ff,#3dcde9 55%,#087e9e);color:#04222a;box-shadow:0 4px 0 #04576c,0 12px 30px rgba(61,205,233,.18)}.jetx-action:disabled{opacity:.55;cursor:not-allowed}
-        .jetx-mini{margin-top:.65rem;color:#697888;font-size:.62rem;line-height:1.45}
-        .jetx-side{display:grid;gap:.8rem;align-content:start}.jetx-card{border:1px solid rgba(255,255,255,.08);border-radius:1rem;background:rgba(11,17,26,.78);padding:1rem;box-shadow:0 16px 38px rgba(0,0,0,.15)}.jetx-card__eyebrow{margin:0;color:#6e7d8c;font-size:.58rem;font-weight:950;letter-spacing:.16em;text-transform:uppercase}.jetx-card h3{margin:.35rem 0 0;color:#f4f7fa;font-size:.92rem;font-weight:900}.jetx-card p{margin:.4rem 0 0;color:#8996a4;font-size:.68rem;line-height:1.55}.jetx-stat{display:flex;justify-content:space-between;gap:1rem;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.68rem}.jetx-stat:last-child{border-bottom:0}.jetx-stat span{color:#738292}.jetx-stat strong{color:#dfe8ef}.jetx-seed{margin-top:.55rem;padding:.6rem;border:1px solid rgba(255,255,255,.06);border-radius:.65rem;background:#060a10;color:#93a1af;font: .56rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
-        @keyframes jetx-stars{from{transform:translate3d(0,0,0)}to{transform:translate3d(-120px,80px,0)}}@keyframes jetx-flame{from{transform:scaleX(.85);opacity:.55}to{transform:scaleX(1.15);opacity:1}}@keyframes jetx-trail-pulse{from{opacity:.35;transform:translateX(-8px)}to{opacity:.9;transform:translateX(10px)}}@keyframes jetx-boom{from{opacity:0;transform:translate(-50%,-50%) scale(.45)}65%{transform:translate(-50%,-50%) scale(1.12)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}        
-        @media(max-width:900px){.jetx-layout{grid-template-columns:1fr}.jetx-side{grid-template-columns:repeat(2,minmax(0,1fr))}.jetx-controls{grid-template-columns:1fr}.jetx-action-wrap{width:100%}.jetx-action{width:100%}}@media(max-width:600px){.jetx-hero{align-items:flex-start;flex-direction:column}.jetx-stage{min-height:30rem}.jetx-bet{grid-template-columns:1fr}.jetx-side{grid-template-columns:1fr}.jetx-multiplier{top:19%}.jetx-result{bottom:6%}}
-        @media(prefers-reduced-motion:reduce){.jetx-stage::before,.jetx-rocket__flame,.jetx-result{animation:none}.jetx-rocket,.jetx-explosion,.jetx-result{transition:none}}
-    
-        @keyframes jetx-stars-far{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-130px,85px,0) scale(1.03)}}@keyframes jetx-stars-near{from{transform:translate3d(0,0,0)}to{transform:translate3d(-260px,165px,0)}}@keyframes jetx-speed{from{transform:translate3d(-30vw,0,0) rotate(-19deg);opacity:0}18%{opacity:.9}100%{transform:translate3d(150vw,0,0) rotate(-19deg);opacity:0}}@keyframes jetx-orbit{0%,100%{transform:translate(-50%,-50%) rotate(-17deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(-9deg) scale(1.05)}}@keyframes jetx-orbit-rev{0%,100%{transform:translate(-50%,-50%) rotate(17deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(9deg) scale(.96)}}@keyframes jetx-boost{from{transform:translateX(-6px) scale(.96);opacity:.4}to{transform:translateX(28px) scale(1.05);opacity:.8}}@keyframes jetx-launch-stage{0%{transform:scale(.985);filter:brightness(.9)}45%{transform:scale(1.012);filter:brightness(1.14)}100%{transform:scale(1);filter:brightness(1)}}@keyframes jetx-multiplier-pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.025)}}@keyframes jetx-crash-shake{0%,100%{transform:translate3d(0,0,0)}18%{transform:translate3d(-9px,4px,0) rotate(-.25deg)}36%{transform:translate3d(8px,-3px,0) rotate(.25deg)}54%{transform:translate3d(-6px,2px,0)}72%{transform:translate3d(4px,-1px,0)}90%{transform:translate3d(-2px,0,0)}}@keyframes jetx-result-pulse{0%{transform:translateX(-50%) scale(.92);opacity:.7}70%{transform:translateX(-50%) scale(1.04)}100%{transform:translateX(-50%) scale(1)}}@keyframes jetx-result-card{from{opacity:0;transform:translateX(-50%) translateY(18px) scale(.96)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}@keyframes jetx-shockwave{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2)}70%{opacity:.25;transform:translate(-50%,-50%) scale(1.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.55)}}@keyframes jetx-particle-one{0%{transform:translate(0,-1px) scale(.4);opacity:0}25%{opacity:.9}100%{transform:translate(-42px,-14px) scale(1.1);opacity:0}}@keyframes jetx-particle-two{0%{transform:translate(0,2px) scale(.4);opacity:0}25%{opacity:.8}100%{transform:translate(-50px,8px) scale(.8);opacity:0}}@keyframes jetx-particle-three{0%{transform:translate(0,0) scale(.3);opacity:0}30%{opacity:.8}100%{transform:translate(-62px,18px) scale(.7);opacity:0}}
+    <style>
+        .jx { --cy: #4dd9ff; --gold: #f5c451; --gold-hi: #ffe7a1; --red: #ff5e67; color: #e9eef4; }
+        .jx-eyebrow { font-size: .62rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #748394; }
+        .jx-hero { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
+        .jx-title { font-size: 1.7rem; font-weight: 900; letter-spacing: -.02em; color: #fff; }
+        .jx-hint { margin-top: .15rem; font-size: .8rem; color: #8996a5; }
+        .jx-pill { padding: .45rem .8rem; border-radius: 9999px; font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9cacba; border: 1px solid rgba(255, 255, 255, .1); background: rgba(3, 7, 12, .7); }
+        .jx-pill.is-flying { color: var(--cy); border-color: rgba(77, 217, 255, .4); }
+        .jx-pill.is-crashed { color: #ff9a9f; border-color: rgba(255, 94, 103, .4); }
+        .jx-pill.is-cashed_out { color: var(--gold-hi); border-color: rgba(245, 196, 81, .4); }
+        .jx-layout { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr) 18rem; margin-top: 1rem; }
+        .jx-main { min-width: 0; }
 
-        .jetx-flight-hud{position:absolute;top:1rem;right:1rem;z-index:8;display:flex;gap:.45rem}.jetx-hud-pill{min-width:5.6rem;padding:.5rem .62rem;border:1px solid rgba(255,255,255,.08);border-radius:.72rem;background:rgba(3,8,13,.68);backdrop-filter:blur(14px);box-shadow:0 8px 25px rgba(0,0,0,.18)}.jetx-hud-pill span{display:block;color:#697889;font-size:.48rem;font-weight:950;letter-spacing:.16em}.jetx-hud-pill strong{display:block;margin-top:.12rem;color:#e8f5fb;font-size:.61rem;font-weight:950;letter-spacing:.04em}.jetx-hud-pill--accent{border-color:rgba(77,217,255,.16);box-shadow:0 0 22px rgba(77,217,255,.05)}.jetx-flight-readout{position:absolute;top:21%;left:50%;z-index:7;width:min(88%,38rem);transform:translateX(-50%);text-align:center;pointer-events:none}.jetx-readout-label{color:rgba(154,178,194,.72);font-size:.5rem;font-weight:950;letter-spacing:.32em}.jetx-readout-sub{display:flex;align-items:center;justify-content:center;gap:.65rem;margin-top:.5rem;color:#718394;font-size:.56rem;font-weight:700}.jetx-readout-sub strong{color:#dffbff;font-size:.68rem}.jetx-flight-scale{position:absolute;left:7%;right:7%;bottom:22%;z-index:3;display:flex;justify-content:space-between;color:rgba(116,133,148,.58);font-size:.47rem;font-weight:850;letter-spacing:.06em;pointer-events:none}.jetx-flight-map{position:absolute;left:6%;bottom:11%;width:88%;height:58%;z-index:2;overflow:visible;pointer-events:none;opacity:.9}.jetx-flight-map__line{fill:none;stroke:rgba(77,217,255,.43);stroke-width:2;vector-effect:non-scaling-stroke;stroke-dasharray:2 3}.jetx-flight-map__glow{fill:none;stroke:rgba(77,217,255,.12);stroke-width:14;vector-effect:non-scaling-stroke;filter:blur(6px)}.jetx-flight-map__dot{fill:#fff;stroke:#4dd9ff;stroke-width:3;filter:drop-shadow(0 0 9px rgba(77,217,255,.9));opacity:0}.jetx-stage.flying .jetx-flight-map__dot{opacity:1;animation:jetx-map-dot-pulse 1s ease-in-out infinite alternate}.jetx-telemetry{position:absolute;left:1rem;right:1rem;bottom:1rem;z-index:9;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}.jetx-telemetry__item{padding:.62rem .7rem;border:1px solid rgba(255,255,255,.07);border-radius:.72rem;background:rgba(3,8,13,.68);backdrop-filter:blur(12px)}.jetx-telemetry__item span{display:block;color:#657687;font-size:.47rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.jetx-telemetry__item strong{display:block;margin-top:.18rem;color:#eaf5fa;font-size:.7rem;font-weight:950}.jetx-progress-track{position:absolute;left:7%;right:7%;bottom:18.7%;z-index:8;height:3px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.06);box-shadow:0 0 12px rgba(77,217,255,.05)}.jetx-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#4dd9ff,#f5c451);box-shadow:0 0 14px rgba(77,217,255,.55);transition:width .05s linear}.jetx-multiplier-spike{position:absolute;left:50%;top:33%;width:18rem;height:18rem;z-index:3;transform:translate(-50%,-50%) scale(.5);border-radius:50%;background:radial-gradient(circle,rgba(77,217,255,.12),transparent 64%);filter:blur(9px);opacity:0;pointer-events:none}.jetx-stage.flying .jetx-multiplier-spike{opacity:1;animation:jetx-aura 2.2s ease-in-out infinite}.jetx-rocket-highlight{position:absolute;left:8%;bottom:16%;width:36%;height:22%;background:radial-gradient(ellipse,rgba(77,217,255,.14),transparent 68%);filter:blur(20px);opacity:0;pointer-events:none}.jetx-stage.flying .jetx-rocket-highlight{opacity:1;animation:jetx-highlight 1.15s ease-in-out infinite alternate}.jetx-stage.flying .jetx-grid{animation:jetx-grid-drift 2.2s linear infinite}.jetx-stage.flying .jetx-trail{animation:jetx-trail-breathe .8s ease-in-out infinite alternate}.jetx-stage.is-flying-fast .jetx-speedlines{filter:blur(.35px) saturate(1.15)}.jetx-stage.is-flying-fast .jetx-rocket{filter:drop-shadow(0 0 18px rgba(77,217,255,.24)) drop-shadow(0 18px 18px rgba(0,0,0,.42))}.jetx-stage.is-crashed .jetx-flight-map__line{stroke:rgba(255,94,103,.22)}.jetx-stage.is-crashed .jetx-flight-map__dot{fill:#ff7b82;stroke:#fff;filter:drop-shadow(0 0 14px rgba(255,94,103,.9))}
-        @keyframes jetx-map-dot-pulse{from{transform:scale(.72);opacity:.65}to{transform:scale(1.2);opacity:1}}@keyframes jetx-grid-drift{from{background-position:0 0,0 0}to{background-position:0 22px,22px 0}}@keyframes jetx-trail-breathe{from{opacity:.38;filter:brightness(.95)}to{opacity:.86;filter:brightness(1.2)}}@keyframes jetx-aura{0%,100%{transform:translate(-50%,-50%) scale(.72);opacity:.28}50%{transform:translate(-50%,-50%) scale(1.08);opacity:.62}}@keyframes jetx-highlight{from{transform:translateX(-8px) scale(.95);opacity:.35}to{transform:translateX(35px) scale(1.05);opacity:.75}}
-</style>
+        .jx-stage {
+            position: relative; min-height: 34rem; overflow: hidden; border-radius: 1.5rem; border: 1px solid rgba(77, 217, 255, .18);
+            background: radial-gradient(circle at 75% 10%, rgba(77, 217, 255, .12), transparent 35%), radial-gradient(circle at 30% 100%, rgba(245, 196, 81, .08), transparent 35%), linear-gradient(160deg, #0b101a, #060a11 65%);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .05);
+        }
+        .jx-stage.is-crashed { animation: jx-shake .45s ease-out; }
+        .jx-stage.is-crashed::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, transparent 40%, rgba(255, 70, 80, .16)); pointer-events: none; }
+        .jx-stars { position: absolute; inset: -20%; pointer-events: none; opacity: .3; }
+        .jx-stars--far { background-image: radial-gradient(circle, rgba(255, 255, 255, .7) 0 1px, transparent 1.5px), radial-gradient(circle, rgba(77, 217, 255, .45) 0 1px, transparent 1.5px); background-size: 145px 145px, 210px 210px; background-position: 20px 35px, 90px 110px; }
+        .jx-stars--near { background-image: radial-gradient(circle, rgba(255, 255, 255, .85) 0 1.5px, transparent 2px); background-size: 95px 95px; opacity: .2; }
+        .jx-stage.is-flying .jx-stars--far { animation: jx-drift 11s linear infinite; }
+        .jx-stage.is-flying .jx-stars--near { animation: jx-drift 4.5s linear infinite; }
+        .jx-speed { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity .4s; }
+        .jx-stage.is-fast .jx-speed { opacity: 1; }
+        .jx-speed span { position: absolute; left: -20%; width: 30%; height: 2px; border-radius: 9999px; background: linear-gradient(90deg, transparent, rgba(77, 217, 255, .7), transparent); transform: rotate(-19deg); animation: jx-streak 1.1s linear infinite; }
+        .jx-speed span:nth-child(1) { top: 18%; }
+        .jx-speed span:nth-child(2) { top: 32%; animation-delay: -.5s; }
+        .jx-speed span:nth-child(3) { top: 46%; animation-delay: -.8s; }
+        .jx-speed span:nth-child(4) { top: 58%; animation-delay: -.3s; }
+        .jx-speed span:nth-child(5) { top: 70%; animation-delay: -.9s; }
+        .jx-speed span:nth-child(6) { top: 82%; animation-delay: -.15s; }
+
+        .jx-hud { position: absolute; top: 1rem; left: 1rem; right: 1rem; z-index: 6; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+        .jx-chip { padding: .4rem .65rem; border-radius: .7rem; border: 1px solid rgba(255, 255, 255, .09); background: rgba(3, 8, 13, .7); backdrop-filter: blur(10px); }
+        .jx-chip span, .jx-telemetry span { display: block; font-size: .5rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; color: #6b7b8c; }
+        .jx-chip strong { font-size: .72rem; font-weight: 800; }
+        .jx-past { padding: .25rem .6rem; border-radius: 9999px; font-size: .68rem; font-weight: 800; background: rgba(255, 255, 255, .06); animation: jx-pop .3s ease; }
+        .jx-past.is-won { color: #ffe7a1; border: 1px solid rgba(245, 196, 81, .4); }
+        .jx-past.is-lost { color: #ff9a9f; border: 1px solid rgba(255, 94, 103, .35); }
+
+        .jx-chart { position: absolute; z-index: 3; top: 5rem; bottom: 6rem; left: 3.4rem; right: 1.6rem; border-left: 1px solid rgba(255, 255, 255, .12); border-bottom: 1px solid rgba(255, 255, 255, .12); }
+        .jx-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        .jx-gridline { stroke: rgba(255, 255, 255, .06); stroke-dasharray: 4 6; vector-effect: non-scaling-stroke; }
+        .jx-line { fill: none; stroke: var(--cy); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 8px rgba(77, 217, 255, .7)); }
+        .jx-stage.is-crashed .jx-line { stroke: var(--red); filter: drop-shadow(0 0 8px rgba(255, 94, 103, .7)); }
+        .jx-stage.is-cashed_out .jx-line { stroke: var(--gold); filter: drop-shadow(0 0 8px rgba(245, 196, 81, .6)); }
+        .jx-tick { position: absolute; left: -3.1rem; width: 2.7rem; transform: translateY(-50%); text-align: right; font-size: .62rem; font-weight: 700; color: #6b7b8c; font-variant-numeric: tabular-nums; }
+
+        .jx-rocket { position: absolute; width: 4.6rem; height: 2.3rem; margin: -1.15rem 0 0 -2.3rem; will-change: left, top; }
+        .jx-rocket__rot { width: 100%; height: 100%; transition: transform .12s linear; }
+        .jx-rocket-svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .5)); }
+        .jx-rocket.is-idle .jx-rocket-svg { animation: jx-bob 2.2s ease-in-out infinite; }
+        .jx-flame { opacity: 0; transform-origin: 18px 22px; }
+        .jx-rocket.is-flying .jx-flame { opacity: 1; animation: jx-flame .09s ease-in-out infinite alternate; }
+        .jx-rocket.is-flying .jx-rocket-svg { filter: drop-shadow(0 0 14px rgba(77, 217, 255, .4)) drop-shadow(0 8px 10px rgba(0, 0, 0, .5)); }
+        .jx-burst { position: absolute; width: 0; height: 0; z-index: 4; }
+        .jx-burst i { position: absolute; left: 0; top: 0; border-radius: 50%; transform: translate(-50%, -50%) scale(.2); }
+        .jx-burst i:nth-child(1) { width: 11rem; height: 11rem; border: 3px solid rgba(255, 94, 103, .7); animation: jx-ring .8s cubic-bezier(.15, .9, .3, 1) both; }
+        .jx-burst i:nth-child(2) { width: 7rem; height: 7rem; border: 2px solid rgba(255, 180, 90, .7); animation: jx-ring .6s .08s cubic-bezier(.15, .9, .3, 1) both; }
+        .jx-burst i:nth-child(3) { width: 8rem; height: 8rem; background: radial-gradient(circle, #fff, #ffb347 35%, rgba(255, 94, 103, .5) 60%, transparent 70%); animation: jx-flash .55s ease-out both; }
+
+        .jx-readout { position: absolute; z-index: 5; top: 26%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; width: min(90%, 36rem); }
+        .jx-mult { font-size: clamp(3.8rem, 11vw, 7.4rem); font-weight: 900; line-height: .95; letter-spacing: -.05em; color: #f7fbff; text-shadow: 0 0 40px rgba(77, 217, 255, .25); font-variant-numeric: tabular-nums; }
+        .jx-stage.is-flying .jx-mult { color: #c6f5ff; text-shadow: 0 0 45px rgba(77, 217, 255, .4); }
+        .jx-stage.is-crashed .jx-mult { color: #ffb0b4; text-shadow: 0 0 40px rgba(255, 94, 103, .35); }
+        .jx-stage.is-cashed_out .jx-mult { color: var(--gold-hi); text-shadow: 0 0 40px rgba(245, 196, 81, .35); }
+        .jx-mult.is-final { animation: jx-final .5s cubic-bezier(.16, 1, .3, 1); }
+        .jx-sub { display: flex; justify-content: center; gap: .6rem; margin-top: .5rem; font-size: .72rem; color: #8fa1b2; }
+        .jx-sub strong { color: #dffbff; }
+        .jx-result { position: absolute; z-index: 8; left: 50%; bottom: 7.2rem; transform: translateX(-50%); min-width: min(88%, 22rem); padding: .9rem 1.2rem; text-align: center; border-radius: 1.1rem; border: 1px solid rgba(255, 255, 255, .12); background: rgba(7, 11, 18, .88); backdrop-filter: blur(10px); box-shadow: 0 20px 50px rgba(0, 0, 0, .4); animation: jx-card .45s cubic-bezier(.16, 1, .3, 1); }
+        .jx-result p { font-size: .72rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+        .jx-result.is-cash p, .jx-result.is-cash strong { color: var(--gold); }
+        .jx-result.is-crash p, .jx-result.is-crash strong { color: #ff8d94; }
+        .jx-result strong { display: block; font-size: 1.5rem; font-weight: 900; }
+        .jx-result small { display: block; margin-top: .2rem; font-size: .68rem; color: #8896a5; }
+        .jx-telemetry { position: absolute; z-index: 6; left: 1rem; right: 1rem; bottom: 1rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+        .jx-telemetry > div { padding: .55rem .7rem; border-radius: .7rem; border: 1px solid rgba(255, 255, 255, .08); background: rgba(3, 8, 13, .7); backdrop-filter: blur(10px); }
+        .jx-telemetry strong { display: block; margin-top: .15rem; font-size: .76rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+        .jx-controls { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center; margin-top: 1rem; padding: 1rem; border-radius: 1.1rem; border: 1px solid rgba(255, 255, 255, .08); background: rgba(11, 17, 26, .88); }
+        .jx-fields { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+        .jx-field span { display: block; margin-bottom: .3rem; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #7c8a99; }
+        .jx-input { width: 100%; min-height: 2.7rem; padding: .6rem .75rem; color: #fff; border-radius: .7rem; border: 1px solid rgba(255, 255, 255, .1); background: #060b12; outline: 0; }
+        .jx-input:focus-visible { border-color: rgba(77, 217, 255, .5); box-shadow: 0 0 0 3px rgba(77, 217, 255, .1); }
+        .jx-input:disabled { opacity: .55; }
+        .jx-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .7rem; }
+        .jx-chips button { padding: .4rem .75rem; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .04); color: #b4c0cb; font-size: .72rem; font-weight: 700; transition: transform .15s, color .15s; }
+        .jx-chips button:hover:not(:disabled) { transform: translateY(-2px); color: var(--gold-hi); }
+        .jx-chips button:disabled { opacity: .5; cursor: not-allowed; }
+        .jx-seed-box { margin-top: .6rem; font-size: .75rem; color: #8896a5; }
+        .jx-seed-box summary { cursor: pointer; }
+        .jx-mini { margin-top: .6rem; font-size: .66rem; line-height: 1.5; color: #6d7c8b; }
+        .jx-action-wrap { display: flex; min-width: 13rem; }
+        .jx-action { width: 100%; min-height: 3.4rem; padding: .5rem 1.3rem; border-radius: 1rem; border: 1px solid rgba(245, 196, 81, .6); font-size: .9rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #251a06; background: linear-gradient(180deg, #ffeaa9, #e3ad37 55%, #98630e); box-shadow: 0 5px 0 #694609, 0 14px 30px rgba(177, 116, 20, .25); transition: transform .08s, box-shadow .08s, filter .15s; }
+        .jx-action small, .jx-action kbd { display: block; margin-top: .1rem; font: 600 .58rem system-ui; letter-spacing: .04em; text-transform: none; opacity: .65; }
+        .jx-action.collect { border-color: rgba(77, 217, 255, .6); color: #04222a; background: linear-gradient(180deg, #c2f8ff, #3dcde9 55%, #087e9e); box-shadow: 0 5px 0 #04576c, 0 14px 30px rgba(61, 205, 233, .25); animation: jx-glow 1.2s ease-in-out infinite; }
+        .jx-action:hover:not(:disabled) { filter: brightness(1.07); }
+        .jx-action:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #694609; }
+        .jx-action:disabled { opacity: .55; cursor: not-allowed; }
+        .jx-action:focus-visible, .jx-chips button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+
+        .jx-side { display: grid; gap: .8rem; align-content: start; }
+        .jx-card { padding: 1rem; border-radius: 1rem; border: 1px solid rgba(255, 255, 255, .08); background: rgba(11, 17, 26, .8); }
+        .jx-card h3 { margin-top: .3rem; font-size: .92rem; font-weight: 800; color: #f4f7fa; }
+        .jx-card p:not(.jx-eyebrow) { margin-top: .4rem; font-size: .7rem; line-height: 1.55; color: #8996a4; }
+        .jx-stat { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid rgba(255, 255, 255, .06); font-size: .72rem; }
+        .jx-stat:last-child { border-bottom: 0; }
+        .jx-stat span { color: #738292; }
+        .jx-stat strong { color: #dfe8ef; font-variant-numeric: tabular-nums; }
+        .jx-seed { margin-top: .5rem; padding: .55rem; border-radius: .6rem; border: 1px solid rgba(255, 255, 255, .07); background: #060a10; font: .58rem/1.4 ui-monospace, Menlo, monospace; color: #93a1af; word-break: break-all; }
+
+        @keyframes jx-drift { to { transform: translate3d(-130px, 85px, 0); } }
+        @keyframes jx-streak { from { transform: translateX(-30vw) rotate(-19deg); opacity: 0; } 20% { opacity: .9; } to { transform: translateX(150vw) rotate(-19deg); opacity: 0; } }
+        @keyframes jx-flame { from { transform: scaleX(.8); opacity: .6; } to { transform: scaleX(1.2); opacity: 1; } }
+        @keyframes jx-bob { 50% { transform: translateY(-5px); } }
+        @keyframes jx-ring { to { transform: translate(-50%, -50%) scale(1.3); opacity: 0; } from { opacity: .9; } }
+        @keyframes jx-flash { 40% { opacity: 1; } to { transform: translate(-50%, -50%) scale(1.4); opacity: 0; } from { opacity: 0; } }
+        @keyframes jx-shake { 20% { transform: translate(-8px, 4px); } 40% { transform: translate(7px, -3px); } 60% { transform: translate(-5px, 2px); } 80% { transform: translate(3px, -1px); } }
+        @keyframes jx-final { from { transform: scale(.9); opacity: .6; } 70% { transform: scale(1.04); } }
+        @keyframes jx-card { from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(.96); } }
+        @keyframes jx-pop { from { transform: scale(.5); opacity: 0; } }
+        @keyframes jx-glow { 50% { box-shadow: 0 5px 0 #04576c, 0 14px 40px rgba(61, 205, 233, .55); } }
+
+        @media (max-width: 900px) {
+            .jx-layout { grid-template-columns: 1fr; }
+            .jx-controls { grid-template-columns: 1fr; }
+            .jx-action-wrap { min-width: 0; }
+            .jx-side { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 600px) {
+            .jx-stage { min-height: 31rem; }
+            .jx-fields { grid-template-columns: 1fr; }
+            .jx-side { grid-template-columns: 1fr; }
+            .jx-chart { left: 2.9rem; top: 4.6rem; }
+            .jx-result { bottom: 6.6rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .jx-stars, .jx-speed span, .jx-rocket-svg, .jx-flame, .jx-action.collect, .jx-stage.is-crashed, .jx-burst i, .jx-result, .jx-mult { animation: none !important; }
+            .jx-rocket__rot { transition: none; }
+        }
+    </style>
 
     <x-casino.loading-overlay target="prepare,launch,start,cashout" />
 
-
-    <div class="jetx-hero">
-        <div class="jetx-hero__title">
-            <span class="jetx-mark" aria-hidden="true">🚀</span>
-            <div>
-                <p class="jetx-eyebrow">ALLINBET · ORIGINAL</p>
-                <h1 class="jetx-title">JetX</h1>
-                <p class="jetx-hint">Acompanha o foguete, vê o multiplicador subir e recolhe antes do crash.</p>
-            </div>
+    <div class="jx-hero">
+        <div>
+            <p class="jx-eyebrow">Allinbet · Original</p>
+            <h1 class="jx-title">JetX</h1>
+            <p class="jx-hint">Vê o multiplicador subir e recolhe antes do crash.</p>
         </div>
-        <span class="jetx-status" :class="{
-            flying: status === 'flying',
-            launching: status === 'launching',
-            crashed: status === 'crashed',
-            cashed: status === 'cashed_out'
-        }" x-text="status === 'launching' ? 'A preparar aposta…' : status === 'flying' ? 'Foguete em voo' : status === 'paused' ? 'Ronda em espera' : status === 'crashed' ? 'Crash' : status === 'cashed_out' ? 'Prémio recolhido' : status === 'cashing_out' ? 'A recolher…' : 'Pronto'"></span>
+        <span class="jx-pill" :class="'is-' + status" x-text="statusText"></span>
     </div>
 
     <x-casino.how-it-works
@@ -559,212 +367,150 @@
         title="Como funciona o JetX?"
         description="O foguete sobe e o multiplicador aumenta. Recolhe os créditos antes do crash para fechar a ronda com o multiplicador atingido."
         :rules="[
-            ['title' => 'Escolhe a aposta', 'text' => 'Define quantos créditos virtuais queres colocar na ronda.'],
-            ['title' => 'Lança o foguete', 'text' => 'O multiplicador começa em 1.00× e cresce enquanto o voo continua.'],
-            ['title' => 'Recolhe quando quiseres', 'text' => 'Carrega em COLETAR para fixar o multiplicador disponível nesse momento.'],
-            ['title' => 'Se houver crash', 'text' => 'Se o crash acontecer antes da recolha, a aposta da ronda termina sem prémio.'],
+            ['title'=>'Escolhe a aposta','text'=>'Define quantos créditos virtuais queres colocar na ronda.'],
+            ['title'=>'Lança o foguete','text'=>'O multiplicador começa em 1.00× e cresce enquanto o voo continua.'],
+            ['title'=>'Recolhe quando quiseres','text'=>'Carrega em Coletar (ou na barra de espaço) para fixar o multiplicador desse momento.'],
+            ['title'=>'Se houver crash','text'=>'Se o crash acontecer antes da recolha, a aposta termina sem prémio.']
         ]"
         badge="Créditos virtuais"
     />
 
-    <div class="jetx-layout">
-        <main class="jetx-main">
-            <section class="jetx-stage"
-                     :class="{ [status]: true, 'is-launching': status === 'flying' && displayMultiplier <= 1.08, 'is-flying-fast': status === 'flying' && displayMultiplier >= 2, 'is-crashed': status === 'crashed' }"
-                     aria-label="JetX">
-                <div class="jetx-stars jetx-stars--far" aria-hidden="true"></div>
-                <div class="jetx-stars jetx-stars--near" aria-hidden="true"></div>
-                <div class="jetx-speedlines" aria-hidden="true">
-                    <span></span><span></span><span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                </div>
-                <div class="jetx-orbit jetx-orbit--one" aria-hidden="true"></div>
-                <div class="jetx-orbit jetx-orbit--two" aria-hidden="true"></div>
-                <div class="jetx-grid" aria-hidden="true"></div>
-                <div class="jetx-trail" aria-hidden="true"></div>
-                <div class="jetx-boost-glow" aria-hidden="true"></div>
+    <div class="jx-layout">
+        <main class="jx-main">
+            <section class="jx-stage" :class="['is-' + status, mult >= 2 && flying ? 'is-fast' : '']" aria-label="JetX">
+                <div class="jx-stars jx-stars--far" aria-hidden="true"></div>
+                <div class="jx-stars jx-stars--near" aria-hidden="true"></div>
+                <div class="jx-speed" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
 
-                <div class="jetx-flight-hud">
-                    <div class="jetx-hud-pill">
-                        <span>VOO</span>
-                        <strong x-text="launching ? 'A preparar' : flying ? flightSeconds.toFixed(1) + 's' : phase === 'completed' ? 'END' : '—'"></strong>
-                    </div>
-                    <div class="jetx-hud-pill jetx-hud-pill--accent">
-                        <span>FASE</span>
-                        <strong x-text="launching ? 'APOSTA BLOQUEADA' : flying ? (displayMultiplier >= 2 ? 'ACELERADO' : 'ASCENSÃO') : status === 'crashed' ? 'IMPACTO' : status === 'cashed_out' ? 'RECOLHIDO' : 'STANDBY'"></strong>
-                    </div>
+                <div class="jx-hud">
+                    <div class="jx-chip"><span>Voo</span><strong x-text="flying ? secs.toFixed(1) + 's' : launching ? 'A preparar' : '—'"></strong></div>
+                    <template x-for="(h, i) in history" :key="i"><span class="jx-past" :class="h.won ? 'is-won' : 'is-lost'" x-text="Number(h.m).toFixed(2) + '×'"></span></template>
                 </div>
 
-                <div class="jetx-flight-readout">
-                    <div class="jetx-readout-label">MULTIPLICADOR</div>
-                    <div class="jetx-multiplier" :class="{ 'is-growing': flying, 'is-final': resultOpen }">
-                        <span x-text="Number(resultOpen ? finalMultiplier : displayMultiplier).toFixed(2) + '×'"></span>
+                <div class="jx-chart" x-ref="chart">
+                    <template x-for="t in yTicks" :key="t.v">
+                        <span class="jx-tick" :style="'top:' + (t.y / 4) + '%'" x-text="t.v + '×'"></span>
+                    </template>
+                    <svg viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+                        <defs><linearGradient id="jxArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4dd9ff" stop-opacity=".35"/><stop offset="1" stop-color="#4dd9ff" stop-opacity="0"/></linearGradient></defs>
+                        <template x-for="t in yTicks" :key="t.v"><line class="jx-gridline" x1="0" x2="1000" :y1="t.y" :y2="t.y"/></template>
+                        <path class="jx-area" :d="area" fill="url(#jxArea)"/>
+                        <path class="jx-line" :d="line"/>
+                    </svg>
+
+                    <div class="jx-rocket" :class="{ 'is-flying': flying, 'is-idle': !flying && !resultOpen }" :style="pos" x-show="status !== 'crashed'">
+                        <div class="jx-rocket__rot" :style="'transform: rotate(' + ang + 'deg)'">
+                            <svg class="jx-rocket-svg" viewBox="-6 0 96 44" aria-hidden="true">
+                                <defs><linearGradient id="jxB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#8f9eae"/></linearGradient></defs>
+                                <path class="jx-flame" d="M18 22 L-5 13 Q3 22 -5 31Z" fill="#ffb347"/>
+                                <path d="M26 6 44 12 30 18ZM26 38 44 32 30 26Z" fill="#d9434f"/>
+                                <path d="M16 22Q16 8 40 8H62Q86 14 86 22 86 30 62 36H40Q16 36 16 22Z" fill="url(#jxB)" stroke="#fff" stroke-opacity=".6"/>
+                                <circle cx="60" cy="21" r="6" fill="#32c8ee" stroke="#e8fbff" stroke-width="2"/>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="jetx-readout-sub" x-show="launching || flying" x-cloak>
+                    <div class="jx-burst" :style="pos" x-show="status === 'crashed' && resultOpen" x-cloak aria-hidden="true"><i></i><i></i><i></i></div>
+                </div>
+
+                <div class="jx-readout" aria-live="polite">
+                    <div class="jx-mult" :class="{ 'is-final': resultOpen }" x-text="Number(resultOpen ? finalMult : mult).toFixed(2) + '×'"></div>
+                    <div class="jx-sub" x-show="launching || flying" x-cloak>
                         <span x-text="launching ? 'Aposta em jogo' : 'Prémio se recolheres agora'"></span>
-                        <strong x-text="Number(estimatedPayout).toLocaleString('pt-PT') + ' CR'"></strong>
+                        <strong x-text="Number(estimated).toLocaleString('pt-PT') + ' CR'"></strong>
                     </div>
                 </div>
 
-                <div class="jetx-flight-scale" aria-hidden="true">
-                    <span>1×</span><span>1.25×</span><span>1.5×</span><span>2×</span><span>3×</span><span>5×</span>
-                </div>
-
-                <svg class="jetx-flight-map" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
-                    <path class="jetx-flight-map__glow" pathLength="100" d="M60 345 C190 320 255 270 360 275 S545 260 620 185 S760 120 910 55"></path>
-                    <path class="jetx-flight-map__line" pathLength="100" d="M60 345 C190 320 255 270 360 275 S545 260 620 185 S760 120 910 55"></path>
-                    <circle class="jetx-flight-map__dot" :style="'offset-distance:' + progressPercent() + '%'" cx="60" cy="345" r="7"></circle>
-                </svg>
-
-                <div class="jetx-telemetry">
-                    <div class="jetx-telemetry__item">
-                        <span>Aposta</span>
-                        <strong x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></strong>
-                    </div>
-                    <div class="jetx-telemetry__item">
-                        <span>Potencial</span>
-                        <strong x-text="Number(estimatedPayout).toLocaleString('pt-PT') + ' CR'"></strong>
-                    </div>
-                    <div class="jetx-telemetry__item">
-                        <span>Ascensão</span>
-                        <strong x-text="Math.round(progressPercent()) + '%'"></strong>
-                    </div>
-                </div>
-
-                <div class="jetx-progress-track" aria-hidden="true">
-                    <span :style="'width:' + progressPercent() + '%'"></span>
-                </div>
-
-                <div class="jetx-multiplier-spike" aria-hidden="true"></div>
-                <div class="jetx-rocket-highlight" aria-hidden="true"></div>
-
-                <div class="jetx-rocket" :style="rocketStyle()" x-show="flying" x-cloak aria-hidden="true">
-                    <span class="jetx-rocket__flame"></span>
-                    <span class="jetx-rocket__particle jetx-rocket__particle--one"></span>
-                    <span class="jetx-rocket__particle jetx-rocket__particle--two"></span>
-                    <span class="jetx-rocket__particle jetx-rocket__particle--three"></span>
-                    <span class="jetx-rocket__fin jetx-rocket__fin--top"></span>
-                    <span class="jetx-rocket__body">
-                        <span class="jetx-rocket__nose"></span>
-                        <span class="jetx-rocket__window"></span>
-                        <span class="jetx-rocket__stripe"></span>
-                    </span>
-                    <span class="jetx-rocket__fin jetx-rocket__fin--bottom"></span>
-                </div>
-                <div class="jetx-shockwave" x-show="status === 'crashed' && resultOpen" x-cloak aria-hidden="true"></div>
-                <div class="jetx-explosion" x-show="status === 'crashed' && resultOpen" x-cloak aria-hidden="true">💥</div>
-
-                <div class="jetx-result" x-show="resultOpen" x-cloak>
-                    <strong x-text="resultLabel"></strong>
-                    <span x-text="Number(finalMultiplier).toFixed(2) + '×'"></span>
+                <div class="jx-result" x-show="resultOpen" x-cloak :class="status === 'crashed' ? 'is-crash' : 'is-cash'">
+                    <p x-text="label"></p>
+                    <strong x-text="Number(finalMult).toFixed(2) + '×'"></strong>
                     <small x-text="status === 'cashed_out' ? '+' + Number(payout).toLocaleString('pt-PT') + ' créditos virtuais' : 'Aposta perdida nesta ronda'"></small>
-                    <small x-show="status === 'cashed_out' && futureCrashMultiplier > 0" x-cloak>
-                        O voo teria terminado em <b x-text="Number(futureCrashMultiplier).toFixed(2) + '×'"></b>
-                    </small>
+                    <small x-show="status === 'cashed_out' && crashMult > 0" x-cloak>O voo teria terminado em <b x-text="Number(crashMult).toFixed(2) + '×'"></b></small>
+                </div>
+
+                <div class="jx-telemetry">
+                    <div><span>Aposta</span><strong x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></strong></div>
+                    <div><span>Potencial</span><strong x-text="Number(estimated).toLocaleString('pt-PT') + ' CR'"></strong></div>
+                    <div><span>Multiplicador</span><strong x-text="Number(mult).toFixed(2) + '×'"></strong></div>
                 </div>
             </section>
 
-            <section class="jetx-controls">
+            <section class="jx-controls">
                 <div>
                     @if (in_array($roundPhase, ['ready', 'completed'], true))
-                        <div class="jetx-bet">
-                            <label class="jetx-field">
-                                <span>Aposta</span>
-                                <input type="number" min="1" max="{{ config('casino.bet_limits.max') }}" wire:model="bet" class="jetx-input" inputmode="numeric">
+                        <div class="jx-fields">
+                            <label class="jx-field"><span>Aposta</span>
+                                <input type="number" min="1" max="{{ config('casino.bet_limits.max') }}" wire:model="bet" class="jx-input" inputmode="numeric" :disabled="busy || launching">
                             </label>
-                            <label class="jetx-field">
-                                <span>Seed do cliente</span>
-                                <input type="text" maxlength="128" wire:model="clientSeed" class="jetx-input font-mono text-xs">
+                            <label class="jx-field"><span>Recolha automática (opcional)</span>
+                                <input type="number" min="1.01" step="0.01" x-model="auto" class="jx-input" placeholder="Ex.: 2.00" :disabled="busy || launching">
                             </label>
                         </div>
-                        <p class="jetx-mini">Escolhe o valor da aposta. Ao clicar em INICIAR VOO, a aposta é debitada e o foguete arranca imediatamente.</p>
+                        <div class="jx-chips" aria-label="Apostas rápidas">
+                            @foreach ([5, 10, 25, 50, 100] as $chip)
+                                @if ($chip <= (int) config('casino.bet_limits.max'))
+                                    <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || launching">{{ $chip }}</button>
+                                @endif
+                            @endforeach
+                            <button type="button" x-on:click="$wire.bet = {{ (int) config('casino.bet_limits.max') }}" :disabled="busy || launching">Máx.</button>
+                        </div>
+                        <details class="jx-seed-box"><summary>Seed do cliente</summary>
+                            <input type="text" maxlength="128" wire:model="clientSeed" class="jx-input font-mono text-xs mt-2" :disabled="busy || launching">
+                        </details>
+                        <p class="jx-mini">A recolha automática é aproximada: o servidor usa o multiplicador do momento em que recebe o pedido.</p>
                     @elseif ($roundPhase === 'prepared')
-                        <p class="jetx-mini">A ronda foi preparada e o hash já está fixado. Carrega em LANÇAR para iniciar o voo.</p>
+                        <p class="jx-mini">A ronda foi preparada e o hash já está fixado. Carrega em Lançar para iniciar o voo.</p>
                     @elseif ($roundPhase === 'in_progress')
-                        <p class="jetx-mini">Esta ronda já estava iniciada antes do refresh. O jogo não arranca sozinho: carrega em RETOMAR VOO para continuar a ronda.</p>
+                        <p class="jx-mini">Esta ronda já estava em curso antes do refresh. Carrega em Retomar voo para continuar.</p>
                     @endif
                 </div>
 
-                <div class="jetx-action-wrap">
+                <div class="jx-action-wrap">
                     @if ($roundPhase === 'prepared')
-                        <button type="button"
-                                class="jetx-action"
-                                wire:click="launch"
-                                wire:loading.attr="disabled"
-                                wire:target="launch">
-                            🚀 LANÇAR
-                        </button>
+                        <button type="button" class="jx-action" wire:click="launch" wire:loading.attr="disabled" wire:target="launch">Lançar <kbd>Espaço</kbd></button>
                     @elseif ($roundPhase === 'in_progress')
                         <template x-if="!flying">
-                            <button type="button"
-                                    class="jetx-action"
-                                    :disabled="busy"
-                                    x-on:click="beginFlight(Number(($wire.roundResult || {}).started_at_ms || Date.now()))">
-                                🚀 RETOMAR VOO
-                            </button>
+                            <button type="button" class="jx-action" :disabled="busy" x-on:click="beginFlight(Number(($wire.roundResult || {}).started_at_ms || Date.now()))">Retomar voo</button>
                         </template>
-                        <button type="button"
-                                class="jetx-action collect"
-                                x-show="flying"
-                                x-cloak
-                                :disabled="busy"
-                                x-on:click="cashout()">
-                            ⚡ COLETAR <span x-text="Number(displayMultiplier).toFixed(2) + '×'"></span>
+                        <button type="button" class="jx-action collect" x-show="flying" x-cloak :disabled="busy" x-on:click="cashout()">
+                            <span>Coletar <b x-text="Number(mult).toFixed(2) + '×'"></b></span>
+                            <small x-text="'+' + Number(estimated).toLocaleString('pt-PT') + ' CR · Espaço'"></small>
                         </button>
                     @else
-                        <button type="button"
-                                class="jetx-action"
-                                :class="{ 'is-launching': launching }"
-                                :disabled="busy"
-                                x-on:click="startFlight()"
-                                wire:click="start"
-                                wire:loading.attr="disabled"
-                                wire:target="start">
-                            <span x-show="!launching">🚀 INICIAR VOO</span>
-                            <span x-show="launching" x-cloak>🚀 A PREPARAR <strong x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></strong></span>
+                        <button type="button" class="jx-action" :disabled="busy" x-on:click="startFlight()" wire:click="start" wire:loading.attr="disabled" wire:target="start">
+                            <span x-show="!launching">Iniciar voo <kbd>Espaço</kbd></span>
+                            <span x-show="launching" x-cloak>A preparar <b x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></b></span>
                         </button>
                     @endif
                 </div>
             </section>
 
-            @error('bet') <p class="mt-3 text-xs text-rose-300">{{ $message }}</p> @enderror
-            @error('game') <p class="mt-3 text-xs text-rose-300">{{ $message }}</p> @enderror
+            @error('bet')<p class="mt-3 text-xs text-rose-300" role="alert">{{ $message }}</p>@enderror
+            @error('game')<p class="mt-3 text-xs text-rose-300" role="alert">{{ $message }}</p>@enderror
         </main>
 
-        <aside class="jetx-side">
-            <div class="jetx-card">
-                <p class="jetx-card__eyebrow">Estado da ronda</p>
-                <h3 x-text="status === 'launching' ? '🚀 A preparar aposta' : status === 'flying' ? '🚀 Em voo' : status === 'paused' ? '⏸️ Ronda em espera' : status === 'crashed' ? '💥 Crash confirmado' : status === 'cashed_out' ? '⚡ Recolhida com sucesso' : 'Pronta para lançar'"></h3>
-                <div class="mt-3">
-                    <div class="jetx-stat"><span>Multiplicador</span><strong x-text="Number(displayMultiplier).toFixed(2) + '×'"></strong></div>
-                    <div class="jetx-stat"><span>Prémio</span><strong x-text="Number(payout).toLocaleString('pt-PT') + ' créditos'"></strong></div>
-                    <div class="jetx-stat" x-show="status === 'cashed_out' && futureCrashMultiplier > 0" x-cloak>
-                        <span>Crash do voo</span>
-                        <strong x-text="Number(futureCrashMultiplier).toFixed(2) + '×'"></strong>
-                    </div>
-                    @if ($roundId)
-                        <div class="jetx-stat"><span>Ronda</span><strong>#{{ $roundId }}</strong></div>
-                    @endif
+        <aside class="jx-side">
+            <div class="jx-card">
+                <p class="jx-eyebrow">Estado da ronda</p>
+                <h3 x-text="statusText"></h3>
+                <div class="mt-2">
+                    <div class="jx-stat"><span>Multiplicador</span><strong x-text="Number(mult).toFixed(2) + '×'"></strong></div>
+                    <div class="jx-stat"><span>Prémio</span><strong x-text="Number(payout).toLocaleString('pt-PT') + ' créditos'"></strong></div>
+                    <div class="jx-stat" x-show="status === 'cashed_out' && crashMult > 0" x-cloak><span>Crash do voo</span><strong x-text="Number(crashMult).toFixed(2) + '×'"></strong></div>
+                    @if ($roundId)<div class="jx-stat"><span>Ronda</span><strong>#{{ $roundId }}</strong></div>@endif
                 </div>
             </div>
 
-            <div class="jetx-card">
-                <p class="jetx-card__eyebrow">Provably fair</p>
+            <div class="jx-card">
+                <p class="jx-eyebrow">Provably fair</p>
                 <h3>Resultado comprometido antes do voo</h3>
-                <p>O crash é definido no servidor e só é revelado à interface depois de a ronda terminar. O hash publicado permite verificar a semente no painel de fairness.</p>
-                @if ($serverSeedHash)
-                    <div class="jetx-seed">{{ $serverSeedHash }}</div>
+                <p>O crash é definido no servidor e só é revelado depois de a ronda terminar. O hash publicado permite verificar a semente.</p>
+                @if ($serverSeedHash)<div class="jx-seed">{{ $serverSeedHash }}</div>@endif
+                @if ($roundPhase === 'completed' && $roundId)
+                    <button type="button" class="mt-3 text-xs font-bold text-cyan-300 underline underline-offset-4 hover:text-cyan-200" x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                 @endif
             </div>
 
-            @if ($roundPhase === 'completed' && $roundId)
-                <div class="jetx-card">
-                    <p class="jetx-card__eyebrow">Verificação</p>
-                    <h3>Ronda verificável</h3>
-                    <p>Podes abrir os dados completos desta ronda e confirmar o compromisso do servidor.</p>
-                    <button type="button" class="mt-3 text-xs font-bold text-cyan-300 underline underline-offset-4 hover:text-cyan-200" x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Abrir verificação →</button>
-                </div>
-            @endif
+            <p class="px-1 text-center text-[0.68rem] text-zinc-600">Créditos virtuais — sem valor monetário</p>
         </aside>
     </div>
 </div>
