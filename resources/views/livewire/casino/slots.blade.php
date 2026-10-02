@@ -16,8 +16,7 @@
 
 <div class="casino-game-play casino-game-screen slot-page" data-casino-game="slots"
      x-data="{
-        st: [0, 0, 0].map(() =>
- 'idle'),
+        st: [0, 0, 0].map(() => 'idle'),
         selectedSlot: @js($selectedSlot),
         busy: false,
         done: @js($roundPhase === 'completed'),
