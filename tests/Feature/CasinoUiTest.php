@@ -133,6 +133,21 @@ class CasinoUiTest extends TestCase
         }
     }
 
+
+    public function test_slots_page_uses_three_by_three_reels_and_five_payment_lines(): void
+    {
+        $user = User::factory()->create();
+        app(WalletService::class)->initialize($user, 500);
+        $this->actingAs($user);
+
+        $this->get(route('casino.slots'))
+            ->assertOk()
+            ->assertSee('Grelha 3×3')
+            ->assertSee('5 linhas de pagamento')
+            ->assertSee('3 horizontais')
+            ->assertSee('2 verticais');
+    }
+
     public function test_livewire_game_recovers_a_prepared_round_after_refresh(): void
     {
         $user = User::factory()->create();
