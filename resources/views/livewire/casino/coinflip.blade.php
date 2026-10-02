@@ -18,7 +18,7 @@
         payout: {{ (int) $roundPayout }}, shown: {{ (int) $roundPayout }}, maxBet: {{ $maxBet }}, mult: {{ $multiplier }},
         phase: 'ready', countdown: 0, countdownPct: 0, payoutReleased: true,
         spinStartedAt: 0, spinFrame: 0, backendReady: false, backendError: false,
-        get off() { return this.busy || !this.payoutReleased || this.$wire.roundPhase === 'prepared'; },
+        get off() { return this.busy || !this.payoutReleased || ['prepared', 'in_progress'].includes(this.$wire.roundPhase); },
         get label() { return this.$wire.side === 'heads' ? 'Cara' : 'Coroa'; },
         get potential() { return Math.floor(Number(this.$wire.bet || 0) * this.mult); },
         get statusText() {
