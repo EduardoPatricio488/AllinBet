@@ -71,7 +71,46 @@
                             <kbd>Ctrl K</kbd>
                         </button>
                         <nav aria-label="Navegação principal" class="casino-topbar__actions">
-                            <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle hidden sm:inline-flex">Som: desligado</button>
+                            <details class="casino-audio-menu">
+                                <summary class="casino-sound-toggle-wrap">
+                                    <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle">Som: desligado</button>
+                                    <span aria-hidden="true">⌄</span>
+                                </summary>
+                                <div class="casino-audio-panel" role="group" aria-label="Controlos de áudio">
+                                    <div class="casino-audio-panel__head">
+                                        <div>
+                                            <strong>Áudio</strong>
+                                            <span>Ajusta o fundo e os efeitos separadamente.</span>
+                                        </div>
+                                    </div>
+
+                                    <label class="casino-audio-control">
+                                        <span>
+                                            <b>Volume geral</b>
+                                            <output data-casino-volume-value="master">78%</output>
+                                        </span>
+                                        <input type="range" min="0" max="100" step="1" value="78" data-casino-volume="master" aria-label="Volume geral">
+                                    </label>
+
+                                    <label class="casino-audio-control">
+                                        <span>
+                                            <b>Som de fundo</b>
+                                            <output data-casino-volume-value="ambient">38%</output>
+                                        </span>
+                                        <input type="range" min="0" max="100" step="1" value="38" data-casino-volume="ambient" aria-label="Volume do som de fundo">
+                                    </label>
+
+                                    <label class="casino-audio-control">
+                                        <span>
+                                            <b>Efeitos dos jogos</b>
+                                            <output data-casino-volume-value="effects">82%</output>
+                                        </span>
+                                        <input type="range" min="0" max="100" step="1" value="82" data-casino-volume="effects" aria-label="Volume dos efeitos dos jogos">
+                                    </label>
+
+                                    <button type="button" data-casino-audio-reset class="casino-audio-panel__reset">Repor volumes</button>
+                                </div>
+                            </details>
                             <button type="button" x-data x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'" class="casino-theme-toggle" aria-label="Alternar tema">
                                 <span x-show="$flux.appearance === 'dark'">☀️ Tema claro</span>
                                 <span x-show="$flux.appearance !== 'dark'">🌙 Tema escuro</span>
