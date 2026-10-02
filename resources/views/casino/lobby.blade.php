@@ -9,7 +9,12 @@
         $featured = array_slice($games, 0, 3);
         $playFirst = auth()->check() && isset($games[0]) ? route($games[0]['route']) : route('login');
         // índice para o filtro e para o estado vazio (a categoria vem do catálogo)
-        $index = collect($games)->map(fn ($g) => ['c' => $g['category'] ?? 'originais', 'h' => mb_strtolower(($g['name'] ?? '').' '.($g['tag'] ?? '').' '.($g['blurb'] ?? '')), 's' => $g['slug'] ?? ''])->values();
+        $index = collect($games)->map(fn ($g) => [
+            'c' => $g['category'] ?? 'sorte',
+            'o' => ($g['tag'] ?? '') === 'ORIGINAL',
+            'h' => mb_strtolower(($g['name'] ?? '').' '.($g['tag'] ?? '').' '.($g['blurb'] ?? '')),
+            's' => $g['slug'] ?? '',
+        ])->values();
     @endphp
 
     <noscript><style>.lb-reveal{opacity:1!important;transform:none!important;filter:none!important}</style></noscript>
