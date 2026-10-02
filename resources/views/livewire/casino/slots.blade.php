@@ -164,7 +164,6 @@
             }
 
             this.done = true;
-            this.busy = false;
         },
         async buyBonus(multiplier) {
             if (this.busy || this.bonusRunning) return;
