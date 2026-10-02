@@ -11,6 +11,7 @@ use App\Services\BetService;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use InvalidArgumentException;
+use LogicException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -213,8 +214,8 @@ abstract class CasinoGameComponent extends Component
 
         try {
             $round = app(BetService::class)->settlePayout($user, $this->roundId);
-        } catch (DomainException|InvalidArgumentException $exception) {
-            if ($exception instanceof DomainException && $exception->getMessage() === 'The payout is not ready yet.') {
+        } catch (DomainException|InvalidArgumentException|LogicException $exception) {
+            if ($exception instanceof LogicException && $exception->getMessage() === 'The payout is not ready yet.') {
                 $this->dispatch('casino-settlement-retry');
 
                 return;
