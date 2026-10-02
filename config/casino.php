@@ -100,6 +100,7 @@ return [
                 4 => 2,
                 5 => 4,
             ],
+            'payout_factor_bps' => 9400,
             'paylines' => [
                 ['direction' => 'horizontal', 'index' => 0],
                 ['direction' => 'horizontal', 'index' => 1],
