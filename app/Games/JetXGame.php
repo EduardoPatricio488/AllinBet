@@ -163,6 +163,7 @@ final class JetXGame implements Game
                 'status' => 'cashed_out',
                 'multiplier' => $multiplier,
                 'cashout_multiplier' => $multiplier,
+                'crash_multiplier' => $crashMultiplier,
                 'payout' => $payout,
             ],
             true,
