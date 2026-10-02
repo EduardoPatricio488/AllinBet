@@ -348,10 +348,10 @@
 
             const amount = Number(event.detail?.amount ?? this.$wire.roundPayout ?? 0);
             if (amount > 0) {
-                this.win(amount, Number(this.$wire.bet || 1));
+                this.win(amount, Number(this.$wire.bet || 1), false);
             }
         },
-        win(p, b) {
+        win(p, b, notify = true) {
             const m = b > 0 ? p / b : 0;
             this.tier = m >= 15 ? 'Mega vitória' : m >= 5 ? 'Grande vitória' : 'Vitória';
             this.prize = p;
@@ -370,13 +370,15 @@
 
             setTimeout(() => { this.overlay = false; }, 3400);
 
-            this.$dispatch('casino-toast', {
-                title: 'Vitória!',
-                message: '+' + p + ' créditos virtuais'
-            });
+            if (notify) {
+                this.$dispatch('casino-toast', {
+                    title: 'Vitória!',
+                    message: '+' + p + ' créditos virtuais'
+                });
 
-            if (m >= 10) {
-                this.$dispatch('casino-big-win', { amount: p });
+                if (m >= 10) {
+                    this.$dispatch('casino-big-win', { amount: p });
+                }
             }
         }
      }"
