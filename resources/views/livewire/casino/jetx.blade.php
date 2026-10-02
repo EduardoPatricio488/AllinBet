@@ -171,24 +171,37 @@
         },
 
         async cashout() {
-            if (!this.flying || this.busy) return;
+            if (this.busy) return;
+            if (this.$wire.roundPhase !== 'in_progress' && this.phase !== 'in_progress') return;
+
             const w = this.$wire;
             this.busy = true;
             this.flying = false;
             this.stop();
+            this.phase = 'in_progress';
             this.status = 'cashing_out';
+
             try {
                 await w.cashout();
-                if (w.roundPhase === 'completed') { this.finalize(); return; }
+
+                if (w.roundPhase === 'completed') {
+                    this.finalize();
+                    return;
+                }
+
                 this.busy = false;
-                this.flying = true;
-                this.status = 'flying';
-                this.syncServerResult();
-                this.animate();
-                this.schedulePoll();
+                if (w.roundPhase === 'in_progress') {
+                    this.phase = 'in_progress';
+                    this.flying = true;
+                    this.status = 'flying';
+                    this.syncServerResult();
+                    this.animate();
+                    this.schedulePoll();
+                }
             } catch (e) {
                 this.busy = false;
                 if (w.roundPhase === 'in_progress') {
+                    this.phase = 'in_progress';
                     this.flying = true;
                     this.status = 'flying';
                     this.animate();
@@ -363,6 +376,7 @@
         .jx-action:hover:not(:disabled) { filter: brightness(1.07); }
         .jx-action:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #694609; }
         .jx-action:disabled { opacity: .55; cursor: not-allowed; }
+        .jx-action.collect.is-cashing { animation: none; }
         .jx-action:focus-visible, .jx-chips button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
 
         .jx-side { display: grid; gap: .8rem; align-content: start; }
@@ -523,12 +537,12 @@
                     @if ($roundPhase === 'prepared')
                         <button type="button" class="jx-action" :disabled="busy" x-on:click="launchPrepared()">Lançar <kbd>Espaço</kbd></button>
                     @elseif ($roundPhase === 'in_progress')
-                        <template x-if="!flying">
+                        <template x-if="!flying && !busy">
                             <button type="button" class="jx-action" :disabled="busy" x-on:click="beginFlight(Number(($wire.roundResult || {}).started_at_ms || Date.now()))">Retomar voo</button>
                         </template>
-                        <button type="button" class="jx-action collect" x-show="flying" x-cloak :disabled="busy" x-on:click="cashout()">
-                            <span>Coletar <b x-text="Number(mult).toFixed(2) + '×'"></b></span>
-                            <small x-text="'+' + Number(estimated).toLocaleString('pt-PT') + ' CR · Espaço'"></small>
+                        <button type="button" class="jx-action collect" :class="{ 'is-cashing': status === 'cashing_out' }" :disabled="busy || !['in_progress'].includes(phase)" x-on:click="cashout()">
+                            <span x-text="status === 'cashing_out' ? 'A recolher…' : 'Coletar ' + Number(mult).toFixed(2) + '×'"></span>
+                            <small x-text="status === 'cashing_out' ? 'A confirmar no servidor' : '+' + Number(estimated).toLocaleString('pt-PT') + ' CR · Espaço'"></small>
                         </button>
                     @else
                         <button type="button" class="jx-action" :disabled="busy" x-on:click="startFlight()">
