@@ -71,17 +71,25 @@
                             <kbd>Ctrl K</kbd>
                         </button>
                         <nav aria-label="Navegação principal" class="casino-topbar__actions">
-                            <details class="casino-audio-menu">
-                                <summary class="casino-sound-toggle-wrap">
+                            <div class="casino-audio-menu" x-data="{ open: false }" x-on:click.outside="open = false">
+                                <div class="casino-audio-trigger">
                                     <button type="button" data-casino-sound-toggle aria-pressed="false" class="casino-sound-toggle">Som: desligado</button>
-                                    <span aria-hidden="true">⌄</span>
-                                </summary>
-                                <div class="casino-audio-panel" role="group" aria-label="Controlos de áudio">
+                                    <button type="button"
+                                            class="casino-audio-trigger__settings"
+                                            aria-label="Abrir controlos de áudio"
+                                            :aria-expanded="open"
+                                            x-on:click="open = !open">
+                                        ⚙
+                                    </button>
+                                </div>
+
+                                <div x-cloak x-show="open" x-transition.opacity class="casino-audio-panel" role="group" aria-label="Controlos de áudio">
                                     <div class="casino-audio-panel__head">
                                         <div>
                                             <strong>Áudio</strong>
                                             <span>Ajusta o fundo e os efeitos separadamente.</span>
                                         </div>
+                                        <button type="button" class="casino-audio-panel__close" aria-label="Fechar controlos de áudio" x-on:click="open = false">×</button>
                                     </div>
 
                                     <label class="casino-audio-control">
@@ -110,7 +118,7 @@
 
                                     <button type="button" data-casino-audio-reset class="casino-audio-panel__reset">Repor volumes</button>
                                 </div>
-                            </details>
+                            </div>
                             <button type="button" x-data x-on:click="$flux.appearance = $flux.appearance === 'dark' ? 'light' : 'dark'" class="casino-theme-toggle" aria-label="Alternar tema">
                                 <span x-show="$flux.appearance === 'dark'">☀️ Tema claro</span>
                                 <span x-show="$flux.appearance !== 'dark'">🌙 Tema escuro</span>
