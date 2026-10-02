@@ -16,7 +16,6 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use LogicException;
-use LogicException;
 
 abstract class CasinoGameComponent extends Component
 {
