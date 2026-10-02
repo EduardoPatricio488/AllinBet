@@ -9,7 +9,7 @@
         $featured = array_slice($games, 0, 3);
         $playFirst = auth()->check() && isset($games[0]) ? route($games[0]['route']) : route('login');
         // índice para o filtro e para o estado vazio (a categoria vem do catálogo)
-        $index = collect($games)->map(fn ($g) => ['c' => $g['category'] ?? 'originais', 'h' => mb_strtolower(($g['name'] ?? '').' '.($g['tag'] ?? '').' '.($g['blurb'] ?? ''))])->values();
+        $index = collect($games)->map(fn ($g) => ['c' => $g['category'] ?? 'originais', 'h' => mb_strtolower(($g['name'] ?? '').' '.($g['tag'] ?? '').' '.($g['blurb'] ?? '')), 's' => $g['slug'] ?? ''])->values();
     @endphp
 
     <noscript><style>.lb-reveal{opacity:1!important;transform:none!important;filter:none!important}</style></noscript>
@@ -96,24 +96,42 @@
             </div>
 
             <div x-data="{
-                    filter: 'all', q: '', ink: '', games: @js($index),
-                    matches(category, haystack) {
-                        const query = this.q.trim().toLowerCase();
-                        return (this.filter === 'all' || this.filter === 'originais' || this.filter === category) && (query === '' || haystack.includes(query));
+                    filter: 'all', q: '', ink: '', games: @js($index), favorites: [],
+                    init() {
+                        try {
+                            const saved = JSON.parse(localStorage.getItem('allinbet:casino:favorites') || '[]');
+                            this.favorites = Array.isArray(saved) ? saved.filter((slug) => typeof slug === 'string') : [];
+                        } catch { this.favorites = []; }
                     },
-                    get none() { return this.games.length > 0 && !this.games.some((g) => this.matches(g.c, g.h)); },
+                    isFavorite(slug) { return this.favorites.includes(slug); },
+                    toggleFavorite(slug) {
+                        this.favorites = this.isFavorite(slug)
+                            ? this.favorites.filter((item) => item !== slug)
+                            : [...this.favorites, slug];
+                        try { localStorage.setItem('allinbet:casino:favorites', JSON.stringify(this.favorites)); } catch {}
+                    },
+                    matches(category, haystack, slug) {
+                        const query = this.q.trim().toLowerCase();
+                        const categoryMatch = this.filter === 'all'
+                            || this.filter === 'originais'
+                            || this.filter === category
+                            || (this.filter === 'favorites' && this.isFavorite(slug));
+                        return categoryMatch && (query === '' || haystack.includes(query));
+                    },
+                    get none() { return this.games.length > 0 && !this.games.some((g) => this.matches(g.c, g.h, g.s)); },
                     slide(el) { this.ink = 'width:' + el.offsetWidth + 'px;transform:translateX(' + el.offsetLeft + 'px)'; },
-                    reset() { this.q = ''; this.filter = 'all'; this.$nextTick(() => this.slide(this.$refs.tabs.firstElementChild)); }
+                    reset() { this.q = ''; this.filter = 'all'; this.$nextTick(() => this.slide($refs.tabs.querySelector('[data-filter=all]'))); }
                 }"
-                x-init="$nextTick(() => slide($refs.tabs.firstElementChild))"
+                                x-init="$nextTick(() => slide($refs.tabs.firstElementChild))"
                 x-on:resize.window.debounce.150ms="slide($refs.tabs.querySelector('.is-active') || $refs.tabs.firstElementChild)"
                 x-on:keydown.window="if ($event.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes($event.target.tagName)) { $event.preventDefault(); $refs.search.focus(); }">
 
                 <div class="casino-lobby-toolbar mb-4">
                     <div class="casino-tabs lb-tabs" role="tablist" aria-label="Filtrar jogos" x-ref="tabs">
                         @foreach ($categories as $key => $label)
-                            <button type="button" role="tab" x-on:click="filter = '{{ $key }}'; slide($el)" x-bind:class="{ 'is-active': filter === '{{ $key }}' }" x-bind:aria-selected="filter === '{{ $key }}'">{{ $label }}</button>
+                            <button type="button" role="tab" data-filter="{{ $key }}" x-on:click="filter = '{{ $key }}'; slide($el)" x-bind:class="{ 'is-active': filter === '{{ $key }}' }" x-bind:aria-selected="filter === '{{ $key }}'">{{ $label }}</button>
                         @endforeach
+                        <button type="button" role="tab" data-filter="favorites" x-on:click="filter = 'favorites'; slide($el)" x-bind:class="{ 'is-active': filter === 'favorites' }" x-bind:aria-selected="filter === 'favorites'">Favoritos <span x-text="'(' + favorites.length + ')'"></span></button>
                         <i class="lb-ink" :style="ink" aria-hidden="true"></i>
                     </div>
                     <div class="lb-search">
