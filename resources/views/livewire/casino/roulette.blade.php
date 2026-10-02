@@ -58,7 +58,7 @@
         },
 
         async spinNow() {
-            if (this.spinning || this.$wire.roundPhase !== 'prepared') return;
+            if (this.spinning) return;
 
             this.spinning = true;
             this.resultVisible = false;
@@ -88,7 +88,7 @@
             }
         }
     }"
-    x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); if (!spinning && $wire.roundPhase === 'prepared') spinNow(); }"
+    x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); if (!spinning && $wire.roundPhase !== 'in_progress') spinNow(); }"
 >
 
     <x-casino.how-it-works game-key="roulette" title="Como funciona a Roleta Europeia?" description="Escolhe um número ou um tipo de aposta e gira uma roleta europeia com os números 0 a 36." :rules="[['title'=>'Escolhe a aposta','text'=>'Podes apostar num número, cor, paridade, intervalo, dúzia ou coluna.'], ['title'=>'Define o valor','text'=>'Escolhe quantos créditos virtuais queres apostar.'], ['title'=>'Gira a roleta','text'=>'Carrega em Girar para lançar a ronda e revelar o número vencedor.'], ['title'=>'Confere o resultado','text'=>'A aposta ganha quando o resultado corresponde ao tipo de aposta selecionado. O pagamento depende da aposta.']]" />
@@ -258,18 +258,12 @@
                 </div>
 
                 <div class="roulette-action">
-                    @if ($roundPhase === 'prepared')
-                        <button type="button" class="roulette-primary" x-on:click="spinNow()" :disabled="spinning">
-                            <span x-show="!spinning">Girar roleta</span>
-                            <span x-show="spinning" x-cloak>A roda está a girar…</span>
-                        </button>
-                    @else
-                        <button type="button" class="roulette-primary" wire:click="prepare" wire:loading.attr="disabled">
-                            {{ $roundPhase === 'completed' ? 'Preparar nova ronda' : 'Preparar aposta' }}
-                        </button>
-                    @endif
+                    <button type="button" class="roulette-primary" x-on:click="spinNow()" :disabled="spinning || $wire.roundPhase === 'in_progress'">
+                        <span x-show="!spinning">Girar roleta</span>
+                        <span x-show="spinning" x-cloak>A roda está a girar…</span>
+                    </button>
                 </div>
-                <p class="mt-2 text-center roulette-space">Espaço = girar quando a aposta estiver confirmada</p>
+                <p class="mt-2 text-center roulette-space">Espaço = girar · a aposta fecha automaticamente ao iniciar</p>
 
                 @error('bet')<p class="mt-2 text-xs text-rose-300">{{ $message }}</p>@enderror
                 @error('selection')<p class="mt-2 text-xs text-rose-300">{{ $message }}</p>@enderror
