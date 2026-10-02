@@ -12,10 +12,10 @@ use App\Services\BetService;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use InvalidArgumentException;
-use LogicException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use LogicException;
 
 abstract class CasinoGameComponent extends Component
 {
@@ -103,7 +103,7 @@ abstract class CasinoGameComponent extends Component
 
         if ($betOverride === null) {
             $this->validate([
-                'bet' => ['required', 'integer', 'min:1', 'max:' . $this->maximumBet()],
+                'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
                 'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
             ]);
         } else {
@@ -229,7 +229,7 @@ abstract class CasinoGameComponent extends Component
                     'casino-toast',
                     type: $netResult >= 0 ? 'success' : 'info',
                     title: 'Bónus concluído',
-                    message: ($netResult >= 0 ? '+' : '') . "{$netResult} créditos de resultado líquido.",
+                    message: ($netResult >= 0 ? '+' : '')."{$netResult} créditos de resultado líquido.",
                 );
             } elseif ($round->payout > 0) {
                 $this->dispatch(
