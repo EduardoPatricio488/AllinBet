@@ -9,6 +9,11 @@ use Illuminate\View\View;
 
 class Blackjack extends CasinoGameComponent
 {
+    protected function casinoGame(): GameType
+    {
+        return GameType::Blackjack;
+    }
+
     public function prepare(): void
     {
         $this->prepareGame(GameType::Blackjack);
