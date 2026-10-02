@@ -101,7 +101,7 @@ final class FixedDeckBlackjackGame extends BlackjackGame
     /** @param array<int, array{rank: int, suit: string}> $drawOrder */
     public function __construct(PayoutCalculator $payoutCalculator, private readonly array $drawOrder)
     {
-        parent::__construct($payoutCalculator);
+        parent::__construct($payoutCalculator, app(ProvablyFairService::class));
     }
 
     protected function shuffledDeck(): array
