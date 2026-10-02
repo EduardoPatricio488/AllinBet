@@ -470,6 +470,40 @@ const casinoSound = {
 		casinoTone(494, 0.08, 'triangle', 0.022, 0.075);
 		casinoTone(587, 0.11, 'triangle', 0.026, 0.15);
 	},
+	slotWin() {
+		const coinNotes = [1318.5, 1567.98, 1760, 2093];
+		coinNotes.forEach((frequency, index) => {
+			const delay = index * 0.075;
+			casinoTone(frequency, 0.11, 'triangle', 0.038, delay);
+			casinoTone(frequency * 2, 0.045, 'sine', 0.012, delay + 0.018);
+			casinoNoise(0.028, 0.012, delay + 0.025, 4300 - (index * 220));
+		});
+
+		for (let i = 0; i < 7; i += 1) {
+			const delay = 0.28 + (i * 0.11);
+			casinoTone([1567.98, 1864.66, 2093, 2349.32][i % 4], 0.085, 'triangle', 0.024, delay);
+			casinoNoise(0.024, 0.009, delay + 0.02, 5000 - (i * 180));
+		}
+
+		casinoTone(2637, 0.22, 'sine', 0.028, 1.08);
+		casinoTone(3135.96, 0.3, 'triangle', 0.022, 1.16);
+	},
+	slotJackpot() {
+		this.slotWin();
+		const fanfare = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98];
+		fanfare.forEach((frequency, index) => {
+			const delay = 0.1 + (index * 0.11);
+			casinoTone(frequency, 0.18, 'triangle', 0.032, delay);
+			casinoTone(frequency * 2, 0.09, 'sine', 0.012, delay + 0.03);
+		});
+		for (let i = 0; i < 12; i += 1) {
+			const delay = 0.45 + (i * 0.085);
+			casinoNoise(0.026, 0.01, delay, 3800 + ((i % 4) * 350));
+			casinoTone(1318.5 + ((i % 5) * 220), 0.07, 'sine', 0.016, delay);
+		}
+		casinoTone(2637, 0.34, 'sine', 0.032, 1.05);
+		casinoTone(3135.96, 0.42, 'triangle', 0.026, 1.14);
+	},
 	win() {
 		const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
 		notes.forEach((frequency, index) => {
