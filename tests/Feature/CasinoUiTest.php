@@ -29,11 +29,11 @@ class CasinoUiTest extends TestCase
             ->assertSee('Créditos virtuais — sem valor monetário');
     }
 
-    public function test_recent_wins_marks_examples_as_demo_when_there_are_no_real_wins(): void
+    public function test_recent_wins_shows_empty_state_when_there_are_no_real_wins(): void
     {
         Livewire::test(RecentWins::class)
-            ->assertSee('DEMO · PRÉ-VISUALIZAÇÃO')
-            ->assertSee('Exemplo demonstrativo');
+            ->assertSee('Ainda não existem vitórias reais.')
+            ->assertDontSee('DEMO');
     }
 
     public function test_recent_wins_ticker_uses_real_completed_rounds_without_player_data(): void
