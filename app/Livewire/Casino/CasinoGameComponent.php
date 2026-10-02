@@ -130,7 +130,7 @@ abstract class CasinoGameComponent extends Component
                 ...$input,
                 'action_id' => $this->actionKey,
             ]);
-        } catch (DomainException|InvalidArgumentException $exception) {
+        } catch (DomainException|InvalidArgumentException|LogicException $exception) {
             $this->addError('game', $exception->getMessage());
             $this->dispatch('casino-toast', type: 'error', title: 'Ronda não concluída', message: $exception->getMessage());
 
