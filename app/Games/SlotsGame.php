@@ -34,8 +34,8 @@ class SlotsGame implements Game
     /** @param array<string, mixed> $variant */
     private function generateGrid(GameRound $round, array $variant, int $nonce): array
     {
-        $rows = (int) config('casino.games.slots.rows', 5);
-        $columns = (int) config('casino.games.slots.columns', 5);
+        $rows = (int) config('casino.games.slots.rows', 3);
+        $columns = (int) config('casino.games.slots.columns', 3);
         $symbols = $variant['symbols'] ?? [];
         $symbolCount = count($symbols);
 
@@ -150,8 +150,8 @@ class SlotsGame implements Game
     public function settle(array $grid, int $bet, ?array $variant = null): GameResult
     {
         $variant ??= config('casino.games.slots.variants.classic', []);
-        $rows = (int) config('casino.games.slots.rows', 5);
-        $columns = (int) config('casino.games.slots.columns', 5);
+        $rows = (int) config('casino.games.slots.rows', 3);
+        $columns = (int) config('casino.games.slots.columns', 3);
         $paylines = $this->validPaylines();
         $paytable = $variant['paytable'] ?? [];
         $symbolCount = count($variant['symbols'] ?? []);
@@ -245,8 +245,8 @@ class SlotsGame implements Game
     /** @return array<int, array{direction: string, index: int}> */
     private function validPaylines(): array
     {
-        $rows = (int) config('casino.games.slots.rows', 5);
-        $columns = (int) config('casino.games.slots.columns', 5);
+        $rows = (int) config('casino.games.slots.rows', 3);
+        $columns = (int) config('casino.games.slots.columns', 3);
         $paylines = config('casino.games.slots.paylines', []);
 
         return array_values(array_filter(
