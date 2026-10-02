@@ -29,7 +29,7 @@ class CasinoSimulationService
             throw new InvalidArgumentException('The number of rounds must be between 1 and 10000000.');
         }
 
-        $wagerPerRound = $gameType === GameType::Dice ? 100 : count(config('casino.games.slots.paylines', [0, 1, 2])) * 100;
+        $wagerPerRound = $gameType === GameType::Dice ? 100 : count(config('casino.games.slots.paylines', [])) * 100;
         $paid = 0;
 
         for ($round = 0; $round < $rounds; $round++) {
@@ -39,8 +39,8 @@ class CasinoSimulationService
                 continue;
             }
 
-            $rows = (int) config('casino.games.slots.rows', 3);
-            $columns = (int) config('casino.games.slots.columns', 3);
+            $rows = (int) config('casino.games.slots.rows', 5);
+            $columns = (int) config('casino.games.slots.columns', 5);
             $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
             $grid = [];
 
