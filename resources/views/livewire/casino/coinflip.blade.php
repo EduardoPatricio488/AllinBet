@@ -11,54 +11,190 @@
 
 <div class="casino-game-play coinflip-page cf"
      x-data="{
-        busy: false, charge: false, tossing: false, landed: false, burst: false, revealFace: {{ $has ? 'true' : 'false' }}, resultVisible: {{ $has ? 'true' : 'false' }},
-        rot: {{ $initOutcome === 'tails' ? 180 : 0 }}, dur: 0, outcome: @js($initOutcome), won: {{ ($roundResult['won'] ?? false) ? 'true' : 'false' }},
+        busy: false, charge: false, tossing: false, landed: false, burst: false,
+        revealFace: {{ $has ? 'true' : 'false' }}, resultVisible: {{ $has ? 'true' : 'false' }},
+        rot: {{ $initOutcome === 'tails' ? 180 : 0 }}, dur: 0,
+        outcome: @js($initOutcome), won: {{ ($roundResult['won'] ?? false) ? 'true' : 'false' }},
         payout: {{ (int) $roundPayout }}, shown: {{ (int) $roundPayout }}, maxBet: {{ $maxBet }}, mult: {{ $multiplier }},
-        get off() { return this.busy || this.$wire.roundPhase === 'prepared'; },
+        phase: 'ready', countdown: 0, countdownPct: 0, payoutReleased: true,
+        spinStartedAt: 0, spinFrame: 0, backendReady: false, backendError: false,
+        get off() { return this.busy || !this.payoutReleased || this.$wire.roundPhase === 'prepared'; },
         get label() { return this.$wire.side === 'heads' ? 'Cara' : 'Coroa'; },
         get potential() { return Math.floor(Number(this.$wire.bet || 0) * this.mult); },
+        get statusText() {
+            if (this.busy && this.tossing) return 'A RODAR';
+            if (this.busy) return this.backendError ? 'ERRO' : 'A PREPARAR';
+            if (this.resultVisible) return this.won ? 'VITÓRIA' : 'RESULTADO';
+            return this.$wire.roundPhase === 'prepared' ? 'MOEDA PREPARADA' : 'PRONTO A JOGAR';
+        },
+        get countdownText() {
+            return this.countdown > 0 ? this.countdown.toFixed(1) + 's' : '0,0s';
+        },
         sfx(name) { this.$dispatch('casino-sfx', { name }); },
         wait(ms) { return new Promise((r) => setTimeout(r, ms)); },
         pick(s) { if (this.off) return; this.$wire.side = s; this.sfx('chip'); },
-        step(d) { this.$wire.bet = Math.min(this.maxBet, Math.max(1, Math.round((Number(this.$wire.bet || 1) + d) / 5) * 5)); },
-        count(p) { const t0 = performance.now(); const tick = (t) => { const k = Math.min(1, (t - t0) / 800); this.shown = Math.round(p * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); },
-        async play() {
-            if (this.busy) return;
-            const w = this.$wire, calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            this.busy = true; this.charge = true; this.resultVisible = false; this.sfx('charge'); this.burst = false; this.revealFace = false;
-            try {
-                if (w.roundPhase !== 'prepared') await w.prepare();
-                if (w.roundPhase !== 'prepared') { this.busy = false; this.charge = false; return; }
-                await w.flip();
-            } catch (e) { this.busy = false; this.charge = false; return; }
-            if (w.roundPhase !== 'completed') { this.busy = false; this.charge = false; return; }
-            const out = w.roundResult?.outcome === 'tails' ? 'tails' : 'heads', target = out === 'tails' ? 180 : 0, mod = (a) => ((a % 360) + 360) % 360;
-            this.outcome = out; this.won = !!w.roundResult?.won; this.payout = Number(w.roundPayout || 0); this.shown = 0;
-            this.charge = false;
-            const finalRotation = this.rot + 2700 + mod(target - this.rot);
-            this.dur = calm ? 0 : 4000;
+        step(d) { if (this.off) return; this.$wire.bet = Math.min(this.maxBet, Math.max(1, Math.round((Number(this.$wire.bet || 1) + d) / 5) * 5)); },
+        count(p) {
+            const t0 = performance.now();
+            const tick = (t) => {
+                const k = Math.min(1, (t - t0) / 800);
+                this.shown = Math.round(p * (1 - Math.pow(1 - k, 3)));
+                if (k < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        },
+        mod(a) { return ((a % 360) + 360) % 360; },
+        async spinCoin(startTime) {
+            const startAngle = this.rot;
+            const minSpinMs = 4000;
+            const cruiseMs = 3300;
+            this.spinStartedAt = startTime;
+            this.backendReady = false;
+            this.backendError = false;
+            this.phase = 'spinning';
+
+            const frame = (now) => {
+                const elapsed = now - startTime;
+                const clamped = Math.min(elapsed, cruiseMs);
+                const cruiseAngle = startAngle + (clamped * 0.75);
+
+                if (this.backendReady && elapsed >= cruiseMs) {
+                    const target = this.outcome === 'tails' ? 180 : 0;
+                    const current = cruiseAngle;
+                    const distance = 360 + this.mod(target - this.mod(current));
+                    const settleProgress = Math.min(1, (elapsed - cruiseMs) / (minSpinMs - cruiseMs));
+                    const eased = 1 - Math.pow(1 - settleProgress, 3);
+                    this.rot = current + (distance * eased);
+                } else {
+                    this.rot = startAngle + (elapsed * 0.75);
+                }
+
+                this.countdown = Math.max(0, (minSpinMs - elapsed) / 1000);
+                this.countdownPct = Math.min(100, Math.max(0, (elapsed / minSpinMs) * 100));
+
+                if (elapsed < minSpinMs || !this.backendReady) {
+                    this.spinFrame = requestAnimationFrame(frame);
+                    return;
+                }
+
+                this.rot = startAngle + (cruiseMs * 0.75) + 360 + this.mod((this.outcome === 'tails' ? 180 : 0) - this.mod(startAngle + (cruiseMs * 0.75)));
+                this.tossing = false;
+                this.revealFace = true;
+                this.phase = 'revealed';
+                this.landed = true;
+                this.sfx('land');
+                setTimeout(() => { this.landed = false; }, 650);
+            };
+
+            this.tossing = true;
             this.sfx('toss');
+            this.spinFrame = requestAnimationFrame(frame);
+        },
+        async play() {
+            if (this.busy || !this.payoutReleased) return;
+
+            const w = this.$wire;
+            const startTime = performance.now();
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            this.busy = true;
+            this.payoutReleased = false;
+            this.charge = false;
+            this.tossing = !calm;
+            this.resultVisible = false;
+            this.revealFace = false;
+            this.burst = false;
+            this.backendReady = false;
+            this.backendError = false;
+            this.countdown = calm ? 0 : 4;
+            this.countdownPct = 0;
+            this.phase = calm ? 'revealing' : 'spinning';
+            this.sfx('charge');
+
+            const backend = (async () => {
+                try {
+                    if (w.roundPhase !== 'prepared') await w.prepare();
+
+                    if (w.roundPhase !== 'prepared') {
+                        this.backendError = true;
+                        return false;
+                    }
+
+                    await w.flip();
+
+                    if (w.roundPhase !== 'completed') {
+                        this.backendError = true;
+                        return false;
+                    }
+
+                    const out = w.roundResult?.outcome === 'tails' ? 'tails' : 'heads';
+                    this.outcome = out;
+                    this.won = !!w.roundResult?.won;
+                    this.payout = Number(w.roundPayout || 0);
+                    this.shown = 0;
+                    this.backendReady = true;
+                    return true;
+                } catch (e) {
+                    this.backendError = true;
+                    return false;
+                }
+            })();
 
             if (calm) {
-                this.rot = finalRotation;
+                await backend;
+                if (!this.backendReady) {
+                    this.busy = false;
+                    this.payoutReleased = true;
+                    this.tossing = false;
+                    this.phase = 'ready';
+                    return;
+                }
+
+                this.rot = this.outcome === 'tails' ? 180 : 0;
+                this.revealFace = true;
             } else {
-                this.tossing = true;
-                await this.$nextTick();
-                requestAnimationFrame(() => { this.rot = finalRotation; });
-                await this.wait(4000);
+                await this.spinCoin(startTime);
+                const ok = await backend;
+
+                if (!ok) {
+                    cancelAnimationFrame(this.spinFrame);
+                    this.tossing = false;
+                    this.countdown = 0;
+                    this.phase = 'ready';
+                    this.busy = false;
+                    this.payoutReleased = true;
+                    return;
+                }
+
+                if (this.tossing) {
+                    await new Promise((resolve) => {
+                        const waitForReveal = () => {
+                            if (!this.tossing) return resolve();
+                            requestAnimationFrame(waitForReveal);
+                        };
+                        waitForReveal();
+                    });
+                }
             }
 
-            this.tossing = false;
-            this.revealFace = true;
-            this.landed = true; this.sfx('land'); setTimeout(() => { this.landed = false; }, 600);
-            this.resultVisible = true; this.busy = false;
+            this.resultVisible = true;
+            this.phase = 'result';
+            this.payoutReleased = true;
+            this.busy = false;
+
             if (this.won && this.payout > 0) {
-                this.burst = true; this.count(this.payout); this.sfx('win'); setTimeout(() => { this.burst = false; }, 1400);
+                this.burst = true;
+                this.count(this.payout);
+                this.sfx('win');
+                setTimeout(() => { this.burst = false; }, 1400);
                 this.$dispatch('casino-toast', { title: 'Vitória!', message: '+' + this.payout + ' créditos virtuais' });
                 if (this.payout >= Number(w.bet || 1) * 10) this.$dispatch('casino-big-win', { amount: this.payout });
-            } else { this.shown = this.payout; this.sfx('lose'); }
+            } else {
+                this.shown = this.payout;
+                this.sfx('lose');
+            }
         }
-     }"
+    }"
      x-on:keydown.window="if (!['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName) && !$event.ctrlKey && !$event.metaKey) { if ($event.code === 'Space') { $event.preventDefault(); play(); } else if ($event.key.toLowerCase() === 'c') pick('heads'); else if ($event.key.toLowerCase() === 't') pick('tails'); }">
 
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -108,8 +244,13 @@
         .cf-toss.is-charge{animation:cfCharge .5s ease-in-out infinite alternate}
         .cf-toss.is-idle{animation:cfIdle 4.4s ease-in-out infinite}
         .cf-toss.is-land{animation:cfLand .52s cubic-bezier(.2,.9,.3,1)}
-        .cf-coin{position:relative;width:10.6rem;height:10.6rem;transform-style:preserve-3d;transform:rotateY(var(--rot));transition:transform .38s cubic-bezier(.2,.85,.25,1);filter:drop-shadow(0 26px 24px rgba(0,0,0,.42));will-change:transform}
-        .cf-coin.is-tossing{transition:transform 4s cubic-bezier(.12,.78,.16,1);}
+        .cf-live-status{position:absolute;top:4.4rem;left:50%;z-index:12;width:min(25rem,calc(100% - 2rem));transform:translateX(-50%);padding:.72rem .85rem;border:1px solid rgba(244,196,95,.32);border-radius:1rem;background:rgba(4,7,11,.78);box-shadow:0 14px 36px rgba(0,0,0,.26),0 0 28px rgba(244,196,95,.08);backdrop-filter:blur(16px);pointer-events:none}
+        .cf-live-status__head{display:flex;justify-content:space-between;align-items:center;gap:1rem}.cf-live-status__head>span{display:flex;align-items:center;gap:.45rem}.cf-live-status__head i{width:.46rem;height:.46rem;border-radius:50%;background:#ffd76d;box-shadow:0 0 16px rgba(255,215,109,.95);animation:cfStatusPulse .55s ease-in-out infinite alternate}.cf-live-status__head b{font-size:.64rem;letter-spacing:.12em;color:#fff}.cf-live-status__head strong{font-size:1rem;font-weight:1000;color:#f9d980;font-variant-numeric:tabular-nums}.cf-live-status p{margin-top:.34rem;font-size:.58rem;color:#8f99a7}.cf-countdown{height:.32rem;margin-top:.55rem;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.07)}.cf-countdown span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e2a63d,#ffe49b);box-shadow:0 0 14px rgba(244,196,95,.46);transition:width .08s linear}.cf-live-status small{display:block;margin-top:.35rem;font-size:.55rem;color:#6f7b8a}
+        .cf-spin-flare{position:absolute;inset:-2rem;z-index:-1;border-radius:50%;opacity:0;transform:scale(.7);pointer-events:none}.cf-spin-flare.is-active{opacity:1;transform:scale(1);animation:cfFlareSpin .9s linear infinite}.cf-spin-flare span{position:absolute;left:50%;top:50%;display:block;width:1px;height:44%;transform-origin:50% 100%;background:linear-gradient(180deg,rgba(255,244,186,0),rgba(244,196,95,.34),rgba(255,255,255,.8));filter:drop-shadow(0 0 5px rgba(244,196,95,.36))}.cf-spin-flare span:nth-child(1){transform:translate(-50%,-100%) rotate(0deg)}.cf-spin-flare span:nth-child(2){transform:translate(-50%,-100%) rotate(120deg)}.cf-spin-flare span:nth-child(3){transform:translate(-50%,-100%) rotate(240deg)}
+        .cf-status.is-live{border-color:rgba(244,196,95,.35);color:#ffe39a}.cf-status.is-live i{background:#ffd76d;box-shadow:0 0 18px rgba(255,215,109,.95);animation:cfStatusPulse .45s ease-in-out infinite alternate}
+        .cf-coin{position:relative;width:10.9rem;height:10.9rem;transform-style:preserve-3d;transform:rotateY(var(--rot));transition:transform .2s linear;filter:drop-shadow(0 26px 24px rgba(0,0,0,.42)) drop-shadow(0 0 26px rgba(244,196,95,.12));will-change:transform}
+        .cf-coin.is-tossing{transition:none;filter:drop-shadow(0 26px 24px rgba(0,0,0,.42)) drop-shadow(0 0 38px rgba(244,196,95,.28));}
+        .cf-coin.is-tossing .cf-slice{filter:blur(.25px);}
         .cf-unknown{position:absolute;inset:.38rem;z-index:3;display:grid;place-items:center;border-radius:50%;border:2px solid rgba(255,242,180,.38);background:radial-gradient(circle at 35% 28%,#e9c66b,#b97617 58%,#724308);color:rgba(255,243,190,.86);font-size:4rem;font-weight:1000;text-shadow:0 2px 10px rgba(84,43,4,.4);box-shadow:inset 0 0 0 .18rem rgba(255,255,255,.18),inset 0 -1rem 1.2rem rgba(84,43,4,.28);backface-visibility:hidden;transform:translateZ(.2rem);transition:opacity .15s ease,transform .25s ease}
         .cf-unknown.is-hidden{opacity:0;transform:translateZ(.2rem) scale(.96)}
         .cf-coin.is-tossing .cf-face{opacity:0;visibility:hidden}
@@ -148,20 +289,27 @@
         .cf-history{display:flex;flex-wrap:wrap;gap:.38rem;margin-top:.72rem}.cf-dot{width:1.9rem;height:1.9rem;display:grid;place-items:center;border-radius:50%;font-size:.63rem;font-weight:1000;border:1px solid rgba(255,255,255,.08);transition:transform .18s ease}.cf-dot:hover{transform:translateY(-2px)}.cf-dot.is-h{background:rgba(244,196,95,.1);color:#f2ca6c;border-color:rgba(244,196,95,.25)}.cf-dot.is-t{background:rgba(231,113,121,.1);color:#ef858d;border-color:rgba(231,113,121,.22)}
         .cf-panel>summary{list-style:none;cursor:pointer}.cf-panel>summary::-webkit-details-marker{display:none}.cf-panel>summary::after{content:"+";float:right;color:#727d8b;font-size:.95rem}.cf-panel[open]>summary::after{content:"−"}.cf-seed{width:100%;margin-top:.55rem;padding:.62rem .68rem;border:1px solid rgba(255,255,255,.08);border-radius:.72rem;background:#0b0f14;color:#dce2e8;font:600 .66rem ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
         @keyframes cfGridDrift{0%{background-position:0 0;opacity:.18}50%{opacity:.3}100%{background-position:46px 46px;opacity:.18}}@keyframes cfNebulaOne{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(35px,-18px,0) scale(1.13)}}@keyframes cfNebulaTwo{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-30px,16px,0) scale(1.12)}}@keyframes cfRaySpin{to{transform:rotate(360deg)}}@keyframes cfOrbitSpin{to{transform:translate(-50%,-50%) rotateX(68deg) rotateZ(346deg)}}@keyframes cfOrbitSpinReverse{to{transform:translate(-50%,-50%) rotateX(69deg) rotateZ(-343deg)}}@keyframes cfEnergyPulse{0%{opacity:0;transform:translate(-50%,-50%) scale(.55)}25%{opacity:.8}100%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}}@keyframes cfStarTwinkle{from{opacity:.18;transform:scale(.75)}to{opacity:.9;transform:scale(1.15)}}@keyframes cfPlatformSpin{to{transform:rotate(360deg)}}@keyframes cfCorePulse{0%,100%{transform:translate(-50%,-50%) scale(.82);opacity:.45}50%{transform:translate(-50%,-50%) scale(1.12);opacity:1}}@keyframes cfPlatformShine{0%,100%{opacity:.15;transform:translate(-50%,-50%) scaleX(.55)}50%{opacity:1;transform:translate(-50%,-50%) scaleX(1.1)}}        @keyframes cfCoinSpin{0%{transform:rotateY(0deg) rotateX(0deg) rotateZ(-2deg)}12%{transform:rotateY(420deg) rotateX(12deg) rotateZ(5deg)}28%{transform:rotateY(900deg) rotateX(-16deg) rotateZ(-7deg)}48%{transform:rotateY(1500deg) rotateX(13deg) rotateZ(6deg)}66%{transform:rotateY(2080deg) rotateX(-9deg) rotateZ(-4deg)}82%{transform:rotateY(2460deg) rotateX(5deg) rotateZ(2deg)}94%{transform:rotateY(2620deg) rotateX(-2deg) rotateZ(-1deg)}100%{transform:rotateY(2700deg) rotateX(0deg) rotateZ(0deg)}}
+        @keyframes cfStatusPulse{from{transform:scale(.88);opacity:.55}to{transform:scale(1.18);opacity:1}}@keyframes cfFlareSpin{to{transform:scale(1) rotate(360deg)}}
         @keyframes cfSweep{to{transform:rotate(360deg)}}@keyframes cfBlink{from{opacity:.55;transform:scale(.75)}to{opacity:1;transform:scale(1.12)}}@keyframes cfAura{0%,100%{transform:scale(.95);opacity:.7}50%{transform:scale(1.06);opacity:1}}@keyframes cfIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes cfCharge{from{transform:translateY(0) scale(.99)}to{transform:translateY(-2px) scale(1.015)}}@keyframes cfLand{0%{transform:translateY(-.15rem) scale(.98)}45%{transform:translateY(.38rem) scale(1.035)}100%{transform:translateY(0) scale(1)}}@keyframes cfLandShadow{0%{opacity:.55;transform:scaleX(.65)}100%{opacity:1;transform:scaleX(1.28)}}@keyframes cfSpark{0%{opacity:0;transform:rotate(calc(var(--i)*25.7deg)) translateY(0) scale(.3)}12%{opacity:1}100%{opacity:0;transform:rotate(calc(var(--i)*25.7deg)) translateY(150px) scale(.08)}}@keyframes cfFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}18%{opacity:1;transform:translate(-50%,0) scale(1.05)}100%{opacity:0;transform:translate(-50%,-62px) scale(.9)}}@keyframes cfShine{0%,55%,100%{transform:translateX(-180%) skewX(-18deg)}72%{transform:translateX(350%) skewX(-18deg)}}
         @media(max-width:1024px){.cf-layout{grid-template-columns:1fr}.cf-stage{min-height:33rem}}
         @media(max-width:640px){.cf-top{align-items:flex-start}.cf-status{max-width:45%;white-space:normal;text-align:right}.cf-stage{min-height:30rem;border-radius:1.25rem}.cf-scene{min-height:23rem}.cf-toss{width:12rem;height:12rem}.cf-coin{width:9.3rem;height:9.3rem}.cf-face-word{font-size:1.4rem}.cf-face--t .cf-face-word{font-size:1.2rem}.cf-face-brand{font-size:.36rem}.cf-sides{grid-template-columns:1fr}.cf-result{min-width:12.5rem}.cf-aura{width:18rem;height:18rem}.cf-floor{width:14rem}.cf-shadow{width:8rem}.cf-platform{width:13rem;bottom:2.8rem}.cf-orbit--one{width:19rem}.cf-orbit--two{width:15rem}.cf-rays{width:25rem;height:25rem}.cf-space-grid{background-size:34px 34px}.cf-payout{align-items:flex-start}}
-        @media(prefers-reduced-motion:reduce){.cf-stage::before,.cf-status i,.cf-aura,.cf-toss,.cf-spark.is-on,.cf-float,.cf-play::after,.cf-space-grid,.cf-nebula,.cf-rays,.cf-orbit,.cf-energy-ring,.cf-star,.cf-platform__ring,.cf-platform__core,.cf-platform__shine{animation:none!important}.cf-coin{transition:none!important}.cf-platform{transition:none}.cf-shadow.is-land{animation:none}}
+        @media(prefers-reduced-motion:reduce){.cf-live-status__head i,.cf-spin-flare{animation:none!important}.cf-countdown span{transition:none!important}.cf-stage::before,.cf-status i,.cf-aura,.cf-toss,.cf-spark.is-on,.cf-float,.cf-play::after,.cf-space-grid,.cf-nebula,.cf-rays,.cf-orbit,.cf-energy-ring,.cf-star,.cf-platform__ring,.cf-platform__core,.cf-platform__shine{animation:none!important}.cf-coin{transition:none!important}.cf-platform{transition:none}.cf-shadow.is-land{animation:none}}
     </style>
 
     <div class="cf-layout">
         <section class="cf-stage" :class="{ 'is-win': resultVisible && won, 'is-loss': resultVisible && !won }">
             <header class="cf-top">
                 <div><p class="cf-eyebrow">Jogo 01 · Original</p><h2 class="cf-title">Coinflip</h2></div>
-                <span class="cf-status"><i></i><span x-text="busy ? 'A lançar…' : ($wire.roundPhase === 'prepared' ? 'Moeda preparada' : 'Pronto a jogar')"></span></span>
+                <span class="cf-status" :class="{ 'is-live': busy }"><i></i><span x-text="statusText"></span></span>
             </header>
 
             <div class="cf-scene" aria-live="polite">
+                <div class="cf-live-status" x-show="busy" x-cloak>
+                    <div class="cf-live-status__head"><span><i></i><b x-text="tossing ? 'A MOEDA ESTÁ A RODAR' : 'A PREPARAR A RONDA'"></b></span><strong x-text="countdownText"></strong></div>
+                    <p x-text="backendReady ? 'Resultado calculado · a moeda está a parar…' : 'Resultado oculto · aguarda o lançamento terminar'"></p>
+                    <div class="cf-countdown"><span :style="'width:' + countdownPct + '%'"></span></div>
+                    <small x-text="countdown > 0 ? 'Para em ' + countdownText : 'A revelar resultado…'"></small>
+                </div>
                 <div class="cf-space-grid" aria-hidden="true"></div>
                 <div class="cf-nebula cf-nebula--one" aria-hidden="true"></div>
                 <div class="cf-nebula cf-nebula--two" aria-hidden="true"></div>
@@ -183,6 +331,7 @@
                 </div>
 
                 <div class="cf-toss" :class="{ 'is-toss': tossing, 'is-idle': !tossing && !busy, 'is-charge': charge, 'is-land': landed }">
+                    <div class="cf-spin-flare" :class="{ 'is-active': tossing }" aria-hidden="true"><span></span><span></span><span></span></div>
                     <div class="cf-coin" :class="{ 'is-tossing': tossing, 'is-revealed': revealFace }" :style="'--dur:' + dur + 'ms; --rot:' + rot + 'deg'" role="img" :aria-label="tossing ? 'Moeda a rodar' : (outcome === 'heads' ? 'Moeda: Cara' : 'Moeda: Coroa')">
                         @for ($z = -5; $z <= 5; $z++)<i class="cf-slice" style="transform: translateZ({{ $z }}px)"></i>@endfor
                         <div class="cf-unknown" :class="{ 'is-hidden': revealFace }" aria-hidden="true">?</div>
@@ -238,8 +387,9 @@
 
                 <div class="cf-payout"><div><strong x-text="'+' + potential.toLocaleString('pt-PT')"></strong><span>se acertares</span></div><div class="text-right"><strong x-text="Number($wire.bet || 0).toLocaleString('pt-PT')"></strong><span>em jogo</span></div></div>
 
-                <button type="button" class="cf-play" x-on:click="play()" :disabled="busy">
-                    <span x-text="busy ? 'A moeda está no ar…' : 'Lançar moeda'"></span><small>ou barra de espaço</small>
+                <button type="button" class="cf-play" x-on:click="play()" :disabled="off">
+                    <span x-text="tossing ? 'A RODAR… ' + countdownText : (busy ? 'A preparar…' : 'Lançar moeda')"></span>
+                    <small x-text="tossing ? 'Não mexas nas opções até a moeda parar' : 'ou barra de espaço'"></small>
                 </button>
                 @error('game')<p class="cf-error" role="alert">{{ $message }}</p>@enderror
             </div>
