@@ -34,8 +34,8 @@ class SlotsGame implements Game
     /** @param array<string, mixed> $variant */
     private function generateGrid(GameRound $round, array $variant, int $nonce): array
     {
-        $rows = (int) config('casino.games.slots.rows', 3);
-        $columns = (int) config('casino.games.slots.columns', 3);
+        $rows = (int) config('casino.games.slots.rows', 5);
+        $columns = (int) config('casino.games.slots.columns', 5);
         $symbols = $variant['symbols'] ?? [];
         $symbolCount = count($symbols);
 
