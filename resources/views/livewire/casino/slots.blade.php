@@ -308,7 +308,7 @@
             this.prize = 0;
             this.shown = 0;
             this.tier = '';
-            this.st = [0, 0, 0, 0, 0].map(() => 'spin');
+            this.st = [0, 0, 0].map(() => 'spin');
             this.resetReels();
             this.startSpinning();
             this.sfx('spin');
@@ -328,7 +328,7 @@
             const ok = await backend;
 
             if (!ok) {
-                this.st = [0, 0, 0, 0, 0].map(() => 'idle');
+                this.st = [0, 0, 0].map(() => 'idle');
                 this.done = true;
                 this.busy = false;
                 this.resetReels();
@@ -405,7 +405,7 @@
         </div>
     </section>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos três níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'5 iguais pagam','text'=>'Uma linha só vence quando os cinco símbolos dessa linha são iguais. Várias linhas vencedoras acumulam.']]" />
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos três níveis visíveis.'], ['title'=>'6 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Uma linha só vence quando os três símbolos dessa linha são iguais. Várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-page-main{min-width:0}
@@ -632,8 +632,7 @@
         .slot-reel:nth-child(1) { --spin-speed:.54s; }
         .slot-reel:nth-child(2) { --spin-speed:.49s; }
         .slot-reel:nth-child(3) { --spin-speed:.45s; }
-        .slot-reel:nth-child(4) { --spin-speed:.41s; }
-
+        
         @keyframes slot-scroll {
             from { transform: translate3d(0,0,0); }
             to { transform: translate3d(0,calc(var(--cell) * -8),0); }
@@ -651,7 +650,7 @@
             box-shadow: 0 0 14px rgba(242, 193, 78, .9);
         }
         .slot-payline--vertical {
-            top: -.3rem; bottom: -.3rem; left: calc((var(--col) + .5) * 20%); right: auto;
+            top: -.3rem; bottom: -.3rem; left: calc((var(--col) + .5) * 33.333333%); right: auto;
             width: 3px; height: auto;
             background: linear-gradient(180deg, transparent, var(--gold), #fff, var(--gold), transparent);
         }
@@ -906,27 +905,27 @@
                     @endforeach
                 </div>
 
-                <div class="slot-reels" wire:ignore role="img" aria-label="Cinco rolos com cinco linhas visíveis">
-                    <template x-for="column in [0, 1, 2, 3, 4]" :key="'reel-' + column">
+                <div class="slot-reels" wire:ignore role="img" aria-label="Três rolos com três linhas visíveis">
+                    <template x-for="column in [0, 1, 2]" :key="'reel-' + column">
                         <div class="slot-reel" :class="'is-' + st[column]">
                             <div class="slot-spinner">
                                 <template x-for="(symbol, index) in tracks[column]" :key="column + '-' + index">
                                     <span class="slot-sym"
-                                          :class="{ 'is-win': done && index >= reelPrefix && index < reelPrefix + 5 && isWinningCell(index - reelPrefix, column) }"
+                                          :class="{ 'is-win': done && index >= reelPrefix && index < reelPrefix + 3 && isWinningCell(index - reelPrefix, column) }"
                                           x-text="symbol"></span>
                                 </template>
                             </div>
                         </div>
                     </template>
 
-                    <template x-for="row in [0, 1, 2, 3, 4]" :key="'hline-' + row">
+                    <template x-for="row in [0, 1, 2]" :key="'hline-' + row">
                         <i class="slot-payline"
                            x-show="done && winningLines.some((line) => line.direction === 'horizontal' && Number(line.line) === row)"
                            :style="'--row:' + row"
                            aria-hidden="true"></i>
                     </template>
 
-                    <template x-for="column in [0, 1, 2, 3, 4]" :key="'vline-' + column">
+                    <template x-for="column in [0, 1, 2]" :key="'vline-' + column">
                         <i class="slot-payline slot-payline--vertical"
                            x-show="done && winningLines.some((line) => line.direction === 'vertical' && Number(line.line) === column)"
                            :style="'--col:' + column"
@@ -935,7 +934,7 @@
                 </div>
 
                 <div class="slot-markers" aria-hidden="true">
-                    @foreach ([0, 1, 2, 3, 4] as $r)
+                    @foreach ([0, 1, 2] as $r)
                         <span>{{ $r + 1 }}</span>
                     @endforeach
                 </div>
@@ -1041,7 +1040,7 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">{{ $selectedSlotConfig['tag'] ?? 'ORIGINAL' }}</div>
             </div>
-            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 10 linhas de pagamento: 5 horizontais e 5 verticais. Cinco símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 6 linhas de pagamento: 3 horizontais e 3 verticais. Três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
         </div>
 
         <details class="casino-card slot-fair">
