@@ -1,9 +1,7 @@
 @extends('layouts.casino')
 
-@section('page-title', 'Dice')
+@section('page-title', 'Dados')
 
 @section('content')
-    <x-casino.game-chrome slug="dice">
-        <livewire:casino.dice />
-    </x-casino.game-chrome>
+    <livewire:casino.dice />
 @endsection
