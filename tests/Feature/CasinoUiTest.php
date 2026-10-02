@@ -114,6 +114,25 @@ class CasinoUiTest extends TestCase
         }
     }
 
+    public function test_game_pages_render_one_shared_game_chrome_and_use_game_state_flow(): void
+    {
+        $user = User::factory()->create();
+        app(WalletService::class)->initialize($user, 500);
+        $this->actingAs($user);
+
+        foreach (['casino.coinflip', 'casino.dice', 'casino.roulette', 'casino.slots', 'casino.blackjack', 'casino.jetx'] as $routeName) {
+            $html = $this->get(route($routeName))
+                ->assertOk()
+                ->getContent();
+
+            $this->assertSame(1, substr_count($html, 'data-casino-game-chrome'), $routeName.' should render one shared game chrome.');
+            $this->assertStringContainsString('APOSTA', $html);
+            $this->assertStringContainsString('BLOQUEADA', $html);
+            $this->assertStringContainsString('EM JOGO', $html);
+            $this->assertStringContainsString('PAYOUT', $html);
+        }
+    }
+
     public function test_livewire_game_recovers_a_prepared_round_after_refresh(): void
     {
         $user = User::factory()->create();
