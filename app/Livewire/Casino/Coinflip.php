@@ -52,7 +52,10 @@ class Coinflip extends CasinoGameComponent
     public function flip(): void
     {
         $this->validate(['side' => ['required', 'in:heads,tails']]);
-        $this->playGame(GameType::Coinflip, ['side' => $this->side]);
+        $this->playGame(GameType::Coinflip, [
+            'side' => $this->side,
+            'defer_payout' => true,
+        ]);
         $this->loadRecentStats();
         $this->walletBalance = $this->currentBalance();
     }
