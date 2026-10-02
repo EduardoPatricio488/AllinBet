@@ -316,7 +316,7 @@
             const ok = await backend;
 
             if (!ok) {
-                this.st = [0, 0, 0].map(() => 'idle');
+                this.st = [0, 0, 0, 0, 0].map(() => 'idle');
                 this.done = true;
                 this.busy = false;
                 this.resetReels();
