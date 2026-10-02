@@ -50,6 +50,7 @@ class Roulette extends CasinoGameComponent
         $this->playGame(GameType::Roulette, [
             'bet_type' => $validated['betType'],
             'selection' => $selection,
+            'defer_payout' => true,
         ]);
     }
 
