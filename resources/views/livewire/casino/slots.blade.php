@@ -521,38 +521,25 @@
 
         .slot-window {
             position: relative;
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: .4rem;
+            display: block;
+            width: 100%;
+            height: calc((var(--cell) * 3) + 1.4rem);
+            overflow: hidden;
             padding: .7rem;
             border-radius: 1.2rem;
             background: #030706;
             box-shadow: inset 0 0 40px #000, 0 0 0 2px rgba(242,193,78,.45), 0 0 0 6px rgba(242,193,78,.1);
         }
-        .slot-markers {
-            display: grid;
-            grid-template-rows: repeat(3,var(--cell));
-            align-items: center;
-        }
-        .slot-markers span {
-            display: grid;
-            place-items: center;
-            width: 1.35rem;
-            height: 1.35rem;
-            border-radius: 9999px;
-            font-size: .6rem;
-            font-weight: 850;
-            color: #6f7c76;
-            background: #101816;
-            border: 1px solid rgba(255,255,255,.08);
-        }
-
         .slot-reels {
             position: relative;
             display: grid;
             grid-template-columns: repeat(3,minmax(0,1fr));
+            grid-template-rows: repeat(3,var(--cell));
             gap: .4rem;
+            width: 100%;
+            height: calc(var(--cell) * 3);
             min-width: 0;
+            overflow: hidden;
         }
         .slot-reel {
             position: relative;
@@ -839,8 +826,7 @@
             .slot-bonus-buy__options { grid-template-columns: 1fr; }
             .slot-bonus-result__stats { grid-template-columns: 1fr 1fr; }
             .slot-deck { grid-template-columns: 1fr; } .slot-spin { grid-column: auto; }
-            .slot-markers span { width: 1.2rem; height: 1.2rem; font-size: .6rem; }
-            .slot-window { padding: .55rem; }
+            .slot-window { padding: .55rem; height: calc((var(--cell) * 3) + 1.1rem); }
         }
         @media (prefers-reduced-motion: reduce) {
             .slot-reel.is-spin .slot-spinner, .slot-reel.is-settle .slot-spinner,
@@ -899,13 +885,7 @@
                     'has-win': done && winningLines.length > 0,
                     'is-spinning': busy
                  }">
-                <div class="slot-markers" aria-hidden="true">
-                    @foreach ([0, 1, 2] as $r)
-                        <span>{{ $r + 1 }}</span>
-                    @endforeach
-                </div>
-
-                <div class="slot-reels" wire:ignore role="img" aria-label="Três rolos com três linhas visíveis">
+                <div class="slot-reels" wire:ignore role="img" aria-label="Grelha de Slots 3 por 3, com três rolos e três linhas">
                     <template x-for="column in [0, 1, 2]" :key="'reel-' + column">
                         <div class="slot-reel" :class="'is-' + st[column]">
                             <div class="slot-spinner">
@@ -931,12 +911,6 @@
                            :style="'--col:' + column"
                            aria-hidden="true"></i>
                     </template>
-                </div>
-
-                <div class="slot-markers" aria-hidden="true">
-                    @foreach ([0, 1, 2] as $r)
-                        <span>{{ $r + 1 }}</span>
-                    @endforeach
                 </div>
             </div>
 
