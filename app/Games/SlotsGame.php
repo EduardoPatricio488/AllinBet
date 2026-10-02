@@ -186,9 +186,9 @@ class SlotsGame implements Game
             $firstSymbol = $direction === 'horizontal'
                 ? $grid[$index][0]
                 : $grid[0][$index];
-            $allMatch = true;
 
             $length = $direction === 'horizontal' ? $columns : $rows;
+            $matchCount = 1;
 
             for ($position = 1; $position < $length; $position++) {
                 $symbol = $direction === 'horizontal'
@@ -196,29 +196,38 @@ class SlotsGame implements Game
                     : $grid[$position][$index];
 
                 if ($symbol !== $firstSymbol) {
-                    $allMatch = false;
                     break;
                 }
+
+                $matchCount++;
             }
 
-            if (! $allMatch) {
+            $minimumMatch = max(3, (int) config('casino.games.slots.minimum_match', 3));
+
+            if ($matchCount < $minimumMatch) {
                 continue;
             }
 
-            $multiplier = (int) ($paytable[$firstSymbol] ?? 0);
+            $symbolMultiplier = (int) ($paytable[$firstSymbol] ?? 0);
+            $matchMultiplier = (int) config("casino.games.slots.match_multipliers.{$matchCount}", 0);
 
-            if ($multiplier <= 0) {
+            if ($symbolMultiplier <= 0 || $matchMultiplier <= 0) {
                 continue;
             }
 
-            $linePayout = max(1, intdiv($bet * $multiplier, $lineCount));
+            $linePayout = max(
+                1,
+                intdiv($bet * $symbolMultiplier * $matchMultiplier, $lineCount),
+            );
             $payout += $linePayout;
             $winningLines[] = [
                 'direction' => $direction,
                 'line' => $index,
                 'symbol' => $firstSymbol,
-                'count' => $length,
-                'multiplier' => $multiplier,
+                'count' => $matchCount,
+                'multiplier' => $symbolMultiplier * $matchMultiplier,
+                'base_multiplier' => $symbolMultiplier,
+                'match_multiplier' => $matchMultiplier,
                 'payout' => $linePayout,
             ];
         }
