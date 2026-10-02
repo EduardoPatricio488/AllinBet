@@ -14,6 +14,8 @@
     $payout = (int) $roundPayout;
 @endphp
 
+    <x-casino.loading-overlay target="prepare,spin,buyBonus" />
+
 <div class="casino-game-play casino-game-screen slot-page" data-casino-game="slots"
      x-data="{
         st: [0, 0, 0].map(() => 'idle'),
