@@ -69,6 +69,9 @@ class SlotsGame implements Game
         $baseBet = (int) ($state['bonus_base_bet'] ?? 0);
         $spinCount = (int) ($state['bonus_spin_count'] ?? 0);
         $bonusMultiplier = (int) ($state['bonus_multiplier'] ?? 0);
+        $currentSpin = (int) ($state['bonus_current_spin'] ?? 0);
+        $totalPayout = (int) ($state['bonus_total_payout'] ?? 0);
+        $spinResults = is_array($state['bonus_spin_results'] ?? null) ? $state['bonus_spin_results'] : [];
 
         if (
             ! (bool) ($state['bonus_buy'] ?? false)
@@ -77,33 +80,33 @@ class SlotsGame implements Game
             || $bonusMultiplier < 1
             || $baseBet > intdiv(PHP_INT_MAX, $bonusMultiplier)
             || $round->bet !== $baseBet * $bonusMultiplier
+            || $currentSpin >= $spinCount
         ) {
             throw new InvalidArgumentException('The slots bonus purchase is invalid.');
         }
 
-        $totalPayout = 0;
-        $spinResults = [];
-        $finalGrid = [];
-        $finalWinningLines = [];
+        $spinNumber = $currentSpin + 1;
+        $grid = $this->generateGrid($round, $variant, $round->nonce + $spinNumber);
+        $result = $this->settle($grid, $baseBet, $variant);
+        $totalPayout += $result->payout;
 
-        for ($spin = 0; $spin < $spinCount; $spin++) {
-            $grid = $this->generateGrid($round, $variant, $round->nonce + $spin + 1);
-            $result = $this->settle($grid, $baseBet, $variant);
-            $totalPayout += $result->payout;
+        $spinResults[] = [
+            'spin' => $spinNumber,
+            'payout' => $result->payout,
+            'winning_lines' => $result->result['winning_lines'] ?? [],
+        ];
 
-            $spinResults[] = [
-                'spin' => $spin + 1,
-                'payout' => $result->payout,
-                'winning_lines' => $result->result['winning_lines'] ?? [],
-            ];
+        $completed = $spinNumber >= $spinCount;
+        $state = [
+            ...$state,
+            'bonus_current_spin' => $spinNumber,
+            'bonus_total_payout' => $totalPayout,
+            'bonus_spin_results' => $spinResults,
+        ];
 
-            $finalGrid = $grid;
-            $finalWinningLines = $result->result['winning_lines'] ?? [];
-        }
-
-        return new GameResult($totalPayout, [
-            'grid' => $finalGrid,
-            'winning_lines' => $finalWinningLines,
+        $public = [
+            'grid' => $grid,
+            'winning_lines' => $result->result['winning_lines'] ?? [],
             'wager' => $baseBet,
             'payline_count' => count($this->validPaylines()),
             'slot_variant' => (string) ($variant['key'] ?? 'classic'),
@@ -111,12 +114,19 @@ class SlotsGame implements Game
             'bonus_label' => (string) ($state['bonus_label'] ?? 'Bónus'),
             'bonus_multiplier' => $bonusMultiplier,
             'bonus_spin_count' => $spinCount,
+            'bonus_current_spin' => $spinNumber,
             'bonus_base_bet' => $baseBet,
             'bonus_cost' => $round->bet,
             'bonus_payout' => $totalPayout,
             'bonus_profit' => $totalPayout - $round->bet,
             'bonus_spin_results' => $spinResults,
-        ]);
+        ];
+
+        if (! $completed) {
+            return new GameResult(0, $public, false, $state);
+        }
+
+        return new GameResult($totalPayout, $public, true, $state);
     }
 
     /** @return array<string, mixed> */
