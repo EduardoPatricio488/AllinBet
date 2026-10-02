@@ -204,7 +204,7 @@ class BetService
                 return $round->refresh();
             }
 
-            $deferPayout = $gameResult->completed && ($input['defer_payout'] ?? true);
+            $deferPayout = $gameResult->completed && ($input['defer_payout'] ?? false);
 
             if ($deferPayout) {
                 $delayMs = $this->settlementDelayMs($round);
