@@ -19,7 +19,7 @@
         st: [0, 0, 0, 0, 0].map(() => 'idle'),
         selectedSlot: @js($selectedSlot),
         busy: false,
-        done: true,
+        done: @js($roundResult !== []),
         shown: 0,
         prize: 0,
         tier: '',
