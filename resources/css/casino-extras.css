@@ -369,6 +369,14 @@
 .casino-game-chrome__switch a:hover{transform:translateY(-1px);border-color:rgb(230 200 121 / 34%);color:#f4d77f;background:rgb(230 200 121 / 5%)}
 .casino-game-chrome__switch a.is-current{border-color:rgb(230 200 121 / 48%);color:#ffe39a;background:linear-gradient(135deg,rgb(230 200 121 / 10%),rgb(230 200 121 / 3%));box-shadow:0 0 16px rgb(230 200 121 / 5%)}
 .casino-game-chrome__ambient{position:absolute;right:2rem;bottom:-.7rem;display:flex;gap:2.2rem;opacity:.18;pointer-events:none}
+.casino-game-flow{position:relative;z-index:2;display:flex;align-items:center;gap:.28rem;margin-top:.72rem;padding-top:.62rem;border-top:1px solid rgb(255 255 255 / 5%)}
+.casino-game-flow__step{display:inline-flex;align-items:center;gap:.3rem;min-height:1.55rem;padding:.22rem .42rem;border:1px solid transparent;border-radius:999px;color:#5f6a74;font-size:.48rem;font-weight:950;letter-spacing:.11em;white-space:nowrap;transition:border-color .2s ease,background .2s ease,color .2s ease,box-shadow .2s ease}
+.casino-game-flow__step i{width:.3rem;height:.3rem;border-radius:50%;background:#46515a;box-shadow:inset 0 0 0 1px rgb(255 255 255 / 7%)}
+.casino-game-flow__step.is-current{color:#f0d276;border-color:rgb(230 200 121 / 25%);background:rgb(230 200 121 / 5%);box-shadow:0 0 14px rgb(230 200 121 / 5%)}
+.casino-game-flow__step.is-current i{background:#f2c14e;box-shadow:0 0 8px rgb(242 193 78 / 72%)}
+.casino-game-flow__step.is-done{color:#87cbaa}
+.casino-game-flow__step.is-done i{background:#53c791}
+@media (max-width:700px){.casino-game-flow{gap:.12rem;overflow-x:auto;scrollbar-width:none}.casino-game-flow::-webkit-scrollbar{display:none}.casino-game-flow__step{font-size:.42rem;padding-inline:.32rem}}
 .casino-game-chrome__ambient span{display:block;width:2.2rem;height:2.2rem;border-radius:50%;border:1px solid rgb(230 200 121 / 30%);box-shadow:inset 0 0 0 .32rem rgb(230 200 121 / 5%),0 0 24px rgb(230 200 121 / 8%);animation:casino-chip-float calc(4.5s + var(--d, 0s)) ease-in-out infinite alternate}
 .casino-game-chrome__ambient span:nth-child(2){--d:-.8s}.casino-game-chrome__ambient span:nth-child(3){--d:-1.6s}.casino-game-chrome__ambient span:nth-child(4){--d:-2.4s}.casino-game-chrome__ambient span:nth-child(5){--d:-3.2s}
 .casino-game-screen,.casino-game-play,.blackjack-page{position:relative;z-index:1}
