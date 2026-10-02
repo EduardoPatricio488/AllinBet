@@ -414,9 +414,9 @@
             animation: slot-scroll var(--spin-speed, .42s) linear infinite;
             filter: blur(2.6px);
         }
-        .slot-reel:nth-child(1) { --spin-speed: .46s; }
-        .slot-reel:nth-child(2) { --spin-speed: .40s; }
-        .slot-reel:nth-child(3) { --spin-speed: .36s; }
+        .slot-reel:nth-child(1) { --spin-speed: .52s; }
+        .slot-reel:nth-child(2) { --spin-speed: .46s; }
+        .slot-reel:nth-child(3) { --spin-speed: .41s; }
         .slot-reel.is-settle .slot-spinner {
             display: grid;
             filter: blur(1px);
@@ -441,7 +441,7 @@
 
         @keyframes slot-scroll {
             from { transform: translate3d(0, 0, 0); }
-            to { transform: translate3d(0, calc(var(--cell) * -32), 0); }
+            to { transform: translate3d(0, calc(var(--cell) * -8), 0); }
         }
         @keyframes slot-lock-flash {
             0% { opacity: 0; transform: scaleY(.7); }
