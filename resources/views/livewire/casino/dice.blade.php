@@ -5,7 +5,7 @@
     $chance = $direction === 'under' ? $threshold : 100 - $threshold;
     $grossMultiplier = $chance > 0 ? (100 - ($houseEdge / 100)) / $chance : 0;
     $potentialPayout = (int) floor(((int) $bet * (10000 - $houseEdge)) / max(1, $chance * 100));
-    $locked = $roundPhase === 'prepared';
+    $locked = in_array($roundPhase, ['prepared', 'in_progress'], true);
     $hasResult = $roundResult !== [];
     $rollValue = $hasResult ? (int) ($roundResult['roll'] ?? 0) : 5000;
     $displayNumber = intdiv($rollValue, 100).'.'.str_pad((string) ($rollValue % 100), 2, '0', STR_PAD_LEFT);
