@@ -80,19 +80,19 @@ class CasinoGamesTest extends TestCase
     {
         $grid = [
             [4, 0, 2, 6, 7],
-            [4, 1, 3, 5, 0],
-            [4, 2, 5, 6, 1],
-            [1, 3, 6, 7, 2],
-            [4, 0, 1, 2, 3],
+            [4, 0, 3, 5, 1],
+            [4, 0, 5, 6, 2],
+            [1, 2, 6, 7, 3],
+            [2, 3, 1, 2, 4],
         ];
 
         $result = app(SlotsGame::class)->settle($grid, 300);
 
-        $this->assertSame(2700, $result->payout);
+        $this->assertSame(1470, $result->payout);
         $this->assertCount(2, $result->result['winning_lines']);
         $this->assertSame(['vertical', 'vertical'], array_column($result->result['winning_lines'], 'direction'));
-        $this->assertSame(5, $result->result['winning_lines'][0]['count']);
-        $this->assertSame(4, $result->result['winning_lines'][0]['symbol']);
+        $this->assertSame([3, 3], array_column($result->result['winning_lines'], 'count'));
+        $this->assertSame([4, 0], array_column($result->result['winning_lines'], 'symbol'));
     }
 
     public function test_dice_and_slots_simulations_stay_within_two_percent_of_target_rtp(): void
