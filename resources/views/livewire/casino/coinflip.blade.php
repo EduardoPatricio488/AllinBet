@@ -23,6 +23,7 @@
         get potential() { return Math.floor(Number(this.$wire.bet || 0) * this.mult); },
         get statusText() {
             if (this.busy && this.tossing) return 'A RODAR';
+            if (this.busy && this.phase === 'result') return 'A DISTRIBUIR O PRÉMIO';
             if (this.busy) return this.backendError ? 'ERRO' : 'A PREPARAR';
             if (this.resultVisible) return this.won ? 'VITÓRIA' : 'RESULTADO';
             return this.$wire.roundPhase === 'prepared' ? 'MOEDA PREPARADA' : 'PRONTO A JOGAR';
@@ -179,8 +180,6 @@
 
             this.resultVisible = true;
             this.phase = 'result';
-            this.payoutReleased = true;
-            this.busy = false;
 
             if (this.won && this.payout > 0) {
                 this.burst = true;
@@ -189,10 +188,15 @@
                 setTimeout(() => { this.burst = false; }, 1400);
                 this.$dispatch('casino-toast', { title: 'Vitória!', message: '+' + this.payout + ' créditos virtuais' });
                 if (this.payout >= Number(w.bet || 1) * 10) this.$dispatch('casino-big-win', { amount: this.payout });
+                await this.wait(850);
             } else {
                 this.shown = this.payout;
                 this.sfx('lose');
+                await this.wait(250);
             }
+
+            this.payoutReleased = true;
+            this.busy = false;
         }
     }"
      x-on:keydown.window="if (!['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName) && !$event.ctrlKey && !$event.metaKey) { if ($event.code === 'Space') { $event.preventDefault(); play(); } else if ($event.key.toLowerCase() === 'c') pick('heads'); else if ($event.key.toLowerCase() === 't') pick('tails'); }">
@@ -305,8 +309,8 @@
 
             <div class="cf-scene" aria-live="polite">
                 <div class="cf-live-status" x-show="busy" x-cloak>
-                    <div class="cf-live-status__head"><span><i></i><b x-text="tossing ? 'A MOEDA ESTÁ A RODAR' : 'A PREPARAR A RONDA'"></b></span><strong x-text="countdownText"></strong></div>
-                    <p x-text="backendReady ? 'Resultado calculado · a moeda está a parar…' : 'Resultado oculto · aguarda o lançamento terminar'"></p>
+                    <div class="cf-live-status__head"><span><i></i><b x-text="tossing ? 'A MOEDA ESTÁ A RODAR' : (phase === 'result' ? 'A DISTRIBUIR O PRÉMIO' : 'A PREPARAR A RONDA')"></b></span><strong x-text="countdownText"></strong></div>
+                    <p x-text="phase === 'result' ? ('Prémio confirmado · +' + Number(payout).toLocaleString('pt-PT') + ' créditos virtuais') : (backendReady ? 'Resultado calculado · a moeda está a parar…' : 'Resultado oculto · aguarda o lançamento terminar')"></p>
                     <div class="cf-countdown"><span :style="'width:' + countdownPct + '%'"></span></div>
                     <small x-text="countdown > 0 ? 'Para em ' + countdownText : 'A revelar resultado…'"></small>
                 </div>
