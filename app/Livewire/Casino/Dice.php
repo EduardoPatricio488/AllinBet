@@ -36,6 +36,7 @@ class Dice extends CasinoGameComponent
         $this->playGame(GameType::Dice, [
             'direction' => $validated['direction'],
             'threshold' => (int) $validated['threshold'],
+            'defer_payout' => true,
         ]);
     }
 
