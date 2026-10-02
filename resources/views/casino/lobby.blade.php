@@ -117,9 +117,10 @@
                     },
                     matches(category, haystack, slug) {
                         const query = this.q.trim().toLowerCase();
+                        const item = this.games.find((g) => g.s === slug);
                         const categoryMatch = this.filter === 'all'
-                            || this.filter === 'originais'
-                            || this.filter === category
+                            || (this.filter === 'originais' && item?.o === true)
+                            || (this.filter !== 'originais' && this.filter !== 'favorites' && this.filter === category)
                             || (this.filter === 'favorites' && this.isFavorite(slug));
                         return categoryMatch && (query === '' || haystack.includes(query));
                     },
