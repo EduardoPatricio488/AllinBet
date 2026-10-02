@@ -146,7 +146,7 @@ class Coinflip extends CasinoGameComponent
     {
         $user = Auth::user();
 
-        if (! $user instanceof \App\Models\User) {
+        if (! $user instanceof User) {
             abort(401);
         }
 
