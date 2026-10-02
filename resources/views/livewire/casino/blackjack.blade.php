@@ -3,7 +3,7 @@
     $settlementPending = $roundPhase === 'in_progress' && (bool) ($roundResult['settlement_pending'] ?? false);
 @endphp
 
-<div class="blackjack-page relative casino-game-screen" data-casino-game="blackjack" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, playSound(type) { this.$dispatch('casino-sfx', { name: type === 'win' ? 'win' : 'lose' }); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
+<div class="blackjack-page relative casino-game-screen" data-casino-game="blackjack" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, locked: false, playSound(type) { this.$dispatch('casino-sfx', { name: type === 'win' ? 'win' : 'lose' }); }, showResult(type, amount) { this.locked = false; this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
     <style>
 .blackjack-page { --gold: #f2c14e; --cw: clamp(3.6rem, 11vw, 5.2rem); }
 .bj-hero { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
@@ -234,7 +234,7 @@
                     <p class="bj-paneltitle">Mesa preparada</p>
                     <p class="bj-info">O hash do servidor é apresentado antes das cartas serem dadas para permitir a verificação da ronda.</p>
                     <div class="bj-seed">{{ $serverSeedHash }}</div>
-                    <button type="button" wire:click="deal" wire:loading.attr="disabled" class="bj-button bj-gold mt-3">Dar cartas</button>
+                    <button type="button" wire:click="deal" wire:loading.attr="disabled" :disabled="locked" class="bj-button bj-gold mt-3">Dar cartas</button>
                 </div>
             @endif
 
@@ -252,13 +252,13 @@
                         <p class="bj-paneltitle">A sua jogada</p>
                         <div class="bj-actions">
                             @if (in_array('hit', $roundResult['available_actions'] ?? [], true))
-                                <button type="button" wire:click="hit" wire:loading.attr="disabled" class="bj-button bj-green">Pedir carta</button>
+                                <button type="button" wire:click="hit" wire:loading.attr="disabled" :disabled="locked || {{ $settlementPending ? 'true' : 'false' }}" class="bj-button bj-green">Pedir carta</button>
                             @endif
                             @if (in_array('stand', $roundResult['available_actions'] ?? [], true))
-                                <button type="button" wire:click="stand" wire:loading.attr="disabled" class="bj-button bj-dark">Parar</button>
+                                <button type="button" wire:click="stand" wire:loading.attr="disabled" :disabled="locked || {{ $settlementPending ? 'true' : 'false' }}" class="bj-button bj-dark">Parar</button>
                             @endif
                             @if (in_array('double', $roundResult['available_actions'] ?? [], true))
-                                <button type="button" wire:click="double" wire:loading.attr="disabled" class="bj-button bj-dark">Dobrar aposta</button>
+                                <button type="button" wire:click="double" wire:loading.attr="disabled" :disabled="locked || {{ $settlementPending ? 'true' : 'false' }}" class="bj-button bj-dark">Dobrar aposta</button>
                             @endif
                         </div>
                     @endif
