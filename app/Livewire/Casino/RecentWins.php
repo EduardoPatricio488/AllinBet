@@ -23,14 +23,10 @@ class RecentWins extends Component
                 'game' => $round->game->value,
                 'payout' => $round->payout,
                 'created_at' => $round->created_at,
-                'preview' => false,
             ]);
-
-        $isPreview = false;
 
         return view('livewire.casino.recent-wins', [
             'wins' => $wins,
-            'isPreview' => $isPreview,
         ]);
     }
 }
