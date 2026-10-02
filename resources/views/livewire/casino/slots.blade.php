@@ -188,7 +188,7 @@
             this.prize = p;
             this.shown = 0;
             this.overlay = true;
-            this.sfx(m >= 5 ? 'bigwin' : 'win');
+            this.sfx(m >= 5 ? 'slotJackpot' : 'slotWin');
 
             const t0 = performance.now();
             const tick = (t) => {
