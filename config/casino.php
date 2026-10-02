@@ -60,8 +60,8 @@ return [
             'code' => '05',
             'category' => 'sorte',
             'tag' => 'ORIGINAL',
-            'label' => 'Seis linhas: horizontais e verticais',
-            'blurb' => 'Três linhas horizontais e três verticais. Três símbolos iguais numa linha pagam.',
+            'label' => 'Cinco linhas: horizontais e verticais',
+            'blurb' => 'Três linhas horizontais e duas verticais. Três símbolos iguais numa linha pagam.',
             'icon' => '✦',
         ],
         [
@@ -100,7 +100,6 @@ return [
                 ['direction' => 'horizontal', 'index' => 2],
                 ['direction' => 'vertical', 'index' => 0],
                 ['direction' => 'vertical', 'index' => 1],
-                ['direction' => 'vertical', 'index' => 2],
             ],
             'variants' => [
                 'classic' => [
