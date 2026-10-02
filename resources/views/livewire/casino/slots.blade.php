@@ -531,7 +531,7 @@
         }
         .slot-markers {
             display: grid;
-            grid-template-rows: repeat(5,var(--cell));
+            grid-template-rows: repeat(3,var(--cell));
             align-items: center;
         }
         .slot-markers span {
@@ -633,7 +633,6 @@
         .slot-reel:nth-child(2) { --spin-speed:.49s; }
         .slot-reel:nth-child(3) { --spin-speed:.45s; }
         .slot-reel:nth-child(4) { --spin-speed:.41s; }
-        .slot-reel:nth-child(5) { --spin-speed:.38s; }
 
         @keyframes slot-scroll {
             from { transform: translate3d(0,0,0); }
@@ -1029,7 +1028,7 @@
                         <button type="button" class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-400">10 linhas de prémio: 5 horizontais e 5 verticais.</p>
+                    <p class="text-sm text-zinc-400">6 linhas de prémio: 3 horizontais e 3 verticais.</p>
                 @endif
             </div>
         </div>
@@ -1042,7 +1041,7 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">{{ $selectedSlotConfig['tag'] ?? 'ORIGINAL' }}</div>
             </div>
-            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 10 linhas de pagamento: 5 horizontais e 5 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
         </div>
 
         <details class="casino-card slot-fair">
