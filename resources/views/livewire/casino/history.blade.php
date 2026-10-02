@@ -15,12 +15,6 @@
             <div class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3"><span class="block text-[10px] font-bold uppercase tracking-[.14em] text-zinc-600">Vitórias</span><strong class="mt-1 block tabular-nums text-sm text-zinc-200">{{ number_format($summary['wins']) }}</strong></div>
         </div>
 
-        <div class="mb-3 flex items-end justify-between gap-3">
-            <div>
-                <span class="text-[10px] font-bold uppercase tracking-[.16em] text-zinc-600">RONDAS</span>
-            </div>
-        </div>
-
         @if ($rounds->isEmpty())
             <p class="text-sm text-zinc-500">Ainda não há rondas.</p>
         @else
