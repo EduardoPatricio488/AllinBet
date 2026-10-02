@@ -886,7 +886,8 @@
                 <div class="slot-header__status" :class="{ 'is-spinning': busy, 'is-ready': !busy }">
                     <i></i>
                     <span x-show="!busy">PRONTO</span>
-                    <span x-show="busy" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/5'"></span>
+                    <span x-show="busy && $wire.roundResult?.settlement_pending" x-cloak>A LIQUIDAR</span>
+                    <span x-show="busy && !$wire.roundResult?.settlement_pending" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/5'"></span>
                 </div>
 
                 <span class="slot-badge" x-text="@js($slotVariants)[selectedSlot].tag"></span>
