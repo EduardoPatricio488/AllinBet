@@ -49,6 +49,12 @@ class Coinflip extends CasinoGameComponent
         $this->walletBalance = $this->currentBalance();
     }
 
+    #[On('history-updated')]
+    public function refreshHistory(): void
+    {
+        $this->loadRecentStats();
+    }
+
     public function flip(): void
     {
         $this->validate(['side' => ['required', 'in:heads,tails']]);
