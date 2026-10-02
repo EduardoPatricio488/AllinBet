@@ -244,7 +244,7 @@
         </div>
     </section>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é dividida pelas 6 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'6 linhas pagam','text'=>'Existem 3 linhas horizontais e 3 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 5 linhas de pagamento: 3 horizontais e 2 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é distribuída pelas 5 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'5 linhas pagam','text'=>'Existem 3 linhas horizontais e 2 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-page-main{min-width:0}
@@ -616,7 +616,7 @@
                         <input type="number" min="1" step="1" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
                         <button type="button" x-on:click="step(1)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">Aposta total · 6 linhas de pagamento</small>
+                    <small class="slot-hint">Aposta total · 5 linhas de pagamento</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
@@ -661,7 +661,7 @@
                         <button type="button" class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-400">6 linhas de prémio: 3 horizontais e 3 verticais.</p>
+                    <p class="text-sm text-zinc-400">5 linhas de prémio: 3 horizontais e 2 verticais.</p>
                 @endif
             </div>
         </div>
@@ -674,7 +674,7 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">{{ $selectedSlotConfig['tag'] ?? 'ORIGINAL' }}</div>
             </div>
-            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 6 linhas de pagamento: 3 horizontais e 3 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 5 linhas de pagamento: 3 horizontais e 2 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
         </div>
 
         <details class="casino-card slot-fair">
