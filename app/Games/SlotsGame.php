@@ -215,10 +215,12 @@ class SlotsGame implements Game
                 continue;
             }
 
-            $linePayout = max(
-                1,
-                intdiv($bet * $symbolMultiplier * $matchMultiplier, $lineCount),
+            $payoutFactorBps = max(1, min(10_000, (int) config('casino.games.slots.payout_factor_bps', 10_000)));
+            $grossLinePayout = intdiv(
+                $bet * $symbolMultiplier * $matchMultiplier * $payoutFactorBps,
+                $lineCount * 10_000,
             );
+            $linePayout = max(1, $grossLinePayout);
             $payout += $linePayout;
             $winningLines[] = [
                 'direction' => $direction,
