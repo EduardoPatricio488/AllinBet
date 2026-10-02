@@ -37,6 +37,11 @@ class Coinflip extends CasinoGameComponent
         $this->walletBalance = $this->currentBalance();
     }
 
+    protected function casinoGame(): GameType
+    {
+        return GameType::Coinflip;
+    }
+
     public function prepare(): void
     {
         $this->walletBalance = $this->currentBalance();
