@@ -5,6 +5,9 @@
         launching: false,
         flying: false,
         phase: @js($roundPhase),
+        audioContext: null,
+        audioMaster: null,
+        lastSoundMultiplier: 1,
         status: @js($roundPhase === 'in_progress' ? 'paused' : 'ready'),
         multiplier: 1,
         serverMultiplier: 1,
@@ -23,39 +26,149 @@
         pollTimer: null,
         raf: null,
 
-        tone(kind) {
+        ensureAudio() {
             const Audio = window.AudioContext || window.webkitAudioContext;
-            if (!Audio) return;
+            if (!Audio) return null;
 
-            const ctx = new Audio();
-            const gain = ctx.createGain();
-            const osc = ctx.createOscillator();
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            const now = ctx.currentTime;
-            const volume = kind === 'crash' ? 0.14 : 0.09;
-            gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.exponentialRampToValueAtTime(volume, now + 0.025);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'cashout' ? 0.6 : 0.8));
-
-            if (kind === 'launch') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(520, now + 0.55);
-            } else if (kind === 'cashout') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(620, now);
-                osc.frequency.exponentialRampToValueAtTime(990, now + 0.28);
-            } else {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(240, now);
-                osc.frequency.exponentialRampToValueAtTime(58, now + 0.75);
+            if (!this.audioContext) {
+                this.audioContext = new Audio();
+                this.audioMaster = this.audioContext.createGain();
+                this.audioMaster.gain.value = 0.16;
+                this.audioMaster.connect(this.audioContext.destination);
             }
 
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume().catch(() => {});
+            }
+
+            return this.audioContext;
+        },
+
+        playTone(frequency, duration = 0.2, options = {}) {
+            const ctx = this.ensureAudio();
+            if (!ctx || !this.audioMaster) return;
+
+            const {
+                type = 'sine',
+                volume = 0.08,
+                attack = 0.008,
+                release = 0.18,
+                detune = 0,
+                start = 0,
+            } = options;
+
+            const now = ctx.currentTime + start;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(frequency, now);
+            osc.detune.value = detune;
+
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), now + attack);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(attack + 0.01, duration - release));
+
+            osc.connect(gain);
+            gain.connect(this.audioMaster);
             osc.start(now);
-            osc.stop(now + (kind === 'cashout' ? 0.6 : 0.8));
+            osc.stop(now + duration);
+        },
+
+        playNoise(duration = 0.25, volume = 0.05, filterFrequency = 1800) {
+            const ctx = this.ensureAudio();
+            if (!ctx || !this.audioMaster) return;
+
+            const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+            const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < length; i += 1) {
+                data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+            }
+
+            const source = ctx.createBufferSource();
+            const filter = ctx.createBiquadFilter();
+            const gain = ctx.createGain();
+            const now = ctx.currentTime;
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(filterFrequency, now);
+            filter.Q.value = 0.7;
+
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(volume, now + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+            source.buffer = buffer;
+            source.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.audioMaster);
+            source.start(now);
+            source.stop(now + duration);
+        },
+
+        tone(kind) {
+            const ctx = this.ensureAudio();
+            if (!ctx) return;
+
+            if (kind === 'launch') {
+                this.playTone(110, 0.72, { type: 'sine', volume: 0.11, release: 0.32 });
+                this.playTone(220, 0.58, { type: 'triangle', volume: 0.045, attack: 0.025, release: 0.25, start: 0.04 });
+                this.playTone(440, 0.44, { type: 'sine', volume: 0.025, attack: 0.025, release: 0.22, start: 0.18 });
+                this.playNoise(0.9, 0.045, 1300);
+
+                const start = ctx.currentTime;
+                const sweep = ctx.createOscillator();
+                const sweepGain = ctx.createGain();
+
+                sweep.type = 'sawtooth';
+                sweep.frequency.setValueAtTime(85, start);
+                sweep.frequency.exponentialRampToValueAtTime(520, start + 0.72);
+                sweepGain.gain.setValueAtTime(0.0001, start);
+                sweepGain.gain.exponentialRampToValueAtTime(0.045, start + 0.08);
+                sweepGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.74);
+                sweep.connect(sweepGain);
+                sweepGain.connect(this.audioMaster);
+                sweep.start(start);
+                sweep.stop(start + 0.76);
+                return;
+            }
+
+            if (kind === 'cashout') {
+                this.playTone(523.25, 0.38, { type: 'sine', volume: 0.075, release: 0.18 });
+                this.playTone(659.25, 0.42, { type: 'sine', volume: 0.07, release: 0.2, start: 0.06 });
+                this.playTone(783.99, 0.5, { type: 'triangle', volume: 0.06, release: 0.24, start: 0.13 });
+                this.playTone(1046.5, 0.34, { type: 'sine', volume: 0.035, release: 0.18, start: 0.24 });
+                this.playNoise(0.28, 0.022, 2600);
+                return;
+            }
+
+            if (kind === 'milestone') {
+                this.playTone(880, 0.16, { type: 'sine', volume: 0.028, release: 0.09 });
+                this.playTone(1174.66, 0.22, { type: 'triangle', volume: 0.022, release: 0.12, start: 0.045 });
+                return;
+            }
+
+            this.playTone(74, 0.92, { type: 'sawtooth', volume: 0.11, release: 0.58 });
+            this.playTone(148, 0.62, { type: 'triangle', volume: 0.06, release: 0.36, start: 0.02 });
+            this.playTone(294, 0.36, { type: 'sawtooth', volume: 0.025, release: 0.22, start: 0.04 });
+            this.playNoise(0.34, 0.11, 950);
+
+            const start = ctx.currentTime;
+            const drop = ctx.createOscillator();
+            const dropGain = ctx.createGain();
+
+            drop.type = 'square';
+            drop.frequency.setValueAtTime(210, start);
+            drop.frequency.exponentialRampToValueAtTime(42, start + 0.58);
+            dropGain.gain.setValueAtTime(0.0001, start);
+            dropGain.gain.exponentialRampToValueAtTime(0.055, start + 0.012);
+            dropGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.62);
+            drop.connect(dropGain);
+            dropGain.connect(this.audioMaster);
+            drop.start(start);
+            drop.stop(start + 0.65);
         },
 
         resetFlight() {
@@ -109,6 +222,16 @@
             this.displayMultiplier = Math.max(1, Math.min(this.multiplierMaximum, nextMultiplier));
             this.multiplier = this.displayMultiplier;
             this.updateTelemetry();
+
+            const milestone = Math.floor(this.displayMultiplier);
+            const previousMilestone = Math.floor(this.lastSoundMultiplier);
+
+            if (milestone >= 2 && milestone > previousMilestone) {
+                this.lastSoundMultiplier = milestone;
+                this.tone('milestone');
+            } else {
+                this.lastSoundMultiplier = Math.max(this.lastSoundMultiplier, this.displayMultiplier);
+            }
 
             this.raf = requestAnimationFrame(() => this.animate());
         },
@@ -204,6 +327,7 @@
             this.status = 'launching';
             this.resultOpen = false;
             this.resultLabel = '';
+            this.lastSoundMultiplier = 1;
             this.multiplier = 1;
             this.serverMultiplier = 1;
             this.displayMultiplier = 1;
