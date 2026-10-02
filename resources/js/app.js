@@ -1,8 +1,8 @@
 const casinoSoundPreferenceKey = 'allinbet:casino:sound';
 const casinoAudioSettingsKey = 'allinbet:casino:audio-settings';
 const casinoAudioDefaults = {
-	master: 0.78,
-	ambient: 0.55,
+	master: 0.84,
+	ambient: 0.72,
 	effects: 0.82,
 };
 
@@ -47,7 +47,7 @@ const setCasinoAudioSetting = (key, value) => {
 
 	if (casinoAmbient) {
 		casinoAmbient.master.gain.setTargetAtTime(
-			0.075 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			0.14 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 			casinoAudioContext?.currentTime ?? 0,
 			0.08,
 		);
@@ -164,7 +164,7 @@ const casinoNoise = (duration = 0.04, volume = 0.012, delay = 0, filterFrequency
 
 const casinoAmbientProfiles = {
 	coinflip: {
-		bpm: 82,
+		bpm: 96,
 		progression: [[220, 277.18, 329.63], [196, 246.94, 293.66], [174.61, 220, 261.63], [196, 246.94, 293.66]],
 		arp: [659.25, 783.99, 987.77, 783.99, 739.99, 880, 1046.5, 880],
 		bass: 110,
@@ -173,7 +173,7 @@ const casinoAmbientProfiles = {
 		accent: 1.0,
 	},
 	dice: {
-		bpm: 94,
+		bpm: 108,
 		progression: [[196, 246.94, 293.66], [220, 261.63, 329.63], [164.81, 207.65, 246.94], [196, 246.94, 293.66]],
 		arp: [392, 493.88, 587.33, 659.25, 587.33, 493.88, 783.99, 659.25],
 		bass: 98,
@@ -182,7 +182,7 @@ const casinoAmbientProfiles = {
 		accent: 0.9,
 	},
 	roulette: {
-		bpm: 72,
+		bpm: 86,
 		progression: [[164.81, 196, 246.94], [146.83, 174.61, 220], [130.81, 164.81, 196], [146.83, 174.61, 220]],
 		arp: [329.63, 392, 493.88, 587.33, 493.88, 392, 659.25, 493.88],
 		bass: 82.41,
@@ -191,7 +191,7 @@ const casinoAmbientProfiles = {
 		accent: 0.75,
 	},
 	blackjack: {
-		bpm: 66,
+		bpm: 78,
 		progression: [[130.81, 164.81, 196], [146.83, 174.61, 220], [110, 146.83, 174.61], [123.47, 164.81, 196]],
 		arp: [261.63, 329.63, 392, 493.88, 392, 329.63, 440, 349.23],
 		bass: 65.41,
@@ -200,7 +200,7 @@ const casinoAmbientProfiles = {
 		accent: 0.62,
 	},
 	slots: {
-		bpm: 124,
+		bpm: 138,
 		progression: [[261.63, 329.63, 392, 493.88], [293.66, 349.23, 440, 523.25], [246.94, 293.66, 369.99, 440], [329.63, 392, 493.88, 587.33]],
 		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 987.77, 880, 783.99, 659.25, 783.99, 987.77, 1174.66],
 		bass: 130.81,
@@ -209,7 +209,7 @@ const casinoAmbientProfiles = {
 		accent: 1.55,
 	},
 	jetx: {
-		bpm: 76,
+		bpm: 92,
 		progression: [[110, 138.59, 164.81], [123.47, 155.56, 185], [130.81, 164.81, 196], [146.83, 185, 220]],
 		arp: [220, 277.18, 329.63, 369.99, 440, 369.99, 493.88, 440],
 		bass: 55,
@@ -365,8 +365,35 @@ const startCasinoAmbient = () => {
 		if (!casinoAmbient || !casinoSoundEnabled() || document.hidden) return;
 
 		const frequency = profile.arp[arpIndex % profile.arp.length];
-		const volume = 0.0064 * profile.accent;
-		playCasinoAmbientNote(context, master, frequency, 0.26, volume, profile.arpWave);
+		const beatIndex = arpIndex % 16;
+		const volume = 0.0095 * profile.accent;
+
+		// Arpejo principal: mais rápido, brilhante e contínuo, como uma sala de casino moderna.
+		playCasinoAmbientNote(context, master, frequency, game === 'slots' ? 0.18 : 0.24, volume, profile.arpWave);
+
+		// Camada rítmica sintética para dar movimento constante ao fundo.
+		if (beatIndex % 4 === 0) {
+			playCasinoAmbientNote(context, master, profile.bass / 2, 0.16, volume * 0.95, 'sine');
+			casinoAmbient.pulse = (casinoAmbient.pulse || 0) + 1;
+		} else if (beatIndex % 2 === 0) {
+			playCasinoAmbientNote(context, master, profile.bass, 0.07, volume * 0.42, 'square');
+		}
+
+		if (beatIndex % 4 === 2) {
+			casinoNoise(0.035, 0.010 * profile.accent, 0, 2400 + ((beatIndex % 8) * 180));
+		}
+
+		if (beatIndex % 2 === 1) {
+			casinoNoise(0.018, 0.0055 * profile.accent, 0, 5200);
+		}
+
+		// Pequena variação do filtro para evitar um loop demasiado estático.
+		lowpass.frequency.cancelScheduledValues(context.currentTime);
+		lowpass.frequency.setTargetAtTime(
+			beatIndex % 8 < 4 ? 4200 : 6500,
+			context.currentTime,
+			0.045,
+		);
 
 		if (game === 'slots') {
 			const beat = arpIndex % 4;
@@ -396,6 +423,7 @@ const startCasinoAmbient = () => {
 		voices,
 		chordTimer: null,
 		arpTimer: null,
+		pulse: 0,
 	};
 
 	advanceChord();
