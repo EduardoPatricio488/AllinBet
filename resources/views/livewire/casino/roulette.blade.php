@@ -110,6 +110,7 @@
 >
 
     <x-casino.how-it-works game-key="roulette" title="Como funciona a Roleta Europeia?" description="Escolhe um número ou um tipo de aposta e gira uma roleta europeia com os números 0 a 36." :rules="[['title'=>'Escolhe a aposta','text'=>'Podes apostar num número, cor, paridade, intervalo, dúzia ou coluna.'], ['title'=>'Define o valor','text'=>'Escolhe quantos créditos virtuais queres apostar.'], ['title'=>'Gira a roleta','text'=>'Carrega em Girar para lançar a ronda e revelar o número vencedor.'], ['title'=>'Confere o resultado','text'=>'A aposta ganha quando o resultado corresponde ao tipo de aposta selecionado. O pagamento depende da aposta.']]" />
+    <x-casino.loading-overlay target="prepare,spin" />
     <style>
         .roulette-page{--roulette-green:#18b978;--roulette-red:#c83f47;--roulette-black:#10151c;--roulette-gold:#e5bb59}
         .roulette-layout{display:grid;gap:1.5rem;grid-template-columns:minmax(0,1.45fr) minmax(18rem,.78fr)}
