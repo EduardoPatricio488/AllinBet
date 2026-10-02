@@ -40,7 +40,7 @@ class BlackjackGame implements Game
                 throw new InvalidArgumentException('A blackjack round must start with a deal action.');
             }
 
-            return $this->deal($round->bet);
+            return $this->deal($round);
         }
 
         return match ($action) {
@@ -51,7 +51,6 @@ class BlackjackGame implements Game
         };
     }
 
-    /** @return array<int, array{rank: int, suit: string}> */
     /**
      * @return array<int, array{rank: int, suit: string}>
      */
@@ -80,8 +79,9 @@ class BlackjackGame implements Game
         return $deck;
     }
 
-    private function deal(int $bet): GameResult
+    private function deal(GameRound $round): GameResult
     {
+        $bet = $round->bet;
         $deck = $this->shuffledDeck($round);
         $state = [
             'deck' => $deck,
