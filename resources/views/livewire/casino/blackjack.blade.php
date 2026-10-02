@@ -1,3 +1,7 @@
+@php
+    $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
+@endphp
+
 <div class="blackjack-page relative" x-data="{ resultVisible: false, resultType: '', resultAmount: 0, resultTimer: null, playSound(type) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return; const ctx = new A(); const now = ctx.currentTime; const gain = ctx.createGain(); const osc = ctx.createOscillator(); osc.connect(gain); gain.connect(ctx.destination); gain.gain.setValueAtTime(0.0001, now); gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === 'win' ? 1.05 : 0.7)); if (type === 'win') { osc.type = 'sine'; osc.frequency.setValueAtTime(660, now); osc.frequency.exponentialRampToValueAtTime(990, now + 0.25); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.55); } else { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(85, now + 0.55); } osc.start(now); osc.stop(now + (type === 'win' ? 1.05 : 0.7)); }, showResult(type, amount) { this.resultType = type; this.resultAmount = Number(amount || 0); this.resultVisible = true; this.playSound(type); clearTimeout(this.resultTimer); this.resultTimer = setTimeout(() => this.resultVisible = false, 3600); } }" x-on:casino-round-result.window="showResult($event.detail.outcome, $event.detail.amount)">
     <style>
 .blackjack-page { --gold: #f2c14e; --cw: clamp(3.6rem, 11vw, 5.2rem); }
@@ -207,9 +211,12 @@
                         <p class="bj-paneltitle">Nova ronda</p>
                         <label class="bj-field">
                             <span>Aposta em créditos</span>
-                            <input type="number" min="1" max="{{ config('casino.bet_limits.max') }}" wire:model="bet" class="bj-input" inputmode="numeric">
+                            <input type="number" min="1" max="{{ $maxBet }}" wire:model="bet" class="bj-input" inputmode="numeric">
                         </label>
                         @error('bet') <p class="mb-3 text-xs text-rose-300">{{ $message }}</p> @enderror
+                        <div class="bj-chips">
+                            <button type="button" x-on:click="$wire.bet = {{ $maxBet }}" :disabled="resultVisible || {{ $maxBet < 1 ? 'true' : 'false' }}">ALL IN · {{ number_format($maxBet, 0, ',', ' ') }}</button>
+                        </div>
                         <label class="bj-field">
                             <span>Seed do cliente</span>
                             <input type="text" maxlength="128" wire:model="clientSeed" class="bj-input font-mono text-xs" placeholder="Opcional">
