@@ -60,8 +60,8 @@ return [
             'code' => '05',
             'category' => 'sorte',
             'tag' => 'ORIGINAL',
-            'label' => 'Cinco linhas: horizontais e verticais',
-            'blurb' => 'Três linhas horizontais e duas verticais. Três símbolos iguais numa linha pagam.',
+            'label' => '10 linhas: 5 horizontais e 5 verticais',
+            'blurb' => 'Grelha 5×5 com 5 linhas horizontais e 5 verticais. Três símbolos iguais numa linha pagam.',
             'icon' => '✦',
         ],
         [
@@ -91,15 +91,20 @@ return [
             'instant_crash_probability_basis_points' => 300,
         ],
         'slots' => [
-            'rows' => 3,
-            'columns' => 3,
+            'rows' => 5,
+            'columns' => 5,
             'symbol_count' => 8,
             'paylines' => [
                 ['direction' => 'horizontal', 'index' => 0],
                 ['direction' => 'horizontal', 'index' => 1],
                 ['direction' => 'horizontal', 'index' => 2],
+                ['direction' => 'horizontal', 'index' => 3],
+                ['direction' => 'horizontal', 'index' => 4],
                 ['direction' => 'vertical', 'index' => 0],
                 ['direction' => 'vertical', 'index' => 1],
+                ['direction' => 'vertical', 'index' => 2],
+                ['direction' => 'vertical', 'index' => 3],
+                ['direction' => 'vertical', 'index' => 4],
             ],
             'variants' => [
                 'classic' => [
