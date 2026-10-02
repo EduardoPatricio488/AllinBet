@@ -107,6 +107,10 @@ class BetService
                 return $round;
             }
 
+            if (array_key_exists('_pending_payout', $round->privateGameState())) {
+                throw new LogicException('The game result is waiting for payout settlement.');
+            }
+
             $isFirstAction = $round->status === RoundStatus::Prepared;
             $isInProgress = $round->status === RoundStatus::InProgress;
 
@@ -200,6 +204,35 @@ class BetService
                 return $round->refresh();
             }
 
+            $deferPayout = $gameResult->completed && ($input['defer_payout'] ?? true);
+
+            if ($deferPayout) {
+                $delayMs = $this->settlementDelayMs($round);
+                $settleAfterMs = (int) round(microtime(true) * 1000) + $delayMs;
+
+                $publicResult = $gameResult->result;
+                $privateState = [
+                    ...$gameResult->state,
+                    '_pending_payout' => $gameResult->payout,
+                    '_settle_after_ms' => $settleAfterMs,
+                ];
+
+                if (! isset($publicResult['settlement_pending'])) {
+                    $publicResult['settlement_pending'] = true;
+                }
+
+                $round->forceFill([
+                    'payout' => 0,
+                    'result' => [
+                        'public' => $publicResult,
+                        'private' => $privateState,
+                    ],
+                    'status' => RoundStatus::InProgress,
+                ])->save();
+
+                return $round->refresh();
+            }
+
             if ($gameResult->payout > 0) {
                 $this->walletService->credit(
                     $user,
@@ -218,6 +251,73 @@ class BetService
 
             return $round->refresh();
         });
+    }
+
+    public function settlePayout(User $user, int $roundId): GameRound
+    {
+        return DB::transaction(function () use ($user, $roundId): GameRound {
+            $round = GameRound::query()
+                ->where('user_id', $user->getKey())
+                ->lockForUpdate()
+                ->findOrFail($roundId);
+
+            if ($round->status === RoundStatus::Completed) {
+                return $round;
+            }
+
+            if ($round->status !== RoundStatus::InProgress) {
+                throw new LogicException('Only rounds awaiting payout settlement can be settled.');
+            }
+
+            $state = $round->privateGameState();
+
+            if (! array_key_exists('_pending_payout', $state)) {
+                throw new LogicException('This round has no pending payout.');
+            }
+
+            $settleAfterMs = (int) ($state['_settle_after_ms'] ?? 0);
+            $nowMs = (int) round(microtime(true) * 1000);
+
+            if ($settleAfterMs > $nowMs) {
+                throw new LogicException('The payout is not ready yet.');
+            }
+
+            $payout = max(0, (int) $state['_pending_payout']);
+
+            if ($payout > 0) {
+                $this->walletService->credit(
+                    $user,
+                    $payout,
+                    "game-round:{$round->getKey()}:payout",
+                    $round,
+                    TransactionType::GamePayout,
+                );
+            }
+
+            $round->forceFill([
+                'payout' => $payout,
+                'result' => $round->publicResult(),
+                'status' => RoundStatus::Completed,
+            ])->save();
+
+            return $round->refresh();
+        });
+    }
+
+    private function settlementDelayMs(GameRound $round): int
+    {
+        $public = $round->publicResult();
+
+        return match ($round->game) {
+            GameType::Coinflip => 4300,
+            GameType::Dice => 1850,
+            GameType::Roulette => 2450,
+            GameType::Blackjack => 3000,
+            GameType::Slots => (bool) ($public['bonus_buy'] ?? false)
+                ? max(10_800, 8_900 + (((int) ($public['bonus_spin_count'] ?? 10)) * 190))
+                : 6_900,
+            GameType::Jetx => in_array(($public['status'] ?? ''), ['crashed', 'cashed_out'], true) ? 900 : 0,
+        };
     }
 
     private function validateBet(int $bet, int $walletBalance): void
