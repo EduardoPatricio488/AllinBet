@@ -123,7 +123,10 @@
 
                     await w.flip();
 
-                    if (w.roundPhase !== 'completed') {
+                    const pendingSettlement = w.roundPhase === 'in_progress'
+                        && !!w.roundResult?.settlement_pending;
+
+                    if (w.roundPhase !== 'completed' && !pendingSettlement) {
                         this.backendError = true;
                         return false;
                     }
@@ -177,6 +180,21 @@
                     });
                 }
             }
+
+            const settlementDeadline = Date.now() + 1800;
+            while (w.roundPhase === 'in_progress' && Date.now() < settlementDeadline) {
+                await this.wait(80);
+            }
+
+            if (w.roundPhase !== 'completed') {
+                this.backendError = true;
+                this.busy = false;
+                this.payoutReleased = true;
+                this.phase = 'ready';
+                return;
+            }
+
+            this.payout = Number(w.roundPayout || 0);
 
             this.resultVisible = true;
             this.phase = 'result';
