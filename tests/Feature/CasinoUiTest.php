@@ -114,6 +114,26 @@ class CasinoUiTest extends TestCase
         }
     }
 
+    public function test_livewire_game_recovers_a_prepared_round_after_refresh(): void
+    {
+        $user = User::factory()->create();
+        app(WalletService::class)->initialize($user, 500);
+        $this->actingAs($user);
+
+        $first = Livewire::test(Coinflip::class)
+            ->set('bet', 100)
+            ->set('side', 'tails')
+            ->call('prepare')
+            ->assertSet('roundPhase', 'prepared');
+
+        $roundId = $first->get('roundId');
+
+        Livewire::test(Coinflip::class)
+            ->assertSet('roundPhase', 'prepared')
+            ->assertSet('roundId', $roundId)
+            ->assertNotSet('serverSeedHash', '');
+    }
+
     public function test_livewire_coinflip_validates_input_and_runs_through_bet_service(): void
     {
         $user = User::factory()->create();
@@ -139,8 +159,26 @@ class CasinoUiTest extends TestCase
         $this->assertNotEmpty($component->get('serverSeedHash'));
 
         $component->call('flip')
-            ->assertSet('roundPhase', 'completed')
+            ->assertSet('roundPhase', 'in_progress')
+            ->assertSet('roundResult.settlement_pending', true)
+            ->assertDispatched('casino-settlement-pending')
             ->assertDispatched('wallet-updated');
+
+        $round = GameRound::query()->findOrFail($component->get('roundId'));
+        $public = $round->publicResult();
+        $private = $round->privateGameState();
+        $private['_settle_after_ms'] = (int) round(microtime(true) * 1000) - 1;
+
+        $round->forceFill([
+            'result' => [
+                'public' => $public,
+                'private' => $private,
+            ],
+        ])->save();
+
+        $component->call('settlePayout')
+            ->assertSet('roundPhase', 'completed')
+            ->assertDispatched('history-updated');
 
         $this->assertSame((int) $wallet->transactions()->sum('amount'), $wallet->fresh()->balance);
     }
