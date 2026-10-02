@@ -16,7 +16,10 @@ class Blackjack extends CasinoGameComponent
 
     public function deal(): void
     {
-        $this->playGame(GameType::Blackjack, ['action' => 'start']);
+        $this->playGame(GameType::Blackjack, [
+            'action' => 'start',
+            'defer_payout' => true,
+        ]);
     }
 
     public function hit(): void
