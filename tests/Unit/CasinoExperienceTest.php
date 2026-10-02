@@ -15,7 +15,7 @@ final class CasinoExperienceTest extends TestCase
 {
     public function test_slots_use_five_horizontal_and_five_vertical_paylines(): void
     {
-        $game = new SlotsGame(new ProvablyFairService());
+        $game = new SlotsGame(new ProvablyFairService);
         $variant = config('casino.games.slots.variants.classic');
         $variant['key'] = 'classic';
 
@@ -63,7 +63,7 @@ final class CasinoExperienceTest extends TestCase
 
     public function test_blackjack_deal_is_reproducible_from_same_seed_and_nonce(): void
     {
-        $game = new BlackjackGame(new PayoutCalculator(), new ProvablyFairService());
+        $game = new BlackjackGame(new PayoutCalculator, new ProvablyFairService);
 
         $attributes = [
             'bet' => 25,
