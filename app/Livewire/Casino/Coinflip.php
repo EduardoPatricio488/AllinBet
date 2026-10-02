@@ -7,6 +7,7 @@ namespace App\Livewire\Casino;
 use App\Enums\GameType;
 use App\Enums\RoundStatus;
 use App\Models\GameRound;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
