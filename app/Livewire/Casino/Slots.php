@@ -74,6 +74,11 @@ class Slots extends CasinoGameComponent
         }
     }
 
+    protected function casinoGame(): GameType
+    {
+        return GameType::Slots;
+    }
+
     public function prepare(): void
     {
         $this->prepareGame(GameType::Slots, ['slot_variant' => $this->selectedSlot]);
