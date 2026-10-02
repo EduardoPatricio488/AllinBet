@@ -34,10 +34,21 @@
             if (w.roundPhase !== 'completed') { this.busy = false; this.charge = false; return; }
             const out = w.roundResult?.outcome === 'tails' ? 'tails' : 'heads', target = out === 'tails' ? 180 : 0, mod = (a) => ((a % 360) + 360) % 360;
             this.outcome = out; this.won = !!w.roundResult?.won; this.payout = Number(w.roundPayout || 0); this.shown = 0;
-            this.charge = false; this.dur = calm ? 0 : 4000; this.tossing = !calm; this.sfx('toss');
-            if (!calm) await this.wait(4000);
+            this.charge = false;
+            const finalRotation = this.rot + 2700 + mod(target - this.rot);
+            this.dur = calm ? 0 : 4000;
+            this.sfx('toss');
+
+            if (calm) {
+                this.rot = finalRotation;
+            } else {
+                this.tossing = true;
+                await this.$nextTick();
+                requestAnimationFrame(() => { this.rot = finalRotation; });
+                await this.wait(4000);
+            }
+
             this.tossing = false;
-            this.rot += 1800 + mod(target - this.rot);
             this.revealFace = true;
             this.landed = true; this.sfx('land'); setTimeout(() => { this.landed = false; }, 600);
             this.resultVisible = true; this.busy = false;
@@ -98,7 +109,7 @@
         .cf-toss.is-idle{animation:cfIdle 4.4s ease-in-out infinite}
         .cf-toss.is-land{animation:cfLand .52s cubic-bezier(.2,.9,.3,1)}
         .cf-coin{position:relative;width:10.6rem;height:10.6rem;transform-style:preserve-3d;transform:rotateY(var(--rot));transition:transform .38s cubic-bezier(.2,.85,.25,1);filter:drop-shadow(0 26px 24px rgba(0,0,0,.42));will-change:transform}
-        .cf-coin.is-tossing{animation:cfCoinSpin var(--dur,1900ms) cubic-bezier(.13,.78,.2,1) both}
+        .cf-coin.is-tossing{transition:transform 4s cubic-bezier(.12,.78,.16,1);}
         .cf-unknown{position:absolute;inset:.38rem;z-index:3;display:grid;place-items:center;border-radius:50%;border:2px solid rgba(255,242,180,.38);background:radial-gradient(circle at 35% 28%,#e9c66b,#b97617 58%,#724308);color:rgba(255,243,190,.86);font-size:4rem;font-weight:1000;text-shadow:0 2px 10px rgba(84,43,4,.4);box-shadow:inset 0 0 0 .18rem rgba(255,255,255,.18),inset 0 -1rem 1.2rem rgba(84,43,4,.28);backface-visibility:hidden;transform:translateZ(.2rem);transition:opacity .15s ease,transform .25s ease}
         .cf-unknown.is-hidden{opacity:0;transform:translateZ(.2rem) scale(.96)}
         .cf-coin.is-tossing .cf-face{opacity:0;visibility:hidden}
@@ -140,7 +151,7 @@
         @keyframes cfSweep{to{transform:rotate(360deg)}}@keyframes cfBlink{from{opacity:.55;transform:scale(.75)}to{opacity:1;transform:scale(1.12)}}@keyframes cfAura{0%,100%{transform:scale(.95);opacity:.7}50%{transform:scale(1.06);opacity:1}}@keyframes cfIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes cfCharge{from{transform:translateY(0) scale(.99)}to{transform:translateY(-2px) scale(1.015)}}@keyframes cfLand{0%{transform:translateY(-.15rem) scale(.98)}45%{transform:translateY(.38rem) scale(1.035)}100%{transform:translateY(0) scale(1)}}@keyframes cfLandShadow{0%{opacity:.55;transform:scaleX(.65)}100%{opacity:1;transform:scaleX(1.28)}}@keyframes cfSpark{0%{opacity:0;transform:rotate(calc(var(--i)*25.7deg)) translateY(0) scale(.3)}12%{opacity:1}100%{opacity:0;transform:rotate(calc(var(--i)*25.7deg)) translateY(150px) scale(.08)}}@keyframes cfFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}18%{opacity:1;transform:translate(-50%,0) scale(1.05)}100%{opacity:0;transform:translate(-50%,-62px) scale(.9)}}@keyframes cfShine{0%,55%,100%{transform:translateX(-180%) skewX(-18deg)}72%{transform:translateX(350%) skewX(-18deg)}}
         @media(max-width:1024px){.cf-layout{grid-template-columns:1fr}.cf-stage{min-height:33rem}}
         @media(max-width:640px){.cf-top{align-items:flex-start}.cf-status{max-width:45%;white-space:normal;text-align:right}.cf-stage{min-height:30rem;border-radius:1.25rem}.cf-scene{min-height:23rem}.cf-toss{width:12rem;height:12rem}.cf-coin{width:9.3rem;height:9.3rem}.cf-face-word{font-size:1.4rem}.cf-face--t .cf-face-word{font-size:1.2rem}.cf-face-brand{font-size:.36rem}.cf-sides{grid-template-columns:1fr}.cf-result{min-width:12.5rem}.cf-aura{width:18rem;height:18rem}.cf-floor{width:14rem}.cf-shadow{width:8rem}.cf-platform{width:13rem;bottom:2.8rem}.cf-orbit--one{width:19rem}.cf-orbit--two{width:15rem}.cf-rays{width:25rem;height:25rem}.cf-space-grid{background-size:34px 34px}.cf-payout{align-items:flex-start}}
-        @media(prefers-reduced-motion:reduce){.cf-stage::before,.cf-status i,.cf-aura,.cf-toss,.cf-spark.is-on,.cf-float,.cf-play::after,.cf-coin.is-tossing,.cf-space-grid,.cf-nebula,.cf-rays,.cf-orbit,.cf-energy-ring,.cf-star,.cf-platform__ring,.cf-platform__core,.cf-platform__shine{animation:none!important}.cf-coin{transition:none}.cf-platform{transition:none}.cf-shadow.is-land{animation:none}}
+        @media(prefers-reduced-motion:reduce){.cf-stage::before,.cf-status i,.cf-aura,.cf-toss,.cf-spark.is-on,.cf-float,.cf-play::after,.cf-space-grid,.cf-nebula,.cf-rays,.cf-orbit,.cf-energy-ring,.cf-star,.cf-platform__ring,.cf-platform__core,.cf-platform__shine{animation:none!important}.cf-coin{transition:none!important}.cf-platform{transition:none}.cf-shadow.is-land{animation:none}}
     </style>
 
     <div class="cf-layout">
