@@ -72,6 +72,16 @@
                     await new Promise(resolve => setTimeout(resolve, 1650));
                 }
 
+                const settlementDeadline = Date.now() + 1200;
+                while (this.$wire.roundPhase === 'in_progress' && this.$wire.roundResult?.settlement_pending && Date.now() < settlementDeadline) {
+                    await new Promise(resolve => setTimeout(resolve, 80));
+                }
+
+                if (this.$wire.roundPhase !== 'completed') {
+                    this.rolling = false;
+                    return;
+                }
+
                 this.rolling = false;
                 this.resultVisible = true;
                 this.displayedPayout = Number(this.$wire.roundPayout || 0);
