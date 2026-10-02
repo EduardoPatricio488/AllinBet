@@ -2,7 +2,7 @@ const casinoSoundPreferenceKey = 'allinbet:casino:sound';
 const casinoAudioSettingsKey = 'allinbet:casino:audio-settings';
 const casinoAudioDefaults = {
 	master: 0.84,
-	ambient: 0.72,
+	ambient: 0.78,
 	effects: 0.82,
 };
 
@@ -47,7 +47,7 @@ const setCasinoAudioSetting = (key, value) => {
 
 	if (casinoAmbient) {
 		casinoAmbient.master.gain.setTargetAtTime(
-			0.14 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			0.11 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 			casinoAudioContext?.currentTime ?? 0,
 			0.08,
 		);
@@ -62,7 +62,7 @@ const resetCasinoAudioSettings = () => {
 
 	if (casinoAmbient && casinoAudioContext) {
 		casinoAmbient.master.gain.setTargetAtTime(
-			0.075 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			0.11 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 			casinoAudioContext.currentTime,
 			0.08,
 		);
@@ -200,13 +200,13 @@ const casinoAmbientProfiles = {
 		accent: 0.62,
 	},
 	slots: {
-		bpm: 132,
+		bpm: 138,
 		progression: [[261.63, 329.63, 392, 493.88], [293.66, 349.23, 440, 523.25], [246.94, 293.66, 369.99, 440], [329.63, 392, 493.88, 587.33]],
-		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 987.77, 1174.66, 1046.5, 987.77, 880, 783.99, 659.25],
+		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 1318.5, 1174.66, 987.77, 880, 1046.5, 1318.5, 1567.98, 1318.5, 1174.66, 987.77, 783.99],
 		bass: 130.81,
 		padWave: 'sawtooth',
 		arpWave: 'square',
-		accent: 1.45,
+		accent: 1.65,
 	},
 	jetx: {
 		bpm: 92,
@@ -271,6 +271,45 @@ const playCasinoAmbientNote = (context, output, frequency, duration, volume, wav
 	oscillator.stop(startAt + duration + 0.04);
 };
 
+const playCasinoAmbientPercussion = (context, output, type, volume = 0.006) => {
+	const startAt = context.currentTime;
+	const gain = context.createGain();
+	const filter = context.createBiquadFilter();
+
+	gain.gain.setValueAtTime(0.0001, startAt);
+	filter.type = type === 'hat' ? 'highpass' : 'lowpass';
+	filter.frequency.setValueAtTime(type === 'hat' ? 5200 : 180, startAt);
+	filter.Q.setValueAtTime(type === 'hat' ? 0.8 : 0.5, startAt);
+
+	if (type === 'hat') {
+		const length = Math.max(1, Math.floor(context.sampleRate * 0.055));
+		const buffer = context.createBuffer(1, length, context.sampleRate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+		const source = context.createBufferSource();
+		source.buffer = buffer;
+		source.connect(filter);
+		filter.connect(gain);
+		gain.connect(output);
+		gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), startAt + 0.004);
+		gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.055);
+		source.start(startAt);
+		source.stop(startAt + 0.07);
+		return;
+	}
+
+	const oscillator = context.createOscillator();
+	oscillator.type = 'sine';
+	oscillator.frequency.setValueAtTime(type === 'kick' ? 118 : 210, startAt);
+	oscillator.frequency.exponentialRampToValueAtTime(type === 'kick' ? 48 : 92, startAt + 0.12);
+	oscillator.connect(gain);
+	gain.connect(output);
+	gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), startAt + 0.004);
+	gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.14);
+	oscillator.start(startAt);
+	oscillator.stop(startAt + 0.17);
+};
+
 const startCasinoAmbient = () => {
 	const context = getCasinoAudioContext();
 	if (! context) return;
@@ -287,7 +326,7 @@ const startCasinoAmbient = () => {
 
 	master.gain.setValueAtTime(0.0001, context.currentTime);
 	master.gain.exponentialRampToValueAtTime(
-		0.075 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+		0.11 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 		context.currentTime + 1.8,
 	);
 
@@ -366,45 +405,43 @@ const startCasinoAmbient = () => {
 
 		const frequency = profile.arp[arpIndex % profile.arp.length];
 		const beatIndex = arpIndex % 16;
-		const volume = 0.0046 * profile.accent;
+		const volume = 0.0054 * profile.accent;
 
-		// Arpejo principal: mais rápido, brilhante e contínuo, como uma sala de casino moderna.
-		playCasinoAmbientNote(context, master, frequency, game === 'slots' ? 0.32 : 0.24, volume, profile.arpWave);
+		playCasinoAmbientNote(
+			context,
+			master,
+			frequency,
+			game === 'slots' ? 0.22 : 0.24,
+			volume,
+			profile.arpWave,
+		);
 
-		// Camada rítmica sintética para dar movimento constante ao fundo.
 		if (beatIndex % 4 === 0) {
-			playCasinoAmbientNote(context, master, profile.bass / 2, 0.16, volume * 0.95, 'sine');
+			playCasinoAmbientNote(context, master, profile.bass / 2, 0.14, volume * 0.92, 'sine');
 			casinoAmbient.pulse = (casinoAmbient.pulse || 0) + 1;
 		} else if (beatIndex % 2 === 0) {
-			playCasinoAmbientNote(context, master, profile.bass, 0.07, volume * 0.30, 'sine');
+			playCasinoAmbientNote(context, master, profile.bass, 0.07, volume * 0.34, 'sine');
 		}
 
-		if (beatIndex % 4 === 2) {
-			// Sem ruído contínuo no ambiente: evita o assobio/agudo artificial.
-		}
-
-		if (beatIndex % 2 === 1) {
-			// Sem camada de ruído agudo no fundo.
-		}
-
-		// Pequena variação do filtro para evitar um loop demasiado estático.
 		lowpass.frequency.cancelScheduledValues(context.currentTime);
 		lowpass.frequency.setTargetAtTime(
-			beatIndex % 8 < 4 ? 3000 : 3800,
+			beatIndex % 8 < 4 ? 3200 : 4200,
 			context.currentTime,
-			0.045,
+			0.04,
 		);
 
 		if (game === 'slots') {
-			const beat = arpIndex % 8;
-			if (beat === 0 || beat === 4) {
-				playCasinoAmbientNote(context, master, profile.bass / 2, 0.34, volume * 0.72, 'sine');
+			if ([0, 4, 8, 12].includes(beatIndex)) {
+				playCasinoAmbientPercussion(context, master, 'kick', volume * 1.15);
 			}
-			if (beat === 2 || beat === 6) {
-				playCasinoAmbientNote(context, master, profile.bass, 0.22, volume * 0.22, 'sine');
+			if ([4, 12].includes(beatIndex)) {
+				playCasinoAmbientPercussion(context, master, 'snare', volume * 0.58);
 			}
-			if (arpIndex % 8 === 7) {
-				playCasinoAmbientNote(context, master, frequency * 1.5, 0.28, volume * 0.22, 'sine');
+			if (beatIndex % 2 === 1) {
+				playCasinoAmbientPercussion(context, master, 'hat', volume * 0.26);
+			}
+			if ([3, 7, 11, 15].includes(beatIndex)) {
+				playCasinoAmbientNote(context, master, frequency * 2, 0.12, volume * 0.28, 'triangle');
 			}
 		} else if (arpIndex % 4 === 0) {
 			playCasinoAmbientNote(context, master, frequency / 2, 0.32, volume * 0.34, 'sine');
