@@ -103,7 +103,7 @@ abstract class CasinoGameComponent extends Component
 
         if ($betOverride === null) {
             $this->validate([
-                'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
+                'bet' => ['required', 'integer', 'min:1', 'max:' . $this->maximumBet()],
                 'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
             ]);
         } else {
@@ -113,7 +113,7 @@ abstract class CasinoGameComponent extends Component
                     'clientSeed' => $this->clientSeed,
                 ],
                 [
-                    'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
+                    'bet' => ['required', 'integer', 'min:1', 'max:' . $this->maximumBet()],
                     'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
                 ],
             )->validate();
