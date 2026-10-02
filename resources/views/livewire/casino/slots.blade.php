@@ -40,15 +40,126 @@
         prize: 0,
         tier: '',
         settled: 0,
+        bonusRunning: false,
+        bonusDone: false,
+        bonusMultiplier: 0,
+        bonusSpins: 0,
+        bonusProgress: 0,
+        bonusCost: 0,
+        bonusPayout: 0,
+        bonusProfit: 0,
+        bonusOptions: @js(config('casino.games.slots.bonus_buy.options', [])),
         maxBet: {{ $maxBet }},
         wait: (ms) => new Promise((r) => setTimeout(r, ms)),
         sfx(name) { this.$dispatch('casino-sfx', { name }); },
+        bonusOption(multiplier) {
+            return this.bonusOptions.find((option) => Number(option.multiplier) === Number(multiplier)) || null;
+        },
         reelSpinners() { return [...this.$root.querySelectorAll('.slot-spinner')]; },
         resetReels() {
             this.reelSpinners().forEach((spinner) => {
                 spinner.style.animation = '';
                 spinner.style.transition = '';
                 spinner.style.transform = 'translate3d(0, 0, 0)';
+            });
+        },
+        async buyBonus(multiplier) {
+            if (this.busy || this.bonusRunning) return;
+
+            const option = this.bonusOption(multiplier);
+            const baseBet = Number(this.$wire.bet || 0);
+            const spins = Number(option?.spins || 0);
+            const cost = baseBet * Number(multiplier);
+
+            if (!option || !Number.isInteger(baseBet) || baseBet < 1 || spins < 1 || cost > this.maxBet) {
+                return;
+            }
+
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const duration = calm ? 120 : Math.max(5200, 4300 + (spins * 190));
+            const startedAt = performance.now();
+            const w = this.$wire;
+
+            this.busy = true;
+            this.bonusRunning = true;
+            this.bonusDone = false;
+            this.bonusMultiplier = Number(multiplier);
+            this.bonusSpins = spins;
+            this.bonusProgress = 0;
+            this.bonusCost = cost;
+            this.bonusPayout = 0;
+            this.bonusProfit = 0;
+            this.done = false;
+            this.revealed = false;
+            this.overlay = false;
+            this.settled = 0;
+            this.st = ['spin', 'spin', 'spin'];
+            this.resetReels();
+            this.sfx('spin');
+
+            const progressTimer = window.setInterval(() => {
+                const progress = Math.min(1, (performance.now() - startedAt) / duration);
+                this.bonusProgress = Math.min(spins, Math.floor(progress * (spins + 0.8)));
+            }, 90);
+
+            const backend = (async () => {
+                try {
+                    await w.buyBonus(Number(multiplier));
+                    return w.roundPhase === 'completed';
+                } catch (e) {
+                    return false;
+                }
+            })();
+
+            await this.wait(duration);
+            const ok = await backend;
+            window.clearInterval(progressTimer);
+
+            if (!ok) {
+                this.bonusRunning = false;
+                this.bonusDone = false;
+                this.bonusProgress = 0;
+                this.st = ['idle', 'idle', 'idle'];
+                this.revealed = true;
+                this.done = true;
+                this.busy = false;
+                return;
+            }
+
+            this.bonusProgress = spins;
+
+            if (!calm) {
+                for (let i = 0; i < 3; i++) {
+                    this.st[i] = 'settle';
+                    if (i > 0) await this.wait(130);
+                    this.sfx('stop', i);
+                    await this.settleReel(i);
+                }
+            } else {
+                this.st = ['idle', 'idle', 'idle'];
+                this.settled = 3;
+            }
+
+            this.revealed = true;
+            this.done = true;
+            this.busy = false;
+            this.bonusRunning = false;
+            this.bonusDone = true;
+
+            const result = w.roundResult || {};
+            this.bonusPayout = Number(result.bonus_payout ?? w.roundPayout ?? 0);
+            this.bonusProfit = Number(result.bonus_profit ?? (this.bonusPayout - this.bonusCost));
+
+            if (this.bonusProfit > 0) {
+                this.sfx(this.bonusProfit >= this.bonusCost * 5 ? 'slotJackpot' : 'slotWin');
+            }
+
+            this.overlay = true;
+
+            this.$dispatch('casino-toast', {
+                type: this.bonusProfit >= 0 ? 'success' : 'info',
+                title: 'Bónus concluído',
+                message: (this.bonusProfit >= 0 ? '+' : '') + this.bonusProfit + ' créditos de resultado líquido'
             });
         },
         async selectSlot(key) {
@@ -534,11 +645,27 @@
             <span class="casino-bulbs" aria-hidden="true"></span>
 
             <div class="slot-prize-overlay" x-show="overlay" x-cloak x-transition.opacity role="status" aria-live="assertive">
-                <div class="slot-prize__card">
-                    <p x-text="tier"></p>
-                    <strong>+<span x-text="Number(shown).toLocaleString('pt-PT')"></span></strong>
-                    <small>créditos virtuais</small>
-                </div>
+                <template x-if="bonusDone">
+                    <div class="slot-prize__card slot-bonus-result">
+                        <p>☘ BÓNUS CONCLUÍDO</p>
+                        <strong x-text="(bonusProfit >= 0 ? '+' : '') + Number(bonusProfit).toLocaleString('pt-PT')"></strong>
+                        <small>lucro líquido em créditos virtuais</small>
+                        <div class="slot-bonus-result__stats">
+                            <span><b x-text="Number(bonusPayout).toLocaleString('pt-PT')"></b><small>retorno</small></span>
+                            <span><b x-text="Number(bonusCost).toLocaleString('pt-PT')"></b><small>custo</small></span>
+                            <span><b x-text="bonusSpins"></b><small>giros</small></span>
+                        </div>
+                        <button type="button" class="slot-bonus-result__close" x-on:click="overlay = false">Continuar</button>
+                    </div>
+                </template>
+
+                <template x-if="!bonusDone">
+                    <div class="slot-prize__card">
+                        <p x-text="tier"></p>
+                        <strong>+<span x-text="Number(shown).toLocaleString('pt-PT')"></span></strong>
+                        <small>créditos virtuais</small>
+                    </div>
+                </template>
             </div>
 
             <header class="slot-header">
@@ -633,6 +760,40 @@
                     <small>ou barra de espaço</small>
                 </button>
             </div>
+
+            <section class="slot-bonus-buy" aria-label="Comprar bónus de giros automáticos">
+                <div class="slot-bonus-buy__head">
+                    <div>
+                        <span class="slot-label">BÓNUS BUY</span>
+                        <strong>Compra uma sequência automática</strong>
+                        <small>O valor é cobrado uma vez e os giros decorrem automaticamente.</small>
+                    </div>
+                    <span class="slot-bonus-buy__status" x-show="!bonusRunning && !bonusDone">CRÉDITOS VIRTUAIS</span>
+                    <span class="slot-bonus-buy__status is-running" x-show="bonusRunning" x-cloak x-text="'BÓNUS ' + bonusProgress + '/' + bonusSpins"></span>
+                </div>
+
+                <div class="slot-bonus-buy__meter" x-show="bonusRunning" x-cloak>
+                    <span :style="'width:' + (bonusSpins ? ((bonusProgress / bonusSpins) * 100) : 0) + '%'"></span>
+                </div>
+
+                <div class="slot-bonus-buy__options">
+                    @foreach (config('casino.games.slots.bonus_buy.options', []) as $option)
+                        <button type="button"
+                                class="slot-bonus-option"
+                                :disabled="busy || bonusRunning || (Number($wire.bet || 0) * {{ (int) $option['multiplier'] }}) > maxBet || Number($wire.bet || 0) < 1"
+                                x-on:click="buyBonus({{ (int) $option['multiplier'] }})">
+                            <span>
+                                <b>{{ $option['label'] }}</b>
+                                <small>{{ (int) $option['spins'] }} giros automáticos</small>
+                            </span>
+                            <strong>
+                                <span x-text="Number($wire.bet || 0) * {{ (int) $option['multiplier'] }}"></span> CR
+                                <small>{{ (int) $option['multiplier'] }}× aposta</small>
+                            </strong>
+                        </button>
+                    @endforeach
+                </div>
+            </section>
 
             @error('bet')<p role="alert" class="slot-error">{{ $message }}</p>@enderror
             @error('game')<p role="alert" class="slot-error">{{ $message }}</p>@enderror
