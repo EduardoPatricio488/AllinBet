@@ -258,7 +258,7 @@
                                 <button type="button" wire:click="stand" wire:loading.attr="disabled" :disabled="{{ $settlementPending ? 'true' : 'false' }}" class="bj-button bj-dark">Parar</button>
                             @endif
                             @if (in_array('double', $roundResult['available_actions'] ?? [], true))
-                                <button type="button" wire:click="double" wire:loading.attr="disabled" :disabled="locked || {{ $settlementPending ? 'true' : 'false' }}" class="bj-button bj-dark">Dobrar aposta</button>
+                                <button type="button" wire:click="double" wire:loading.attr="disabled" :disabled="{{ $settlementPending ? 'true' : 'false' }}" class="bj-button bj-dark">Dobrar aposta</button>
                             @endif
                         </div>
                     @endif
