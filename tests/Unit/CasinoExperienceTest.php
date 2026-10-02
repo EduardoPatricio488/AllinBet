@@ -13,19 +13,19 @@ use Tests\TestCase;
 
 final class CasinoExperienceTest extends TestCase
 {
-    public function test_slots_use_five_horizontal_and_five_vertical_paylines(): void
+    public function test_slots_use_three_horizontal_and_two_vertical_paylines(): void
     {
         $game = new SlotsGame(new ProvablyFairService);
         $variant = config('casino.games.slots.variants.classic');
         $variant['key'] = 'classic';
 
-        $grid = array_fill(0, 5, array_fill(0, 5, 0));
+        $grid = array_fill(0, 3, array_fill(0, 3, 0));
         $result = $game->settle($grid, 10, $variant);
 
-        $this->assertCount(10, $result->result['winning_lines']);
-        $this->assertSame(10, $result->result['payline_count']);
-        $this->assertSame(5, count($result->result['grid']));
-        $this->assertSame(5, count($result->result['grid'][0]));
+        $this->assertCount(5, $result->result['winning_lines']);
+        $this->assertSame(5, $result->result['payline_count']);
+        $this->assertSame(3, count($result->result['grid']));
+        $this->assertSame(3, count($result->result['grid'][0]));
     }
 
     public function test_slots_bonus_buy_completes_all_configured_spins_atomically(): void
