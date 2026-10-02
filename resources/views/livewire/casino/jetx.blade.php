@@ -2,8 +2,8 @@
     $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
 @endphp
 
-<div class="jetx-page jx"
-     x-on:casino-toast.window="if (launching) { launching = false; busy = false; status = 'ready'; phase = 'ready'; estimated = 0; }"
+<div class="jetx-page jx casino-game-screen"
+     data-casino-game="jetx"
      x-data="{
         busy: false, launching: false, flying: false, phase: @js($roundPhase),
         status: @js($roundPhase === 'in_progress' ? 'paused' : 'ready'),
@@ -87,7 +87,9 @@
             this.schedulePoll();
         },
 
-        startFlight() {
+        async startFlight() {
+            if (this.busy || this.flying) return;
+
             this.stop();
             this.sfx('charge');
             this.launching = true;
@@ -106,6 +108,54 @@
             this.secs = 0;
             this.estimated = Math.max(0, Number(this.$wire.bet || 0));
             this.draw(0);
+
+            try {
+                await this.$wire.start();
+
+                if (this.$wire.roundPhase === 'in_progress') {
+                    await this.beginFlight(Number((this.$wire.roundResult || {}).started_at_ms || Date.now()));
+                    return;
+                }
+
+                this.launching = false;
+                this.busy = false;
+                this.phase = this.$wire.roundPhase;
+                this.status = this.$wire.roundPhase === 'prepared' ? 'ready' : 'ready';
+            } catch (e) {
+                this.launching = false;
+                this.busy = false;
+                this.phase = this.$wire.roundPhase || 'ready';
+                this.status = 'ready';
+            }
+        },
+
+        async launchPrepared() {
+            if (this.busy || this.flying || this.$wire.roundPhase !== 'prepared') return;
+
+            this.busy = true;
+            this.launching = true;
+            this.phase = 'launching';
+            this.status = 'launching';
+            this.resultOpen = false;
+            this.sfx('charge');
+
+            try {
+                await this.$wire.launch();
+
+                if (this.$wire.roundPhase === 'in_progress') {
+                    await this.beginFlight(Number((this.$wire.roundResult || {}).started_at_ms || Date.now()));
+                } else {
+                    this.launching = false;
+                    this.busy = false;
+                    this.phase = this.$wire.roundPhase;
+                    this.status = 'ready';
+                }
+            } catch (e) {
+                this.launching = false;
+                this.busy = false;
+                this.phase = this.$wire.roundPhase || 'prepared';
+                this.status = 'ready';
+            }
         },
 
         schedulePoll() {
@@ -207,7 +257,7 @@
             if (value === 'ready' || value === 'prepared') resetIdle();
         })
      "
-     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { if (flying) { $event.preventDefault(); cashout(); } else if (['ready','completed'].includes(phase)) { $event.preventDefault(); startFlight(); $wire.start(); } else if (phase === 'prepared') { $event.preventDefault(); $wire.launch(); } }"
+     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); if (flying) cashout(); else if (['ready','completed'].includes(phase)) startFlight(); else if (phase === 'prepared') launchPrepared(); }"
      x-on:jetx-flight-started.window="beginFlight($event.detail.startedAtMs)"
      x-on:pagehide.window="stop()">
 
@@ -471,7 +521,7 @@
 
                 <div class="jx-action-wrap">
                     @if ($roundPhase === 'prepared')
-                        <button type="button" class="jx-action" wire:click="launch" wire:loading.attr="disabled" wire:target="launch">Lançar <kbd>Espaço</kbd></button>
+                        <button type="button" class="jx-action" :disabled="busy" x-on:click="launchPrepared()">Lançar <kbd>Espaço</kbd></button>
                     @elseif ($roundPhase === 'in_progress')
                         <template x-if="!flying">
                             <button type="button" class="jx-action" :disabled="busy" x-on:click="beginFlight(Number(($wire.roundResult || {}).started_at_ms || Date.now()))">Retomar voo</button>
@@ -481,7 +531,7 @@
                             <small x-text="'+' + Number(estimated).toLocaleString('pt-PT') + ' CR · Espaço'"></small>
                         </button>
                     @else
-                        <button type="button" class="jx-action" :disabled="busy" x-on:click="startFlight()" wire:click="start" wire:loading.attr="disabled" wire:target="start">
+                        <button type="button" class="jx-action" :disabled="busy" x-on:click="startFlight()">
                             <span x-show="!launching">Iniciar voo <kbd>Espaço</kbd></span>
                             <span x-show="launching" x-cloak>A preparar <b x-text="Number($wire.bet || 0).toLocaleString('pt-PT') + ' CR'"></b></span>
                         </button>
