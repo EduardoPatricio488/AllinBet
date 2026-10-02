@@ -2,7 +2,7 @@ const casinoSoundPreferenceKey = 'allinbet:casino:sound';
 const casinoAudioSettingsKey = 'allinbet:casino:audio-settings';
 const casinoAudioDefaults = {
 	master: 0.78,
-	ambient: 0.38,
+	ambient: 0.55,
 	effects: 0.82,
 };
 
@@ -47,7 +47,7 @@ const setCasinoAudioSetting = (key, value) => {
 
 	if (casinoAmbient) {
 		casinoAmbient.master.gain.setTargetAtTime(
-			0.044 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			0.075 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 			casinoAudioContext?.currentTime ?? 0,
 			0.08,
 		);
@@ -62,7 +62,7 @@ const resetCasinoAudioSettings = () => {
 
 	if (casinoAmbient && casinoAudioContext) {
 		casinoAmbient.master.gain.setTargetAtTime(
-			0.044 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+			0.075 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 			casinoAudioContext.currentTime,
 			0.08,
 		);
@@ -200,13 +200,13 @@ const casinoAmbientProfiles = {
 		accent: 0.62,
 	},
 	slots: {
-		bpm: 104,
-		progression: [[261.63, 329.63, 392], [293.66, 349.23, 440], [220, 277.18, 329.63], [246.94, 293.66, 369.99]],
-		arp: [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 987.77, 783.99],
+		bpm: 92,
+		progression: [[261.63, 329.63, 392, 493.88], [293.66, 349.23, 440, 523.25], [246.94, 293.66, 369.99, 440], [261.63, 329.63, 392, 493.88]],
+		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 783.99, 880, 783.99],
 		bass: 130.81,
 		padWave: 'triangle',
 		arpWave: 'triangle',
-		accent: 1.08,
+		accent: 1.25,
 	},
 	jetx: {
 		bpm: 76,
@@ -287,7 +287,7 @@ const startCasinoAmbient = () => {
 
 	master.gain.setValueAtTime(0.0001, context.currentTime);
 	master.gain.exponentialRampToValueAtTime(
-		0.044 * casinoAudioSettings.master * casinoAudioSettings.ambient,
+		0.075 * casinoAudioSettings.master * casinoAudioSettings.ambient,
 		context.currentTime + 1.8,
 	);
 
@@ -309,7 +309,7 @@ const startCasinoAmbient = () => {
 	const bass = createCasinoAmbientVoice(context, master, {
 		frequency: profile.bass,
 		wave: 'sine',
-		gainValue: 0.018,
+		gainValue: 0.024,
 		attack: 1.4,
 		filterFrequency: 260,
 	});
@@ -319,21 +319,21 @@ const startCasinoAmbient = () => {
 		createCasinoAmbientVoice(context, master, {
 			frequency: profile.progression[0][0],
 			wave: profile.padWave,
-			gainValue: 0.010,
+			gainValue: 0.013,
 			attack: 1.8,
 			filterFrequency: 1200,
 		}),
 		createCasinoAmbientVoice(context, master, {
 			frequency: profile.progression[0][1],
 			wave: profile.padWave,
-			gainValue: 0.008,
+			gainValue: 0.011,
 			attack: 1.9,
 			filterFrequency: 1500,
 		}),
 		createCasinoAmbientVoice(context, master, {
 			frequency: profile.progression[0][2],
 			wave: 'sine',
-			gainValue: 0.006,
+			gainValue: 0.008,
 			attack: 2.0,
 			filterFrequency: 2000,
 		}),
