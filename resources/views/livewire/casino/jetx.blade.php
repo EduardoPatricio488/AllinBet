@@ -89,6 +89,7 @@
 
         startFlight() {
             this.stop();
+            this.sfx('charge');
             this.launching = true;
             this.flying = false;
             this.busy = true;
