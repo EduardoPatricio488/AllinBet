@@ -209,7 +209,7 @@
                 try {
                     await w.buyBonus(Number(multiplier));
 
-                    if (w.roundPhase !== 'completed') {
+                    if (w.roundPhase !== 'in_progress' || !w.roundResult?.settlement_pending) {
                         return false;
                     }
 
@@ -240,23 +240,18 @@
             this.bonusProgress = spins;
             await this.finishSpin();
 
-            this.bonusRunning = false;
-            this.bonusDone = true;
+            this.bonusRunning = true;
 
             const result = w.roundResult || {};
-            this.bonusPayout = Number(result.bonus_payout ?? w.roundPayout ?? 0);
+            this.bonusPayout = Number(result.bonus_payout ?? 0);
             this.bonusProfit = Number(result.bonus_profit ?? (this.bonusPayout - this.bonusCost));
 
-            if (this.bonusProfit > 0) {
-                this.sfx(this.bonusProfit >= this.bonusCost * 5 ? 'slotJackpot' : 'slotWin');
-            }
-
-            this.overlay = true;
-
+            // O bónus já terminou visualmente, mas o payout só fica disponível
+            // depois da liquidação autoritativa do servidor.
             this.$dispatch('casino-toast', {
-                type: this.bonusProfit >= 0 ? 'success' : 'info',
-                title: 'Bónus concluído',
-                message: (this.bonusProfit >= 0 ? '+' : '') + this.bonusProfit + ' créditos de resultado líquido'
+                type: 'info',
+                title: 'Resultado pronto',
+                message: 'Aguardando a liquidação segura do payout…'
             });
         },
         async selectSlot(key) {
@@ -306,7 +301,7 @@
                     if (w.roundPhase !== 'prepared') await w.prepare();
                     if (w.roundPhase !== 'prepared') return false;
                     await w.spin();
-                    return w.roundPhase === 'completed';
+                    return w.roundPhase === 'in_progress' && !!w.roundResult?.settlement_pending;
                 } catch (e) {
                     return false;
                 }
@@ -327,8 +322,33 @@
 
             const p = Number(w.roundPayout || 0);
 
-            if (w.roundPhase === 'completed' && p > 0) {
-                this.win(p, Number(w.bet || 1));
+            // O payout é libertado pelo evento casino-round-result depois da
+            // animação e da liquidação server-side.
+            void p;
+        },
+        settleVisualResult(event) {
+            if (this.$wire.roundPhase !== 'completed') return;
+
+            const result = this.$wire.roundResult || {};
+            this.busy = false;
+
+            if (result.bonus_buy) {
+                this.bonusRunning = false;
+                this.bonusDone = true;
+                this.bonusPayout = Number(result.bonus_payout ?? this.$wire.roundPayout ?? 0);
+                this.bonusProfit = Number(result.bonus_profit ?? (this.bonusPayout - this.bonusCost));
+                this.overlay = true;
+
+                if (this.bonusProfit > 0) {
+                    this.sfx(this.bonusProfit >= this.bonusCost * 5 ? 'slotJackpot' : 'slotWin');
+                }
+
+                return;
+            }
+
+            const amount = Number(event.detail?.amount ?? this.$wire.roundPayout ?? 0);
+            if (amount > 0) {
+                this.win(amount, Number(this.$wire.bet || 1));
             }
         },
         win(p, b) {
@@ -359,7 +379,9 @@
                 this.$dispatch('casino-big-win', { amount: p });
             }
         }
-     }" x-init="buildReelTracks()">
+     }"
+     x-init="buildReelTracks()"
+     x-on:casino-round-result.window="settleVisualResult($event)">
     <div class="slot-page-main">
         <section class="slot-collection" aria-label="Escolher máquina de Slots">
         <div class="slot-collection__head">
