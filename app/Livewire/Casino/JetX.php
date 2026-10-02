@@ -45,6 +45,11 @@ final class JetX extends CasinoGameComponent
         $this->bet = $round->bet;
     }
 
+    protected function casinoGame(): GameType
+    {
+        return GameType::Jetx;
+    }
+
     public function prepare(): void
     {
         $this->prepareGame(GameType::Jetx);
