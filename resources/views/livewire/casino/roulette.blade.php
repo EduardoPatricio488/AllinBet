@@ -24,7 +24,7 @@
 @endphp
 
 <div
-    class="casino-game-play roulette-page"
+    class="casino-game-play roulette-page casino-game-screen" data-casino-game="roulette"
     x-data="{
         spinning: false,
         resultVisible: {{ $roundResult !== [] ? 'true' : 'false' }},
