@@ -1,6 +1,6 @@
 @php
     $grid = $roundResult['grid'] ?? [[0, 1, 2], [3, 4, 5], [2, 1, 0]];
-    $maxBet = (int) config('casino.bet_limits.max');
+    $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
     $locked = $roundPhase === 'prepared';
     $slotVariants = config('casino.games.slots.variants', []);
     $selectedSlotConfig = $slotVariants[$selectedSlot] ?? $slotVariants['classic'] ?? [];
@@ -430,7 +430,7 @@
                     <span class="slot-label">Aposta total</span>
                     <div class="slot-stepper">
                         <button type="button" x-on:click="step(-6)" :disabled="busy || @js($locked)" aria-label="Diminuir aposta">−</button>
-                        <input type="number" min="6" step="6" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
+                        <input type="number" min="6" step="1" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
                         <button type="button" x-on:click="step(6)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
                     <small class="slot-hint">Por linha: <b x-text="Math.floor(Number($wire.bet || 0) / 6)"></b> créditos · 6 linhas</small>
@@ -442,7 +442,7 @@
                             <button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="busy || @js($locked)">{{ $chip }}</button>
                         @endif
                     @endforeach
-                    <button type="button" x-on:click="$wire.bet = Math.floor(maxBet / 6) * 6" :disabled="busy || @js($locked)">Máx.</button>
+                    <button type="button" x-on:click="$wire.bet = maxBet" :disabled="busy || @js($locked) || maxBet < 1">ALL IN · {{ number_format($maxBet, 0, ',', ' ') }}</button>
                 </div>
 
                 <button type="button" class="slot-spin" x-on:click="go()" :disabled="busy">
