@@ -9,7 +9,7 @@
     $initOutcome = ($roundResult['outcome'] ?? 'heads') === 'tails' ? 'tails' : 'heads';
 @endphp
 
-<div class="casino-game-play coinflip-page cf"
+<div class="casino-game-play coinflip-page cf casino-game-screen" data-casino-game="coinflip"
      x-data="{
         busy: false, charge: false, tossing: false, landed: false, burst: false,
         revealFace: {{ $has ? 'true' : 'false' }}, resultVisible: {{ $has ? 'true' : 'false' }},
