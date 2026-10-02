@@ -79,6 +79,7 @@ final class JetXGameTest extends TestCase
         self::assertSame('cashed_out', $result->result['status']);
         self::assertGreaterThanOrEqual(100, $result->payout);
         self::assertGreaterThan(1.00, (float) $result->result['cashout_multiplier']);
+        self::assertSame(100.00, $result->result['crash_multiplier']);
     }
 
     public function test_cashout_after_crash_returns_no_payout_and_reveals_the_crash_point(): void
