@@ -35,8 +35,6 @@ class BetService
         array $metadata = [],
     ): GameRound {
         $this->games->get($game);
-        $this->validateBet($bet);
-
         if (trim($clientSeed) === '' || strlen($clientSeed) > 128) {
             throw new InvalidArgumentException('The client seed must contain between 1 and 128 characters.');
         }
@@ -53,10 +51,12 @@ class BetService
                     return $existing;
                 }
 
-                Wallet::query()
+                $wallet = Wallet::query()
                     ->where('user_id', $user->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                $this->validateBet($bet, (int) $wallet->balance);
 
                 $this->responsibleGaming->assertCanPlaceBet($user, $bet);
 
@@ -161,11 +161,12 @@ class BetService
                     throw new InvalidArgumentException('An action identifier is required for additional wagers.');
                 }
 
-                $totalWager = (int) ($gameResult->state['total_wager'] ?? ($round->bet + $gameResult->additionalBet));
-                $maximum = (int) config('casino.bet_limits.max', 10000);
+                $walletBalance = (int) Wallet::query()
+                    ->where('user_id', $user->getKey())
+                    ->value('balance');
 
-                if ($totalWager > $maximum) {
-                    throw new InvalidArgumentException('The total wager exceeds the configured maximum.');
+                if ($gameResult->additionalBet > $walletBalance) {
+                    throw new InvalidArgumentException('The additional wager exceeds your available virtual credits.');
                 }
 
                 $this->responsibleGaming->assertCanPlaceBet($user, $gameResult->additionalBet);
@@ -219,13 +220,16 @@ class BetService
         });
     }
 
-    private function validateBet(int $bet): void
+    private function validateBet(int $bet, int $walletBalance): void
     {
         $minimum = (int) config('casino.bet_limits.min', 1);
-        $maximum = (int) config('casino.bet_limits.max', 10000);
 
-        if ($minimum < 1 || $maximum < $minimum || $bet < $minimum || $bet > $maximum) {
-            throw new InvalidArgumentException("The bet must be between {$minimum} and {$maximum} virtual credits.");
+        if ($minimum < 1 || $bet < $minimum) {
+            throw new InvalidArgumentException("The bet must be at least {$minimum} virtual credits.");
+        }
+
+        if ($bet > $walletBalance) {
+            throw new InvalidArgumentException('The bet cannot exceed your available virtual credits.');
         }
     }
 
