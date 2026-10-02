@@ -48,13 +48,29 @@ abstract class CasinoGameComponent extends Component
         $this->actionKey = bin2hex(random_bytes(16));
     }
 
-    protected function prepareGame(GameType $game, array $metadata = []): void
+    protected function prepareGame(GameType $game, array $metadata = [], ?int $betOverride = null): void
     {
         $this->resetErrorBag();
-        $this->validate([
-            'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
-            'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
-        ]);
+
+        $betToPrepare = $betOverride ?? (int) $this->bet;
+
+        if ($betOverride === null) {
+            $this->validate([
+                'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
+                'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
+            ]);
+        } else {
+            validator(
+                [
+                    'bet' => $betToPrepare,
+                    'clientSeed' => $this->clientSeed,
+                ],
+                [
+                    'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
+                    'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
+                ],
+            )->validate();
+        }
 
         if (in_array($this->roundPhase, [RoundStatus::Prepared->value, RoundStatus::InProgress->value], true)) {
             return;
@@ -75,7 +91,7 @@ abstract class CasinoGameComponent extends Component
             $round = app(BetService::class)->prepare(
                 $user,
                 $game,
-                (int) $this->bet,
+                $betToPrepare,
                 $this->clientSeed,
                 $this->requestKey,
                 $metadata,
