@@ -49,7 +49,7 @@ class Slots extends CasinoGameComponent
 
     public function buyBonus(int $multiplier): void
     {
-        if ($this->roundPhase !== RoundStatus::Ready->value && $this->roundPhase !== 'ready' && $this->roundPhase !== RoundStatus::Completed->value) {
+        if (! in_array($this->roundPhase, ['ready', RoundStatus::Completed->value], true)) {
             return;
         }
 
