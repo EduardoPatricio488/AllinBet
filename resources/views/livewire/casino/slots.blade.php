@@ -781,7 +781,7 @@
             .slot-window { padding: .55rem; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .slot-reel.is-spin .slot-spinner, .slot-reel.is-settle .slot-spinner, .slot-reel.is-land .slot-landing,
+            .slot-reel.is-spin .slot-spinner, .slot-reel.is-settle .slot-spinner,
             .slot-window.is-done .slot-payline, .slot-window.is-done .slot-sym.is-win, .slot-prize__card, .slot-prize-card,
             .slot-header__status.is-spinning i { animation: none; }
             .slot-reel.is-spin .slot-spinner { filter: none; }
@@ -825,7 +825,7 @@
                 <div class="slot-header__status" :class="{ 'is-spinning': busy, 'is-ready': !busy }">
                     <i></i>
                     <span x-show="!busy">PRONTO</span>
-                    <span x-show="busy" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/3'"></span>
+                    <span x-show="busy" x-cloak x-text="settled === 0 ? 'A GIRAR' : 'A PARAR ' + settled + '/5'"></span>
                 </div>
 
                 <span class="slot-badge" x-text="@js($slotVariants)[selectedSlot].tag"></span>
@@ -833,8 +833,8 @@
 
             <div class="slot-window"
                  :class="{
-                    'is-done': done && revealed,
-                    'has-win': done && revealed && @js(count($winningLines) > 0),
+                    'is-done': done,
+                    'has-win': done && winningLines.length > 0,
                     'is-spinning': busy
                  }">
                 <div class="slot-markers" aria-hidden="true">
