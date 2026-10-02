@@ -742,11 +742,6 @@ document.addEventListener('casino-settlement-retry', () => {
 	scheduleCasinoSettlement(250);
 });
 
-document.addEventListener('livewire:navigated', () => {
-	window.clearTimeout(casinoSettlementTimer);
-	casinoSettlementTimer = null;
-});
-
 document.addEventListener('DOMContentLoaded', updateCasinoSoundControls);
 document.addEventListener('DOMContentLoaded', setupCasinoSlotSounds);
 document.addEventListener('DOMContentLoaded', syncCasinoAmbient);
