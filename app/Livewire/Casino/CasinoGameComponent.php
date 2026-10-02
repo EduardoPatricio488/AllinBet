@@ -52,7 +52,7 @@ abstract class CasinoGameComponent extends Component
     {
         $this->resetErrorBag();
         $this->validate([
-            'bet' => ['required', 'integer', 'min:1', 'max:'.(int) config('casino.bet_limits.max', 10000)],
+            'bet' => ['required', 'integer', 'min:1', 'max:'.$this->maximumBet()],
             'clientSeed' => ['required', 'string', 'min:1', 'max:128'],
         ]);
 
@@ -147,6 +147,13 @@ abstract class CasinoGameComponent extends Component
                 $this->dispatch('casino-big-win', amount: $round->payout, multiple: $bigWinMultiplier);
             }
         }
+    }
+
+    protected function maximumBet(): int
+    {
+        $user = $this->authenticatedUser();
+
+        return max(0, (int) ($user->wallet()->value('balance') ?? 0));
     }
 
     private function authenticatedUser(): User
