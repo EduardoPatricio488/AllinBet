@@ -6,6 +6,7 @@ namespace App\Livewire\Casino;
 
 use App\Enums\GameType;
 use App\Enums\RoundStatus;
+use App\Models\GameRound;
 use Illuminate\View\View;
 
 class Slots extends CasinoGameComponent
@@ -22,6 +23,42 @@ class Slots extends CasinoGameComponent
         if (is_string($key) && in_array($key, $variants, true)) {
             $this->selectedSlot = $key;
         }
+
+        $pending = GameRound::query()
+            ->where('user_id', auth()->id())
+            ->where('game', GameType::Slots)
+            ->where('status', RoundStatus::InProgress)
+            ->latest('id')
+            ->first();
+
+        if ($pending === null) {
+            return;
+        }
+
+        $state = $pending->privateGameState();
+
+        if (! array_key_exists('_pending_payout', $state)) {
+            return;
+        }
+
+        $this->roundId = $pending->id;
+        $this->roundPhase = RoundStatus::InProgress->value;
+        $this->serverSeedHash = $pending->server_seed_hash;
+        $this->clientSeed = $pending->client_seed;
+        $this->roundResult = $pending->publicResult();
+        $this->roundPayout = 0;
+        $this->bet = (int) ($state['bonus_base_bet'] ?? $pending->bet);
+
+        if (isset($state['slot_variant']) && in_array($state['slot_variant'], $variants, true)) {
+            $this->selectedSlot = (string) $state['slot_variant'];
+        }
+
+        $nowMs = (int) round(microtime(true) * 1000);
+        $this->dispatch(
+            'casino-settlement-pending',
+            roundId: $pending->id,
+            afterMs: max(0, (int) ($state['_settle_after_ms'] ?? $nowMs) - $nowMs),
+        );
     }
 
     public function selectSlot(string $slot): void
