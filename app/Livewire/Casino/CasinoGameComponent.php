@@ -12,6 +12,7 @@ use DomainException;
 use Illuminate\Support\Facades\Auth;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 abstract class CasinoGameComponent extends Component
@@ -141,6 +142,21 @@ abstract class CasinoGameComponent extends Component
         $this->roundPayout = $round->payout;
         $this->actionKey = bin2hex(random_bytes(16));
 
+        if ($round->status === RoundStatus::InProgress && (bool) ($this->roundResult['settlement_pending'] ?? false)) {
+            $privateState = $round->privateGameState();
+            $settleAfterMs = (int) ($privateState['_settle_after_ms'] ?? 0);
+            $nowMs = (int) round(microtime(true) * 1000);
+
+            $this->dispatch('wallet-updated');
+            $this->dispatch(
+                'casino-settlement-pending',
+                roundId: $round->id,
+                afterMs: max(0, $settleAfterMs - $nowMs),
+            );
+
+            return;
+        }
+
         if ($round->status === RoundStatus::Completed) {
             $this->requestKey = bin2hex(random_bytes(16));
         }
@@ -183,6 +199,76 @@ abstract class CasinoGameComponent extends Component
             if ($round->payout >= $round->bet * $bigWinMultiplier) {
                 $this->dispatch('casino-big-win', amount: $round->payout, multiple: $bigWinMultiplier);
             }
+        }
+    }
+
+    #[On('casino-settle-payout')]
+    public function settlePayout(): void
+    {
+        if ($this->roundId === null || $this->roundPhase !== RoundStatus::InProgress->value) {
+            return;
+        }
+
+        $user = $this->authenticatedUser();
+
+        try {
+            $round = app(BetService::class)->settlePayout($user, $this->roundId);
+        } catch (DomainException|InvalidArgumentException $exception) {
+            if ($exception instanceof DomainException && $exception->getMessage() === 'The payout is not ready yet.') {
+                $this->dispatch('casino-settlement-retry');
+
+                return;
+            }
+
+            $this->addError('game', $exception->getMessage());
+
+            return;
+        }
+
+        $this->roundPhase = $round->status->value;
+        $this->serverSeedHash = $round->server_seed_hash;
+        $this->roundResult = $round->publicResult();
+        $this->roundPayout = $round->payout;
+        $this->actionKey = bin2hex(random_bytes(16));
+        $this->requestKey = bin2hex(random_bytes(16));
+
+        $this->dispatch('casino-round-state', phase: $this->roundPhase);
+        $this->dispatch('wallet-updated');
+        $this->dispatch('history-updated');
+
+        $isBonusBuy = (bool) ($this->roundResult['bonus_buy'] ?? false);
+        $netResult = $round->payout - $round->bet;
+
+        $this->dispatch(
+            'casino-round-result',
+            outcome: $isBonusBuy
+                ? ($netResult > 0 ? 'win' : ($netResult === 0 ? 'push' : 'loss'))
+                : ($round->payout > 0 ? 'win' : ($round->payout === $round->bet ? 'push' : 'loss')),
+            amount: $isBonusBuy
+                ? abs($netResult)
+                : ($round->payout > 0 ? $round->payout : $round->bet),
+        );
+
+        if ($isBonusBuy) {
+            $this->dispatch(
+                'casino-toast',
+                type: $netResult >= 0 ? 'success' : 'info',
+                title: 'Bónus concluído',
+                message: ($netResult >= 0 ? '+' : '') . "{$netResult} créditos de resultado líquido.",
+            );
+        } elseif ($round->payout > 0) {
+            $this->dispatch(
+                'casino-toast',
+                type: 'success',
+                title: 'Vitória confirmada',
+                message: "+{$round->payout} créditos virtuais.",
+            );
+        }
+
+        $bigWinMultiplier = max(1, (int) config('casino.big_win_multiplier', 5));
+
+        if ($round->payout >= $round->bet * $bigWinMultiplier) {
+            $this->dispatch('casino-big-win', amount: $round->payout, multiple: $bigWinMultiplier);
         }
     }
 
