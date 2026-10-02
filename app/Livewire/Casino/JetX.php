@@ -109,7 +109,7 @@ final class JetX extends CasinoGameComponent
         $this->playGame(GameType::Jetx, ['action' => 'cashout']);
     }
 
-    private function restoreActiveRound(): bool
+    protected function restoreActiveRound(): bool
     {
         if (
             $this->roundId !== null
