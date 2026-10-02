@@ -97,6 +97,7 @@
 >
 
     <x-casino.how-it-works game-key="dice" title="Como funciona o Dados?" description="Define um limite e escolhe se o lançamento deve ficar abaixo ou acima desse valor. O resultado é gerado de forma verificável." :rules="[['title'=>'Define o limite','text'=>'Escolhe o valor de referência entre 1 e 99.'], ['title'=>'Escolhe a direção','text'=>'Seleciona Abaixo ou Acima para definir a condição vencedora.'], ['title'=>'Define a aposta','text'=>'Escolhe a quantidade de créditos virtuais para esta ronda.'], ['title'=>'Lança os dados','text'=>'Carrega em Lançar. Se o resultado cumprir a condição escolhida, a ronda é vencedora.']]" />
+    <x-casino.loading-overlay target="prepare,roll" />
     <style>
         .dice-page{--dice-gold:#f4c45f;--dice-green:#44e0a6;--dice-red:#fa6872;--dice-blue:#55a9ff}
         .dice-layout{display:grid;gap:1.5rem;grid-template-columns:minmax(0,1.5fr) minmax(18rem,.72fr)}
