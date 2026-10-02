@@ -355,6 +355,14 @@
 .casino-game-chrome__meta .casino-balance{transform:scale(.86);transform-origin:right center}
 .casino-game-chrome__live{display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .5rem;border:1px solid rgb(80 224 164 / 15%);border-radius:999px;color:#73ddb0;font-size:.52rem;font-weight:900;letter-spacing:.12em;background:rgb(73 224 165 / 3%)}
 .casino-game-chrome__live i{width:.35rem;height:.35rem;border-radius:50%;background:#67e8b3;box-shadow:0 0 9px rgb(103 232 179 / 85%);animation:casino-chrome-pulse .8s ease-in-out infinite alternate}
+.casino-game-chrome__live--prepared{border-color:rgb(230 200 121 / 24%);color:#efd889;background:rgb(230 200 121 / 4%)}
+.casino-game-chrome__live--prepared i{background:#f2c14e;box-shadow:0 0 9px rgb(242 193 78 / 75%)}
+.casino-game-chrome__live--in_progress{border-color:rgb(85 169 255 / 28%);color:#8fc4ff;background:rgb(85 169 255 / 5%)}
+.casino-game-chrome__live--in_progress i{background:#60a5fa;box-shadow:0 0 10px rgb(96 165 250 / 85%)}
+.casino-game-chrome__live--completed{border-color:rgb(73 224 165 / 26%);color:#8fe7bd;background:rgb(73 224 165 / 4%)}
+.casino-game-chrome__live--completed i{background:#6ee7b7;box-shadow:0 0 11px rgb(110 231 183 / 90%)}
+.casino-game-chrome__live--cancelled{border-color:rgb(248 113 113 / 24%);color:#fda4af;background:rgb(248 113 113 / 4%)}
+.casino-game-chrome__live--cancelled i{background:#fb7185;box-shadow:0 0 10px rgb(251 113 133 / 82%)}
 .casino-game-chrome__switch{position:relative;z-index:2;display:flex;gap:.4rem;margin-top:.75rem;overflow-x:auto;padding-bottom:.15rem;scrollbar-width:none}
 .casino-game-chrome__switch::-webkit-scrollbar{display:none}
 .casino-game-chrome__switch a{display:inline-flex;align-items:center;gap:.38rem;min-height:2.1rem;flex:none;border:1px solid rgb(230 200 121 / 14%);border-radius:999px;padding:.32rem .7rem;color:#9ea9b5;font-size:.59rem;font-weight:850;text-decoration:none;white-space:nowrap;background:rgb(255 255 255 / 1.5%);transition:transform .16s ease,border-color .16s ease,background .16s ease,color .16s ease}
