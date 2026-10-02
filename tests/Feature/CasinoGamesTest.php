@@ -59,40 +59,38 @@ class CasinoGamesTest extends TestCase
     public function test_slots_paytable_pays_three_consecutive_symbols_on_horizontal_lines(): void
     {
         $grid = [
-            [4, 4, 4, 1, 2],
-            [0, 1, 2, 3, 5],
-            [6, 7, 0, 1, 2],
-            [1, 2, 3, 5, 6],
-            [7, 0, 1, 2, 3],
+            [4, 4, 4],
+            [0, 1, 2],
+            [3, 5, 6],
         ];
 
         $result = app(SlotsGame::class)->settle($grid, 300);
 
-        $this->assertSame(1269, $result->payout);
+        $this->assertSame(2538, $result->payout);
         $this->assertCount(1, $result->result['winning_lines']);
         $this->assertSame('horizontal', $result->result['winning_lines'][0]['direction']);
         $this->assertSame(3, $result->result['winning_lines'][0]['count']);
         $this->assertSame(4, $result->result['winning_lines'][0]['symbol']);
+        $this->assertSame(5, $result->result['payline_count']);
+        $this->assertSame(3, count($result->result['grid']));
         $this->assertIsInt($result->payout);
     }
 
-    public function test_slots_pay_vertical_lines_on_five_by_five_grid(): void
+    public function test_slots_pay_vertical_lines_on_three_by_three_grid(): void
     {
         $grid = [
-            [4, 0, 2, 6, 7],
-            [4, 0, 3, 5, 1],
-            [4, 0, 5, 6, 2],
-            [1, 2, 6, 7, 3],
-            [2, 3, 1, 2, 4],
+            [4, 0, 2],
+            [4, 1, 3],
+            [4, 2, 5],
         ];
 
         $result = app(SlotsGame::class)->settle($grid, 300);
 
-        $this->assertSame(1381, $result->payout);
-        $this->assertCount(2, $result->result['winning_lines']);
-        $this->assertSame(['vertical', 'vertical'], array_column($result->result['winning_lines'], 'direction'));
-        $this->assertSame([3, 3], array_column($result->result['winning_lines'], 'count'));
-        $this->assertSame([4, 0], array_column($result->result['winning_lines'], 'symbol'));
+        $this->assertSame(2538, $result->payout);
+        $this->assertCount(1, $result->result['winning_lines']);
+        $this->assertSame(['vertical'], array_column($result->result['winning_lines'], 'direction'));
+        $this->assertSame([3], array_column($result->result['winning_lines'], 'count'));
+        $this->assertSame([4], array_column($result->result['winning_lines'], 'symbol'));
     }
 
     public function test_dice_and_slots_simulations_stay_within_two_percent_of_target_rtp(): void
