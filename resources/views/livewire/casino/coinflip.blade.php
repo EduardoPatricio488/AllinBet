@@ -1,5 +1,5 @@
 @php
-    $maxBet = (int) config('casino.bet_limits.max', 10000);
+    $maxBet = max(0, (int) $walletBalance);
     $houseEdge = (int) config('casino.games.coinflip.house_edge_bps', 250);
     $multiplier = (10000 - $houseEdge) / 5000;
     $historyTotal = $headsCount + $tailsCount;
@@ -25,7 +25,7 @@
         async play() {
             if (this.busy) return;
             const w = this.$wire, calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            this.busy = true; this.charge = true; this.resultVisible = false; this.burst = false; this.revealFace = false;
+            this.busy = true; this.charge = true; this.resultVisible = false; this.sfx('charge'); this.burst = false; this.revealFace = false;
             try {
                 if (w.roundPhase !== 'prepared') await w.prepare();
                 if (w.roundPhase !== 'prepared') { this.busy = false; this.charge = false; return; }
@@ -232,7 +232,7 @@
                     @foreach ([25, 50, 100, 250, 500, 1000] as $chip)
                         @if ($chip <= $maxBet)<button type="button" x-on:click="$wire.bet = {{ $chip }}" :disabled="off">{{ $chip }}</button>@endif
                     @endforeach
-                    <button type="button" x-on:click="$wire.bet = {{ $maxBet }}" :disabled="off">Máx.</button>
+                    <button type="button" x-on:click="$wire.bet = {{ $maxBet }}" :disabled="off">ALL IN · {{ number_format($maxBet, 0, ',', ' ') }}</button>
                 </div>
                 @error('bet')<p class="cf-error" role="alert">{{ $message }}</p>@enderror
 
