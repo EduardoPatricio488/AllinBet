@@ -56,6 +56,18 @@ class BetService
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                $activeRound = GameRound::query()
+                    ->where('user_id', $user->getKey())
+                    ->where('game', $game)
+                    ->whereIn('status', [RoundStatus::Prepared, RoundStatus::InProgress])
+                    ->latest('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($activeRound !== null) {
+                    throw new LogicException('An active round already exists for this game.');
+                }
+
                 $this->validateBet($bet, (int) $wallet->balance);
 
                 $this->responsibleGaming->assertCanPlaceBet($user, $bet);
