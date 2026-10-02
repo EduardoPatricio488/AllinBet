@@ -11,7 +11,9 @@ use InvalidArgumentException;
 
 class SlotsGame implements Game
 {
-    public function __construct(private readonly ProvablyFairService $provablyFair) {}
+    public function __construct(
+        private readonly ProvablyFairService $provablyFair,
+    ) {}
 
     public function type(): GameType
     {
@@ -241,7 +243,8 @@ class SlotsGame implements Game
             'payline_count' => $lineCount,
             'slot_variant' => (string) ($variant['key'] ?? 'classic'),
         ]);
-    }    
+    }
+
     /** @return array<int, array{direction: string, index: int}> */
     private function validPaylines(): array
     {
