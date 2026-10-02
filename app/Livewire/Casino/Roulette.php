@@ -13,6 +13,11 @@ class Roulette extends CasinoGameComponent
 
     public int|string $selection = 17;
 
+    protected function casinoGame(): GameType
+    {
+        return GameType::Roulette;
+    }
+
     public function prepare(): void
     {
         $this->prepareGame(GameType::Roulette);
