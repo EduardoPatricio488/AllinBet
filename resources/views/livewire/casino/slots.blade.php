@@ -1,45 +1,35 @@
 @php
-    $grid = $roundResult['grid'] ?? [[0, 1, 2], [3, 4, 5], [2, 1, 0]];
+    $rows = (int) config('casino.games.slots.rows', 5);
+    $columns = (int) config('casino.games.slots.columns', 5);
+    $grid = $roundResult['grid'] ?? array_fill(0, $rows, array_fill(0, $columns, 0));
     $maxBet = max(0, (int) (auth()->user()?->wallet?->balance ?? 0));
-    $locked = $roundPhase === 'prepared';
+    $locked = in_array($roundPhase, ['prepared', 'in_progress'], true);
     $slotVariants = config('casino.games.slots.variants', []);
     $selectedSlotConfig = $slotVariants[$selectedSlot] ?? $slotVariants['classic'] ?? [];
     $symbols = $selectedSlotConfig['symbols'] ?? ['🍒', '🍋', '🍊', '🔔', '⭐', '🍀', '💎', '7️⃣'];
-    $orders = [
-        [0, 3, 6, 1, 4, 7, 2, 5],
-        [5, 2, 7, 4, 1, 6, 3, 0],
-        [2, 6, 1, 5, 0, 4, 7, 3],
-    ];
 
     $winningLines = $roundPhase === 'completed'
         ? collect($roundResult['winning_lines'] ?? [])->values()->all()
         : [];
-    $winRows = collect($winningLines)
-        ->where('direction', 'horizontal')
-        ->pluck('line')
-        ->map(fn ($l) => (int) $l)
-        ->all();
-    $winCols = collect($winningLines)
-        ->where('direction', 'vertical')
-        ->pluck('line')
-        ->map(fn ($l) => (int) $l)
-        ->all();
     $payout = (int) $roundPayout;
-    $paytable = $selectedSlotConfig['paytable'] ?? [];
 @endphp
 
-<div class="casino-game-play casino-game-screen slot-page" data-casino-game="slots" grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
+<div class="casino-game-play casino-game-screen slot-page" data-casino-game="slots"
      x-data="{
-        st: ['idle', 'idle', 'idle'],
+        st: [0, 0, 0, 0, 0].map(() => 'idle'),
         selectedSlot: @js($selectedSlot),
         busy: false,
         done: true,
-        revealed: true,
-        overlay: false,
         shown: 0,
         prize: 0,
         tier: '',
         settled: 0,
+        grid: @js($grid),
+        winningLines: @js($winningLines),
+        symbols: @js($symbols),
+        tracks: [[], [], [], [], []],
+        reelPrefix: 72,
+        spinCycle: 0,
         bonusRunning: false,
         bonusDone: false,
         bonusMultiplier: 0,
@@ -55,13 +45,126 @@
         bonusOption(multiplier) {
             return this.bonusOptions.find((option) => Number(option.multiplier) === Number(multiplier)) || null;
         },
-        reelSpinners() { return [...this.$root.querySelectorAll('.slot-spinner')]; },
+        buildReelTracks() {
+            const orders = [
+                [0, 3, 6, 1, 4, 7, 2, 5],
+                [5, 2, 7, 4, 1, 6, 3, 0],
+                [2, 6, 1, 5, 0, 4, 7, 3],
+                [1, 7, 4, 2, 6, 0, 5, 3],
+                [4, 0, 6, 2, 7, 3, 1, 5],
+            ];
+            const count = this.symbols.length || 1;
+
+            for (let column = 0; column < 5; column++) {
+                const track = [];
+                const order = orders[column];
+
+                for (let i = 0; i < this.reelPrefix; i++) {
+                    const index = order[(i + (this.spinCycle * 3) + column) % order.length];
+                    track.push(this.symbols[index % count]);
+                }
+
+                for (let row = 0; row < 5; row++) {
+                    const value = Number(this.grid?.[row]?.[column] ?? 0);
+                    track.push(this.symbols[Math.abs(value) % count]);
+                }
+
+                this.tracks[column] = track;
+            }
+        },
+        syncServerResult() {
+            const result = this.$wire.roundResult || {};
+
+            if (Array.isArray(result.grid) && result.grid.length === 5) {
+                this.grid = result.grid;
+            }
+
+            this.winningLines = Array.isArray(result.winning_lines) ? result.winning_lines : [];
+            this.buildReelTracks();
+        },
+        isWinningCell(row, column) {
+            return this.done && this.winningLines.some((line) =>
+                (line.direction === 'horizontal' && Number(line.line) === row) ||
+                (line.direction === 'vertical' && Number(line.line) === column)
+            );
+        },
+        reelSpinners() {
+            return [...this.$root.querySelectorAll('.slot-spinner')];
+        },
         resetReels() {
+            this.spinCycle += 1;
+            this.buildReelTracks();
+
             this.reelSpinners().forEach((spinner) => {
                 spinner.style.animation = '';
-                spinner.style.transition = '';
+                spinner.style.transition = 'none';
                 spinner.style.transform = 'translate3d(0, 0, 0)';
             });
+        },
+        readTransformY(element) {
+            const transform = getComputedStyle(element).transform;
+
+            if (!transform || transform === 'none') return 0;
+
+            const match3d = transform.match(/matrix3d\(([^)]+)\)/);
+            if (match3d) {
+                const values = match3d[1].split(',').map(Number);
+                return Number(values[13]) || 0;
+            }
+
+            const match2d = transform.match(/matrix\(([^)]+)\)/);
+            if (match2d) {
+                const values = match2d[1].split(',').map(Number);
+                return Number(values[5]) || 0;
+            }
+
+            return 0;
+        },
+        async settleReel(index) {
+            const reel = this.$root.querySelectorAll('.slot-reel')[index];
+            const spinner = this.reelSpinners()[index];
+
+            if (!reel || !spinner) return;
+
+            const cell = Math.max(1, reel.getBoundingClientRect().height / 5);
+            const currentY = this.readTransformY(spinner);
+            const targetY = -(this.reelPrefix * cell);
+            const durations = [590, 680, 770, 860, 950];
+            const duration = durations[index] || 770;
+
+            spinner.style.animation = 'none';
+            spinner.style.transition = 'none';
+            spinner.style.transform = 'translate3d(0, ' + currentY + 'px, 0)';
+            void spinner.offsetHeight;
+
+            spinner.style.transition = 'transform ' + duration + 'ms cubic-bezier(.12,.82,.18,1)';
+            spinner.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
+
+            await this.wait(duration + 35);
+            spinner.style.transition = 'none';
+            spinner.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
+            this.st[index] = 'idle';
+            this.settled = index + 1;
+            this.sfx('stop', index);
+        },
+        startSpinning() {
+            this.reelSpinners().forEach((spinner, index) => {
+                spinner.style.transition = 'none';
+                spinner.style.transform = 'translate3d(0, 0, 0)';
+                spinner.style.animation = 'slot-scroll var(--spin-speed-' + index + ', .52s) linear infinite';
+            });
+        },
+        async finishSpin() {
+            this.syncServerResult();
+
+            for (let i = 0; i < 5; i++) {
+                this.st[i] = 'settle';
+                await this.settleReel(i);
+                if (i < 4) await this.wait(115);
+            }
+
+            this.done = true;
+            this.busy = false;
         },
         async buyBonus(multiplier) {
             if (this.busy || this.bonusRunning) return;
@@ -90,11 +193,11 @@
             this.bonusPayout = 0;
             this.bonusProfit = 0;
             this.done = false;
-            this.revealed = false;
             this.overlay = false;
             this.settled = 0;
-            this.st = ['spin', 'spin', 'spin'];
+            this.st = [0, 0, 0, 0, 0].map(() => 'spin');
             this.resetReels();
+            this.startSpinning();
             this.sfx('spin');
 
             const progressTimer = window.setInterval(() => {
@@ -116,33 +219,19 @@
             window.clearInterval(progressTimer);
 
             if (!ok) {
+                this.st = [0, 0, 0, 0, 0].map(() => 'idle');
                 this.bonusRunning = false;
                 this.bonusDone = false;
                 this.bonusProgress = 0;
-                this.st = ['idle', 'idle', 'idle'];
-                this.revealed = true;
                 this.done = true;
                 this.busy = false;
+                this.resetReels();
                 return;
             }
 
             this.bonusProgress = spins;
+            await this.finishSpin();
 
-            if (!calm) {
-                for (let i = 0; i < 3; i++) {
-                    this.st[i] = 'settle';
-                    if (i > 0) await this.wait(130);
-                    this.sfx('stop', i);
-                    await this.settleReel(i);
-                }
-            } else {
-                this.st = ['idle', 'idle', 'idle'];
-                this.settled = 3;
-            }
-
-            this.revealed = true;
-            this.done = true;
-            this.busy = false;
             this.bonusRunning = false;
             this.bonusDone = true;
 
@@ -165,9 +254,7 @@
         async selectSlot(key) {
             const allowed = @js(array_keys($slotVariants));
 
-            if (this.busy || !allowed.includes(key) || key === this.selectedSlot) {
-                return;
-            }
+            if (this.busy || !allowed.includes(key) || key === this.selectedSlot) return;
 
             this.selectedSlot = key;
 
@@ -176,6 +263,7 @@
             window.history.replaceState({}, '', url);
 
             await this.$wire.selectSlot(key);
+            this.buildReelTracks();
         },
         step(d) {
             const current = Number(this.$wire.bet || 1);
@@ -183,68 +271,26 @@
 
             this.$wire.bet = Math.min(this.maxBet, Math.max(1, next));
         },
-        async settleReel(index) {
-            const reel = this.$root.querySelectorAll('.slot-reel')[index];
-            const spinner = this.reelSpinners()[index];
-
-            if (! reel || ! spinner) return;
-
-            const currentTransform = getComputedStyle(spinner).transform;
-            let currentY = 0;
-
-            if (currentTransform && currentTransform !== 'none') {
-                const match = currentTransform.match(/matrix3d\(([^)]+)\)/);
-                const matrix = match ? match[1].split(',').map(Number) : null;
-                if (matrix) {
-                    currentY = Number(matrix[13]) || 0;
-                } else {
-                    const twoD = currentTransform.match(/matrix\(([^)]+)\)/);
-                    if (twoD) {
-                        const values = twoD[1].split(',').map(Number);
-                        currentY = Number(values[5]) || 0;
-                    }
-                }
-            }
-
-            const cell = Math.max(1, reel.getBoundingClientRect().height / 3);
-            const extraCells = 7 + (index * 2);
-            const remainder = ((Math.abs(currentY) % cell) + cell) % cell;
-            const targetY = currentY - ((extraCells * cell) + remainder);
-
-            spinner.style.animation = 'none';
-            spinner.style.transition = 'none';
-            spinner.style.transform = 'translate3d(0, ' + currentY + 'px, 0)';
-
-            await this.wait(16);
-
-            spinner.style.transition = 'transform ' + (index === 2 ? 720 : 610) + 'ms cubic-bezier(.16,1,.3,1)';
-            spinner.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
-
-            await this.wait(index === 2 ? 735 : 625);
-
-            this.st[index] = 'idle';
-            this.settled = index + 1;
-        },
         async go() {
             if (this.busy) return;
 
             const w = this.$wire;
             const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const minSpinMs = calm ? 120 : 2100;
+            const minSpinMs = calm ? 120 : 2200;
             const startedAt = Date.now();
 
             this.busy = true;
             this.bonusRunning = false;
             this.bonusDone = false;
             this.done = false;
-            this.revealed = false;
             this.overlay = false;
             this.settled = 0;
             this.prize = 0;
             this.shown = 0;
             this.tier = '';
-            this.st = ['spin', 'spin', 'spin'];
+            this.st = [0, 0, 0, 0, 0].map(() => 'spin');
             this.resetReels();
+            this.startSpinning();
             this.sfx('spin');
 
             const backend = (async () => {
@@ -259,35 +305,17 @@
             })();
 
             await this.wait(Math.max(0, minSpinMs - (Date.now() - startedAt)));
-
             const ok = await backend;
 
             if (!ok) {
-                this.st = ['idle', 'idle', 'idle'];
-                this.revealed = true;
+                this.st = [0, 0, 0, 0, 0].map(() => 'idle');
                 this.done = true;
                 this.busy = false;
+                this.resetReels();
                 return;
             }
 
-            if (calm) {
-                this.st = ['idle', 'idle', 'idle'];
-                this.settled = 3;
-                this.revealed = true;
-                this.done = true;
-                this.busy = false;
-            } else {
-                for (let i = 0; i < 3; i++) {
-                    this.st[i] = 'settle';
-                    this.sfx('stop', i);
-                    await this.settleReel(i);
-                    if (i < 2) await this.wait(120);
-                }
-
-                this.revealed = true;
-                this.done = true;
-                this.busy = false;
-            }
+            await this.finishSpin();
 
             const p = Number(w.roundPayout || 0);
 
@@ -301,6 +329,7 @@
             this.prize = p;
             this.shown = 0;
             this.overlay = true;
+
             this.sfx(m >= 5 ? 'slotJackpot' : 'slotWin');
 
             const t0 = performance.now();
@@ -322,8 +351,7 @@
                 this.$dispatch('casino-big-win', { amount: p });
             }
         }
-     }"
-     x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); go(); }">
+     }" x-init="buildReelTracks()">
     <div class="slot-page-main">
         <section class="slot-collection" aria-label="Escolher máquina de Slots">
         <div class="slot-collection__head">
@@ -357,7 +385,7 @@
         </div>
     </section>
 
-    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 3×3 com 5 linhas de pagamento: 3 horizontais e 2 verticais. Só três símbolos iguais na mesma linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'A aposta total é distribuída pelas 5 linhas.'], ['title'=>'Gira os rolos','text'=>'Carrega em Girar ou na barra de espaço.'], ['title'=>'5 linhas pagam','text'=>'Existem 3 linhas horizontais e 2 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
+    <x-casino.how-it-works game-key="slots" title="Como funcionam as Slots?" description="Grelha 5×5 com 10 linhas de pagamento: 5 horizontais e 5 verticais. Três símbolos iguais numa linha pagam." :rules="[['title'=>'Escolhe a aposta','text'=>'Aposta qualquer valor inteiro positivo dentro do saldo.'], ['title'=>'Gira os rolos','text'=>'Os símbolos passam continuamente pelos cinco níveis visíveis.'], ['title'=>'10 linhas pagam','text'=>'Existem 5 linhas horizontais e 5 linhas verticais.'], ['title'=>'3 iguais pagam','text'=>'Os prémios de várias linhas vencedoras acumulam.']]" />
 
 <style>
         .slot-page-main{min-width:0}
@@ -440,7 +468,7 @@
 
         @keyframes slot-status-pulse { from { transform: scale(.75); opacity: .55; } to { transform: scale(1.15); opacity: 1; } }
 
-        .slot-machine { --cell: clamp(4.2rem, 16vw, 6.6rem); --gold: #f2c14e; --gold-hi: #ffe39a; }
+        .slot-machine { --cell: clamp(2.45rem, 5vw, 4rem); --gold: #f2c14e; --gold-hi: #ffe39a; }
         .allin-slots { --green: #23d99a; --line: rgba(255,255,255,.08); }
 
         .slot-cabinet {
@@ -810,47 +838,42 @@
                     'is-spinning': busy
                  }">
                 <div class="slot-markers" aria-hidden="true">
-                    @foreach ([0, 1, 2] as $r)
-                        <span :class="{ 'is-win': done && @js(in_array($r, $winRows, true)) }">{{ $r + 1 }}</span>
+                    @foreach ([0, 1, 2, 3, 4] as $r)
+                        <span>{{ $r + 1 }}</span>
                     @endforeach
                 </div>
 
-                <div class="slot-reels" role="img" aria-label="Rolos com 9 posições, 3 colunas e 3 linhas">
-                    @foreach ([0, 1, 2] as $c)
-                        <div class="slot-reel" :class="'is-' + st[{{ $c }}]">
-                            <div class="slot-spinner" aria-hidden="true">
-                                @for ($k = 0; $k < 4; $k++)
-                                    @foreach ($orders[$c] as $n)
-                                        <span class="slot-sym">{{ $symbols[$n % count($symbols)] }}</span>
-                                    @endforeach
-                                @endfor
-                            </div>
-
-                            <div class="slot-landing" x-show="revealed" x-cloak>
-                                @foreach ($grid as $r => $row)
-                                    @php
-                                        $isWin = in_array($r, $winRows, true) || in_array($c, $winCols, true);
-                                    @endphp
-                                    <span class="slot-sym {{ $isWin ? 'is-win' : '' }}">
-                                        {{ $symbols[((int) ($row[$c] ?? 0)) % count($symbols)] }}
-                                    </span>
-                                @endforeach
+                <div class="slot-reels" wire:ignore role="img" aria-label="Cinco rolos com cinco linhas visíveis">
+                    <template x-for="column in [0, 1, 2, 3, 4]" :key="'reel-' + column">
+                        <div class="slot-reel" :class="'is-' + st[column]">
+                            <div class="slot-spinner">
+                                <template x-for="(symbol, index) in tracks[column]" :key="column + '-' + index">
+                                    <span class="slot-sym"
+                                          :class="{ 'is-win': done && index >= reelPrefix && index < reelPrefix + 5 && isWinningCell(index - reelPrefix, column) }"
+                                          x-text="symbol"></span>
+                                </template>
                             </div>
                         </div>
-                    @endforeach
+                    </template>
 
-                    @foreach ($winRows as $r)
-                        <i class="slot-payline" style="--row: {{ $r }}" aria-hidden="true"></i>
-                    @endforeach
+                    <template x-for="row in [0, 1, 2, 3, 4]" :key="'hline-' + row">
+                        <i class="slot-payline"
+                           x-show="done && winningLines.some((line) => line.direction === 'horizontal' && Number(line.line) === row)"
+                           :style="'--row:' + row"
+                           aria-hidden="true"></i>
+                    </template>
 
-                    @foreach ($winCols as $c)
-                        <i class="slot-payline slot-payline--vertical" style="--col: {{ $c }}" aria-hidden="true"></i>
-                    @endforeach
+                    <template x-for="column in [0, 1, 2, 3, 4]" :key="'vline-' + column">
+                        <i class="slot-payline slot-payline--vertical"
+                           x-show="done && winningLines.some((line) => line.direction === 'vertical' && Number(line.line) === column)"
+                           :style="'--col:' + column"
+                           aria-hidden="true"></i>
+                    </template>
                 </div>
 
                 <div class="slot-markers" aria-hidden="true">
-                    @foreach ([0, 1, 2] as $r)
-                        <span :class="{ 'is-win': done && @js(in_array($r, $winRows, true)) }">{{ $r + 1 }}</span>
+                    @foreach ([0, 1, 2, 3, 4] as $r)
+                        <span>{{ $r + 1 }}</span>
                     @endforeach
                 </div>
             </div>
@@ -863,7 +886,7 @@
                         <input type="number" min="1" step="1" max="{{ $maxBet }}" wire:model="bet" :disabled="busy || @js($locked)" class="slot-bet-input" aria-label="Aposta total em créditos">
                         <button type="button" x-on:click="step(1)" :disabled="busy || @js($locked)" aria-label="Aumentar aposta">+</button>
                     </div>
-                    <small class="slot-hint">Aposta total · 5 linhas de pagamento</small>
+                    <small class="slot-hint">Aposta total · 10 linhas de pagamento</small>
                 </div>
 
                 <div class="slot-chips" aria-label="Apostas rápidas">
@@ -942,7 +965,7 @@
                         <button type="button" class="mt-3 inline-block text-sm text-emerald-300 underline underline-offset-4 hover:text-emerald-200" x-data x-on:click="$dispatch('casino-open-fairness', { roundId: {{ $roundId }} })">Verificar esta ronda</button>
                     @endif
                 @else
-                    <p class="text-sm text-zinc-400">5 linhas de prémio: 3 horizontais e 2 verticais.</p>
+                    <p class="text-sm text-zinc-400">10 linhas de prémio: 5 horizontais e 5 verticais.</p>
                 @endif
             </div>
         </div>
@@ -955,7 +978,7 @@
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">3 verticais</div>
                 <div class="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">{{ $selectedSlotConfig['tag'] ?? 'ORIGINAL' }}</div>
             </div>
-            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 5 linhas de pagamento: 3 horizontais e 2 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
+            <p class="mt-3 text-xs leading-5 text-zinc-500">Existem 10 linhas de pagamento: 5 horizontais e 5 verticais. Só três símbolos iguais na mesma linha pagam; várias linhas vencedoras acumulam.</p>
         </div>
 
         <details class="casino-card slot-fair">
