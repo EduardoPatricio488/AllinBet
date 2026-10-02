@@ -200,13 +200,13 @@ const casinoAmbientProfiles = {
 		accent: 0.62,
 	},
 	slots: {
-		bpm: 92,
-		progression: [[261.63, 329.63, 392, 493.88], [293.66, 349.23, 440, 523.25], [246.94, 293.66, 369.99, 440], [261.63, 329.63, 392, 493.88]],
-		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 783.99, 880, 783.99],
+		bpm: 124,
+		progression: [[261.63, 329.63, 392, 493.88], [293.66, 349.23, 440, 523.25], [246.94, 293.66, 369.99, 440], [329.63, 392, 493.88, 587.33]],
+		arp: [523.25, 659.25, 783.99, 987.77, 1046.5, 987.77, 880, 783.99, 659.25, 783.99, 987.77, 1174.66],
 		bass: 130.81,
-		padWave: 'triangle',
-		arpWave: 'triangle',
-		accent: 1.25,
+		padWave: 'sawtooth',
+		arpWave: 'square',
+		accent: 1.55,
 	},
 	jetx: {
 		bpm: 76,
@@ -365,13 +365,29 @@ const startCasinoAmbient = () => {
 		if (!casinoAmbient || !casinoSoundEnabled() || document.hidden) return;
 
 		const frequency = profile.arp[arpIndex % profile.arp.length];
-		const volume = 0.0048 * profile.accent;
-		playCasinoAmbientNote(context, master, frequency, 0.42, volume, profile.arpWave);
-		if (arpIndex % 4 === 0) {
+		const volume = 0.0064 * profile.accent;
+		playCasinoAmbientNote(context, master, frequency, 0.26, volume, profile.arpWave);
+
+		if (game === 'slots') {
+			const beat = arpIndex % 4;
+			if (beat === 0 || beat === 2) {
+				playCasinoAmbientNote(context, master, profile.bass / 2, 0.18, volume * 0.9, 'sine');
+			}
+			if (beat === 1 || beat === 3) {
+				playCasinoAmbientNote(context, master, profile.bass, 0.12, volume * 0.55, 'square');
+			}
+			if (arpIndex % 8 === 7) {
+				playCasinoAmbientNote(context, master, frequency * 2, 0.16, volume * 0.45, 'triangle');
+			}
+		} else if (arpIndex % 4 === 0) {
 			playCasinoAmbientNote(context, master, frequency / 2, 0.32, volume * 0.34, 'sine');
 		}
+
 		arpIndex += 1;
-		casinoAmbient.arpTimer = window.setTimeout(scheduleArpeggio, Math.round(60000 / profile.bpm / 2));
+		casinoAmbient.arpTimer = window.setTimeout(
+			scheduleArpeggio,
+			Math.round(60000 / profile.bpm / (game === 'slots' ? 4 : 2)),
+		);
 	};
 
 	casinoAmbient = {
