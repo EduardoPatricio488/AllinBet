@@ -44,7 +44,7 @@ class Slots extends CasinoGameComponent
 
     public function spin(): void
     {
-        $this->playGame(GameType::Slots);
+        $this->playGame(GameType::Slots, ['defer_payout' => true]);
     }
 
     public function buyBonus(int $multiplier): void
@@ -100,7 +100,10 @@ class Slots extends CasinoGameComponent
         );
 
         if ($this->roundPhase === RoundStatus::Prepared->value) {
-            $this->playGame(GameType::Slots, ['action' => 'bonus_buy']);
+            $this->playGame(GameType::Slots, [
+                'action' => 'bonus_buy',
+                'defer_payout' => true,
+            ]);
         }
     }
 
