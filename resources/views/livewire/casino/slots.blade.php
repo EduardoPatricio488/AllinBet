@@ -82,12 +82,12 @@
             let currentY = 0;
 
             if (currentTransform && currentTransform !== 'none') {
-                const match = currentTransform.match(/matrix3d\\(([^)]+)\\)/);
+                const match = currentTransform.match(/matrix3d\(([^)]+)\)/);
                 const matrix = match ? match[1].split(',').map(Number) : null;
                 if (matrix) {
                     currentY = Number(matrix[13]) || 0;
                 } else {
-                    const twoD = currentTransform.match(/matrix\\(([^)]+)\\)/);
+                    const twoD = currentTransform.match(/matrix\(([^)]+)\)/);
                     if (twoD) {
                         const values = twoD[1].split(',').map(Number);
                         currentY = Number(values[5]) || 0;
@@ -577,7 +577,7 @@
                     @foreach ([0, 1, 2] as $c)
                         <div class="slot-reel" :class="'is-' + st[{{ $c }}]">
                             <div class="slot-spinner" aria-hidden="true">
-                                @for ($k = 0; $k < 2; $k++)
+                                @for ($k = 0; $k < 4; $k++)
                                     @foreach ($orders[$c] as $n)
                                         <span class="slot-sym">{{ $symbols[$n % count($symbols)] }}</span>
                                     @endforeach
