@@ -38,7 +38,6 @@
             if (!calm) await this.wait(4000);
             this.tossing = false;
             this.rot += 1800 + mod(target - this.rot);
-            await this.wait(calm ? 0 : 90);
             this.revealFace = true;
             this.landed = true; this.sfx('land'); setTimeout(() => { this.landed = false; }, 600);
             this.resultVisible = true; this.busy = false;
