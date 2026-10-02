@@ -28,7 +28,7 @@
     $paytable = $selectedSlotConfig['paytable'] ?? [];
 @endphp
 
-<div class="casino-game-play casino-game-screen slot-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
+<div class="casino-game-play casino-game-screen slot-page" data-casino-game="slots" grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
      x-data="{
         st: ['idle', 'idle', 'idle'],
         selectedSlot: @js($selectedSlot),
