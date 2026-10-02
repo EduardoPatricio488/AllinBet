@@ -337,3 +337,37 @@
 .casino-wallet-empty{display:grid;place-items:center;min-height:14rem;padding:1rem;text-align:center;color:#7f8b94}.casino-wallet-empty span{margin-bottom:.5rem;color:#f5d778;font-size:2rem}.casino-wallet-empty strong{color:#cbd2d7;font-size:.8rem}.casino-wallet-empty p{margin-top:.2rem;font-size:.7rem}
 .casino-wallet-link{display:inline-flex;align-items:center}.casino-wallet-link .casino-balance{cursor:pointer;transition:transform .2s ease}.casino-wallet-link:hover .casino-balance{transform:translateY(-1px)}
 @media(max-width:800px){.casino-wallet-hero,.casino-wallet-grid{grid-template-columns:1fr}.casino-wallet-hero{align-items:flex-start;flex-direction:column}.casino-wallet-hero__balance{width:100%;text-align:left}}
+
+
+/* Chrome comum das mesas: mesma linguagem visual, mecânicas específicas por jogo. */
+.casino-main{position:relative;isolation:isolate}
+.casino-main::before{content:'';position:absolute;inset:-8rem -6rem auto;height:30rem;z-index:-2;pointer-events:none;background:radial-gradient(circle at 18% 20%,rgb(245 215 120 / 9%),transparent 30%),radial-gradient(circle at 82% 8%,rgb(77 217 255 / 6%),transparent 28%),radial-gradient(circle at 50% 85%,rgb(52 180 131 / 5%),transparent 42%);filter:blur(8px);animation:casino-main-breathe 9s ease-in-out infinite alternate}
+.casino-main__content{position:relative;z-index:1}
+.casino-game-chrome{position:relative;overflow:hidden;margin-bottom:1rem;padding:.95rem 1rem 1rem;border:1px solid rgb(230 200 121 / 16%);border-radius:1.15rem;background:linear-gradient(135deg,rgb(11 17 25 / 88%),rgb(12 20 27 / 74%));box-shadow:0 18px 45px rgb(0 0 0 / 18%),inset 0 1px 0 rgb(255 255 255 / 3%);backdrop-filter:blur(16px)}
+.casino-game-chrome::before{content:'';position:absolute;inset:-50%;z-index:-1;background:conic-gradient(from 0deg,transparent 0 68%,rgb(230 200 121 / 7%) 75%,transparent 83%);animation:casino-chrome-orbit 16s linear infinite}
+.casino-game-chrome__head{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.casino-game-chrome__title{display:flex;align-items:baseline;gap:.6rem;margin-top:.18rem}
+.casino-game-chrome__title strong{font-size:1rem;font-weight:950;color:#fff}
+.casino-game-chrome__title span{font-size:.62rem;color:#7d8997}
+.casino-game-chrome__meta{display:flex;align-items:center;gap:.5rem}
+.casino-game-chrome__meta>a{display:inline-flex;align-items:center;gap:.45rem;padding:.38rem .6rem;border:1px solid rgb(230 200 121 / 18%);border-radius:.7rem;color:#bdc6d0;font-size:.6rem;text-decoration:none;background:rgb(255 255 255 / 2%)}
+.casino-game-chrome__meta>a:hover{border-color:rgb(230 200 121 / 38%);color:var(--casino-gold-bright)}
+.casino-game-chrome__meta .casino-balance{transform:scale(.86);transform-origin:right center}
+.casino-game-chrome__live{display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .5rem;border:1px solid rgb(80 224 164 / 15%);border-radius:999px;color:#73ddb0;font-size:.52rem;font-weight:900;letter-spacing:.12em;background:rgb(73 224 165 / 3%)}
+.casino-game-chrome__live i{width:.35rem;height:.35rem;border-radius:50%;background:#67e8b3;box-shadow:0 0 9px rgb(103 232 179 / 85%);animation:casino-chrome-pulse .8s ease-in-out infinite alternate}
+.casino-game-chrome__switch{position:relative;z-index:2;display:flex;gap:.4rem;margin-top:.75rem;overflow-x:auto;padding-bottom:.15rem;scrollbar-width:none}
+.casino-game-chrome__switch::-webkit-scrollbar{display:none}
+.casino-game-chrome__switch a{display:inline-flex;align-items:center;gap:.38rem;min-height:2.1rem;flex:none;border:1px solid rgb(230 200 121 / 14%);border-radius:999px;padding:.32rem .7rem;color:#9ea9b5;font-size:.59rem;font-weight:850;text-decoration:none;white-space:nowrap;background:rgb(255 255 255 / 1.5%);transition:transform .16s ease,border-color .16s ease,background .16s ease,color .16s ease}
+.casino-game-chrome__switch a:hover{transform:translateY(-1px);border-color:rgb(230 200 121 / 34%);color:#f4d77f;background:rgb(230 200 121 / 5%)}
+.casino-game-chrome__switch a.is-current{border-color:rgb(230 200 121 / 48%);color:#ffe39a;background:linear-gradient(135deg,rgb(230 200 121 / 10%),rgb(230 200 121 / 3%));box-shadow:0 0 16px rgb(230 200 121 / 5%)}
+.casino-game-chrome__ambient{position:absolute;right:2rem;bottom:-.7rem;display:flex;gap:2.2rem;opacity:.18;pointer-events:none}
+.casino-game-chrome__ambient span{display:block;width:2.2rem;height:2.2rem;border-radius:50%;border:1px solid rgb(230 200 121 / 30%);box-shadow:inset 0 0 0 .32rem rgb(230 200 121 / 5%),0 0 24px rgb(230 200 121 / 8%);animation:casino-chip-float calc(4.5s + var(--d, 0s)) ease-in-out infinite alternate}
+.casino-game-chrome__ambient span:nth-child(2){--d:-.8s}.casino-game-chrome__ambient span:nth-child(3){--d:-1.6s}.casino-game-chrome__ambient span:nth-child(4){--d:-2.4s}.casino-game-chrome__ambient span:nth-child(5){--d:-3.2s}
+.casino-game-screen,.casino-game-play,.blackjack-page{position:relative;z-index:1}
+.casino-game-screen::before,.casino-game-play::before,.blackjack-page::before{content:'';position:absolute;inset:-.7rem;border-radius:1.4rem;pointer-events:none;z-index:-1;background:radial-gradient(circle at 50% 0,rgb(255 255 255 / 2%),transparent 42%)}
+@keyframes casino-main-breathe{from{transform:translate3d(0,0,0) scale(.98);opacity:.7}to{transform:translate3d(0,-14px,0) scale(1.03);opacity:1}}
+@keyframes casino-chrome-orbit{to{transform:rotate(360deg)}}
+@keyframes casino-chrome-pulse{from{transform:scale(.76);opacity:.45}to{transform:scale(1.16);opacity:1}}
+@keyframes casino-chip-float{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-9px) rotate(4deg)}}
+@media(max-width:640px){.casino-game-chrome{padding:.78rem}.casino-game-chrome__head{align-items:flex-start}.casino-game-chrome__title{display:grid;gap:.1rem}.casino-game-chrome__meta .casino-game-chrome__live{display:none}.casino-game-chrome__switch a{font-size:.56rem;padding-inline:.58rem}}
+@media(prefers-reduced-motion:reduce){.casino-main::before,.casino-game-chrome::before,.casino-game-chrome__live i,.casino-game-chrome__ambient span{animation:none!important}}
