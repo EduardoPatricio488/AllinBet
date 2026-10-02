@@ -147,15 +147,34 @@ abstract class CasinoGameComponent extends Component
         $this->dispatch('history-updated');
 
         if ($round->status === RoundStatus::Completed) {
+            $isBonusBuy = (bool) ($round->publicResult()['bonus_buy'] ?? false);
+            $netResult = $round->payout - $round->bet;
+
             $this->dispatch(
                 'casino-round-result',
-                outcome: $round->payout > 0 ? 'win' : ($round->payout === $round->bet ? 'push' : 'loss'),
-                amount: $round->payout > 0 ? $round->payout : $round->bet,
+                outcome: $isBonusBuy
+                    ? ($netResult > 0 ? 'win' : ($netResult === 0 ? 'push' : 'loss'))
+                    : ($round->payout > 0 ? 'win' : ($round->payout === $round->bet ? 'push' : 'loss')),
+                amount: $isBonusBuy
+                    ? abs($netResult)
+                    : ($round->payout > 0 ? $round->payout : $round->bet),
             );
-        }
 
-        if ($round->status === RoundStatus::Completed && $round->payout > 0) {
-            $this->dispatch('casino-toast', type: 'success', title: 'Vitória confirmada', message: "+{$round->payout} créditos virtuais.");
+            if ($isBonusBuy) {
+                $this->dispatch(
+                    'casino-toast',
+                    type: $netResult >= 0 ? 'success' : 'info',
+                    title: 'Bónus concluído',
+                    message: ($netResult >= 0 ? '+' : '') . "{$netResult} créditos de resultado líquido.",
+                );
+            } elseif ($round->payout > 0) {
+                $this->dispatch(
+                    'casino-toast',
+                    type: 'success',
+                    title: 'Vitória confirmada',
+                    message: "+{$round->payout} créditos virtuais.",
+                );
+            }
 
             $bigWinMultiplier = max(1, (int) config('casino.big_win_multiplier', 5));
 
