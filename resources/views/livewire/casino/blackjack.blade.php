@@ -112,7 +112,7 @@
 
     <div class="bj-layout">
         <section class="bj-table" aria-label="Mesa de Blackjack">
-            <div x-show="resultVisible" x-cloak x-transition.opacity class="bj-prize-overlay" role="status" aria-live="assertive"><div class="bj-prize__card" :class="{ loss: resultType === 'loss' }"><p x-text="resultType === 'win' ? '🎉 Vitória' : 'Derrota'"></p><strong x-text="(resultType === 'win' ? '+' : '−') + Number(resultAmount).toLocaleString('pt-PT')"></strong><small x-text="resultType === 'win' ? 'créditos virtuais ganhos' : 'créditos virtuais perdidos'"></small></div></div><div class="bj-arc">♠ · ALLINBET BLACKJACK · ♠</div>
+            <div x-show="resultVisible" x-cloak x-transition.opacity class="bj-prize" role="status" aria-live="assertive"><div class="bj-prize__card" :class="{ loss: resultType === 'loss' }"><p x-text="resultType === 'win' ? '🎉 Vitória' : 'Derrota'"></p><strong x-text="(resultType === 'win' ? '+' : '−') + Number(resultAmount).toLocaleString('pt-PT')"></strong><small x-text="resultType === 'win' ? 'créditos virtuais ganhos' : 'créditos virtuais perdidos'"></small></div></div><div class="bj-arc">♠ · ALLINBET BLACKJACK · ♠</div>
 
             <div class="bj-hand bj-seat">
                 <div class="bj-head">
