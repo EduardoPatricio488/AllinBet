@@ -49,7 +49,7 @@
         },
 
         async rollNow() {
-            if (this.busy || this.$wire.roundPhase !== 'prepared') return;
+            if (this.busy) return;
 
             this.busy = true;
             this.rolling = true;
@@ -82,7 +82,7 @@
             }
         }
     }"
-    x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); if (!busy && $wire.roundPhase === 'prepared') rollNow(); }"
+    x-on:keydown.window="if ($event.code === 'Space' && !['INPUT','TEXTAREA','BUTTON','SELECT','SUMMARY'].includes($event.target.tagName)) { $event.preventDefault(); if (!busy && $wire.roundPhase !== 'in_progress') rollNow(); }"
     x-on:livewire:navigated.window="resultVisible = {{ $hasResult ? 'true' : 'false' }}"
 >
 
@@ -301,18 +301,12 @@
                 </div>
 
                 <div class="dice-action">
-                    @if ($roundPhase === 'prepared')
-                        <button type="button" class="dice-primary" x-on:click="rollNow()" :disabled="busy">
-                            <span x-show="!busy">Lançar dados</span>
-                            <span x-show="busy" x-cloak>Os dados estão no ar…</span>
-                        </button>
-                    @else
-                        <button type="button" class="dice-primary" wire:click="prepare" wire:loading.attr="disabled">
-                            {{ $roundPhase === 'completed' ? 'Preparar nova ronda' : 'Preparar ronda' }}
-                        </button>
-                    @endif
+                    <button type="button" class="dice-primary" x-on:click="rollNow()" :disabled="busy || $wire.roundPhase === 'in_progress'">
+                        <span x-show="!busy">Lançar dados</span>
+                        <span x-show="busy" x-cloak>Os dados estão no ar…</span>
+                    </button>
                 </div>
-                <p class="mt-2 text-center dice-space">Espaço = lançar quando a ronda estiver preparada</p>
+                <p class="mt-2 text-center dice-space">Espaço = lançar · a aposta fecha automaticamente ao iniciar</p>
 
                 @error('bet')<p role="alert" class="mt-3 text-xs text-rose-300">{{ $message }}</p>@enderror
                 @error('threshold')<p role="alert" class="mt-2 text-xs text-rose-300">{{ $message }}</p>@enderror
