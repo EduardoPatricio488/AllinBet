@@ -7,6 +7,7 @@ namespace App\Games;
 use App\Enums\GameType;
 use App\Models\GameRound;
 use App\Services\PayoutCalculator;
+use App\Services\ProvablyFairService;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -14,7 +15,10 @@ class BlackjackGame implements Game
 {
     private const array SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 
-    public function __construct(private readonly PayoutCalculator $payoutCalculator) {}
+    public function __construct(
+        private readonly PayoutCalculator $payoutCalculator,
+        private readonly ProvablyFairService $provablyFair,
+    ) {}
 
     public function type(): GameType
     {
@@ -48,7 +52,10 @@ class BlackjackGame implements Game
     }
 
     /** @return array<int, array{rank: int, suit: string}> */
-    protected function shuffledDeck(): array
+    /**
+     * @return array<int, array{rank: int, suit: string}>
+     */
+    protected function shuffledDeck(GameRound $round): array
     {
         $deck = [];
 
@@ -59,7 +66,14 @@ class BlackjackGame implements Game
         }
 
         for ($index = count($deck) - 1; $index > 0; $index--) {
-            $swapIndex = random_int(0, $index);
+            $swapIndex = $this->provablyFair->integer(
+                $round->server_seed,
+                $round->client_seed,
+                ($round->nonce * 52) + (51 - $index),
+                0,
+                $index,
+            );
+
             [$deck[$index], $deck[$swapIndex]] = [$deck[$swapIndex], $deck[$index]];
         }
 
@@ -68,7 +82,7 @@ class BlackjackGame implements Game
 
     private function deal(int $bet): GameResult
     {
-        $deck = $this->shuffledDeck();
+        $deck = $this->shuffledDeck($round);
         $state = [
             'deck' => $deck,
             'player' => [],
