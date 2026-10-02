@@ -7,7 +7,9 @@ namespace App\Livewire\Casino;
 use App\Enums\GameType;
 use App\Enums\RoundStatus;
 use App\Models\GameRound;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 
 class Coinflip extends CasinoGameComponent
 {
@@ -26,15 +28,25 @@ class Coinflip extends CasinoGameComponent
 
     public string $streakSide = '';
 
+    public int $walletBalance = 0;
+
     public function mount(): void
     {
         parent::mount();
         $this->loadRecentStats();
+        $this->walletBalance = $this->currentBalance();
     }
 
     public function prepare(): void
     {
+        $this->walletBalance = $this->currentBalance();
         $this->prepareGame(GameType::Coinflip);
+    }
+
+    #[On('wallet-updated')]
+    public function refreshWallet(): void
+    {
+        $this->walletBalance = $this->currentBalance();
     }
 
     public function flip(): void
@@ -42,6 +54,7 @@ class Coinflip extends CasinoGameComponent
         $this->validate(['side' => ['required', 'in:heads,tails']]);
         $this->playGame(GameType::Coinflip, ['side' => $this->side]);
         $this->loadRecentStats();
+        $this->walletBalance = $this->currentBalance();
     }
 
     private function loadRecentStats(): void
@@ -112,5 +125,16 @@ class Coinflip extends CasinoGameComponent
     public function render(): View
     {
         return view('livewire.casino.coinflip');
+    }
+
+    private function currentBalance(): int
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof \App\Models\User) {
+            abort(401);
+        }
+
+        return (int) ($user->wallet()->value('balance') ?? 0);
     }
 }
