@@ -39,8 +39,8 @@ class CasinoSimulationService
                 continue;
             }
 
-            $rows = (int) config('casino.games.slots.rows', 5);
-            $columns = (int) config('casino.games.slots.columns', 5);
+            $rows = (int) config('casino.games.slots.rows', 3);
+            $columns = (int) config('casino.games.slots.columns', 3);
             $symbolCount = (int) config('casino.games.slots.symbol_count', 5);
             $grid = [];
 
