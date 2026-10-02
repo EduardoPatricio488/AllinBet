@@ -101,8 +101,54 @@
                     </div>
                 </header>
 
-                <main class="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 md:pb-8 lg:px-8">
-                    @yield('content')
+                @php
+                    $isCasinoGameRoute = collect($casinoGames)->contains(fn ($game) => request()->routeIs($game['route']));
+                    $currentCasinoGame = $isCasinoGameRoute
+                        ? collect($casinoGames)->first(fn ($game) => request()->routeIs($game['route']))
+                        : null;
+                @endphp
+
+                <main class="casino-main mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-8 lg:px-8">
+                    @if ($isCasinoGameRoute && $currentCasinoGame)
+                        <div class="casino-game-chrome" data-casino-game-chrome>
+                            <div class="casino-game-chrome__head">
+                                <div>
+                                    <p class="casino-eyebrow">ALLINBET · ORIGINALS</p>
+                                    <div class="casino-game-chrome__title">
+                                        <strong>{{ $currentCasinoGame['name'] }}</strong>
+                                        <span>{{ $currentCasinoGame['label'] }}</span>
+                                    </div>
+                                </div>
+                                <div class="casino-game-chrome__meta">
+                                    @auth
+                                        <a href="{{ route('casino.wallet') }}" wire:navigate>Carteira <b>@livewire('casino.wallet-balance')</b></a>
+                                    @endauth
+                                    <span class="casino-game-chrome__live"><i></i> AO VIVO</span>
+                                </div>
+                            </div>
+
+                            <nav class="casino-game-chrome__switch" aria-label="Jogos">
+                                @foreach ($casinoGames as $game)
+                                    <a href="{{ auth()->check() ? route($game['route']) : route('login') }}"
+                                       class="{{ request()->routeIs($game['route']) ? 'is-current' : '' }}"
+                                       wire:navigate>
+                                        <span>{{ $game['icon'] }}</span>
+                                        {{ $game['name'] }}
+                                    </a>
+                                @endforeach
+                                <a href="{{ route('casino.history') }}" wire:navigate>☰ Histórico</a>
+                                <a href="{{ route('casino.help') }}" wire:navigate>♥ Responsável</a>
+                            </nav>
+
+                            <div class="casino-game-chrome__ambient" aria-hidden="true">
+                                <span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="casino-main__content">
+                        @yield('content')
+                    </div>
                 </main>
 
                 <footer class="border-t border-casino-gold/15 px-4 py-5 text-center text-xs text-zinc-400">
