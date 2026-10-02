@@ -157,7 +157,10 @@
 
                 <main class="casino-main mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-8 lg:px-8">
                     @if ($isCasinoGameRoute && $currentCasinoGame)
-                        <div class="casino-game-chrome" data-casino-game-chrome>
+                        <div class="casino-game-chrome" data-casino-game-chrome
+                             x-data="{ state: 'ready', labels: { ready: 'APOSTA ABERTA', prepared: 'APOSTA PREPARADA', in_progress: 'EM JOGO', completed: 'RESULTADO', cancelled: 'CANCELADA' } }"
+                             x-on:casino-round-state.window="state = $event.detail?.phase || 'ready'"
+                             x-on:casino-round-result.window="state = 'completed'">
                             <div class="casino-game-chrome__head">
                                 <div>
                                     <p class="casino-eyebrow">ALLINBET · ORIGINALS</p>
@@ -170,7 +173,11 @@
                                     @auth
                                         <a href="{{ route('casino.wallet') }}" wire:navigate>Carteira <b>@livewire('casino.wallet-balance')</b></a>
                                     @endauth
-                                    <span class="casino-game-chrome__live"><i></i> AO VIVO</span>
+                                    <span class="casino-game-chrome__live"
+                                      :class="'casino-game-chrome__live--' + state">
+                                        <i></i>
+                                        <span x-text="labels[state] || 'APOSTA ABERTA'">APOSTA ABERTA</span>
+                                    </span>
                                 </div>
                             </div>
 
