@@ -390,10 +390,9 @@
             }
         }
      }"
-     x-init="buildReelTracks()">
-    <x-casino.loading-overlay target="prepare,spin,buyBonus" />
      x-init="buildReelTracks()"
      x-on:casino-round-result.window="settleVisualResult($event)">
+    <x-casino.loading-overlay target="prepare,spin,buyBonus" />
     <div class="slot-page-main">
         <section class="slot-collection" aria-label="Escolher máquina de Slots">
         <div class="slot-collection__head">
@@ -545,7 +544,7 @@
             position: relative;
             display: block;
             width: 100%;
-            height: calc((var(--cell) * 5) + 1.4rem);
+            height: calc((var(--cell) * 3) + 1.4rem);
             overflow: hidden;
             padding: .7rem;
             border-radius: 1.2rem;
@@ -566,7 +565,7 @@
         .slot-reel {
             position: relative;
             overflow: hidden;
-            height: calc(var(--cell) * 5);
+            height: calc(var(--cell) * 3);
             min-width: 0;
             border-radius: .75rem;
             background: linear-gradient(180deg,#19221f,#0a0f0e);
@@ -869,7 +868,7 @@
             .slot-bonus-buy__options { grid-template-columns: 1fr; }
             .slot-bonus-result__stats { grid-template-columns: 1fr 1fr; }
             .slot-deck { grid-template-columns: 1fr; } .slot-spin { grid-column: auto; }
-            .slot-window { padding: .55rem; height: calc((var(--cell) * 5) + 1.1rem); }
+            .slot-window { padding: .55rem; height: calc((var(--cell) * 3) + 1.1rem); }
         }
         @media (prefers-reduced-motion: reduce) {
             .slot-reel.is-spin .slot-spinner, .slot-reel.is-settle .slot-spinner,
